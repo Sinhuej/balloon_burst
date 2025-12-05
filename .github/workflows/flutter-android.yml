@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -10,30 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo with token
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           token: ${{ secrets.ENGINE_TOKEN }}
 
-      - name: Force git to use token for tapjunkie_engine
+      - name: Force Git to use ENGINE_TOKEN for ALL GitHub requests
         run: |
           git config --global url."https://${{ secrets.ENGINE_TOKEN }}:@github.com/".insteadOf "https://github.com/"
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
-      - name: Get dependencies
+      - name: flutter pub get
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: balloon_burst-apk
+          name: balloon-burst-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-
