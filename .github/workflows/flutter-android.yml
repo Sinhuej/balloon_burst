@@ -10,14 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout THIS repo using the built-in GITHUB_TOKEN
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.ENGINE_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Force Git to use ENGINE_TOKEN for ALL GitHub requests
+      # Override ONLY the tapjunkie_engine dependency
+      - name: Setup private dependency auth
         run: |
-          git config --global url."https://${{ secrets.ENGINE_TOKEN }}:@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${{ secrets.ENGINE_TOKEN }}:@github.com/Sinhuej/tapjunkie_engine.git".insteadOf "https://github.com/Sinhuej/tapjunkie_engine.git"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -36,3 +38,4 @@ jobs:
         with:
           name: balloon-burst-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
