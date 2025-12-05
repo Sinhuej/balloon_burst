@@ -13,15 +13,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        ssh-key: ${{ secrets.TJE_SSH_KEY }}
-        persist-credentials: true
-        submodules: true
         fetch-depth: 0
+        submodules: true
 
     - name: Setup SSH for git dependencies
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.TJE_SSH_KEY }}" > ~/.ssh/id_ed25519
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan github.com >> ~/.ssh/known_hosts
 
@@ -35,10 +33,4 @@ jobs:
 
     - name: Build APK
       run: flutter build apk --release
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: balloon-burst-apk
-        path: build/app/outputs/flutter-apk/app-release.apk
 
