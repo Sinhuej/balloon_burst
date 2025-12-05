@@ -15,7 +15,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Allow private engine dependency
+      - name: Allow private engine access
         run: |
           git config --global url."https://${{ secrets.ENGINE_TOKEN }}:@github.com/Sinhuej/tapjunkie_engine.git".insteadOf "https://github.com/Sinhuej/tapjunkie_engine.git"
 
@@ -24,13 +24,13 @@ jobs:
         with:
           channel: stable
 
-      - name: Pub Get
+      - name: Flutter Pub Get
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build Release APK
         run: flutter build apk --release
 
-      - name: Upload Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: balloon_burst-apk
