@@ -1,24 +1,44 @@
-- name: Get Flutter packages
-        working-directory: .
+name: Flutter Android Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          persist-credentials: true
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup SSH for git dependencies
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter pub get
         run: flutter pub get
 
       - name: Build APK
-        working-directory: .
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: balloon-burst-apk
+          name: balloon_burst-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Build AAB
-        working-directory: .
-        run: flutter build appbundle --release
-
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: balloon-burst-aab
-          path: build/app/outputs/bundle/release/app-release.aab
 
