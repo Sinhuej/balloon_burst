@@ -1,3 +1,9 @@
+name: balloon_burst
+description: A balloon popping game.
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+
 dependencies:
   flutter:
     sdk: flutter
@@ -6,6 +12,5 @@ dependencies:
 
   tapjunkie_engine:
     git:
-      url: https://$ENGINE_TOKEN@github.com/Sinhuej/tapjunkie_engine.git
+      url: https://${ENGINE_TOKEN}@github.com/Sinhuej/tapjunkie_engine.git
       ref: main
-
