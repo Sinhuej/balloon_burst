@@ -10,35 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          persist-credentials: true
-          submodules: true
-          fetch-depth: 0
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true
+        submodules: true
+        fetch-depth: 0
 
-      - name: Setup SSH for git dependencies
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - name: Setup SSH for git dependencies
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.TJE_SSH_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
+    - name: Install Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
 
-      - name: Flutter pub get
-        run: flutter pub get
+    - name: Flutter pub get
+      run: flutter pub get
 
-      - name: Build APK
-        run: flutter build apk --release
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: balloon_burst-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+    - name: Build APK
+      run: flutter build apk --release
 
