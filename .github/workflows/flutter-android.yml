@@ -1,58 +1,24 @@
-name: Build Balloon Burst APK
-
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup SSH for private TapJunkie Engine
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY_TJE }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          cat >> ~/.ssh/config <<EOF
-          Host github.com
-            HostName github.com
-            User git
-            IdentityFile ~/.ssh/id_ed25519
-            StrictHostKeyChecking no
-          EOF
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-
-      - name: Get Flutter packages
-        working-directory: ./balloon_burst
+- name: Get Flutter packages
+        working-directory: .
         run: flutter pub get
 
       - name: Build APK
-        working-directory: ./balloon_burst
+        working-directory: .
         run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: balloon-burst-apk
-          path: balloon_burst/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Build AAB
-        working-directory: ./balloon_burst
+        working-directory: .
         run: flutter build appbundle --release
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: balloon-burst-aab
-          path: balloon_burst/build/app/outputs/bundle/release/app-release.aab
+          path: build/app/outputs/bundle/release/app-release.aab
 
