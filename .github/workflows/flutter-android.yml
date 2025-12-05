@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -10,27 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Setup Flutter
+      - name: Force HTTPS for all Git operations
+        run: |
+          git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+          git config --global url."https://github.com/".insteadOf git@github.com:
+
+      - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      - name: Enable GitHub Token for private dependencies
-        run: |
-          git config --global url."https://${GITHUB_ACTOR}:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-      
-      - name: Get Dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: balloon_burst-apk
