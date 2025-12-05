@@ -8,6 +8,19 @@ environment:
   sdk: ">=3.1.0 <4.0.0"
   flutter: ">=3.13.0"
 
+dependencies:
+  tapjunkie_engine:
+
+    git:
+
+      url: https://github.com/${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/Sinhuej/tapjunkie_engine.git
+
+      url: "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/Sinhuej/tapjunkie_engine.git"
+  flutter:
+    sdk: flutter
+  flame: ^1.17.0
+    url: https://github.com/${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/Sinhuej/tapjunkie_engine.git
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -18,10 +31,3 @@ flutter:
   assets:
     - assets/sprites/
     - assets/images/
-dependencies:
-  flutter:
-    sdk: flutter
-  flame: ^1.17.0
-  tapjunkie_engine:
-    git:
-      url: https://github.com/Sinhuej/tapjunkie_engine.git
