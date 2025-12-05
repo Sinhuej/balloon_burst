@@ -1,5 +1,5 @@
 name: balloon_burst
-description: "Balloon Burst - A TapJunkie Mini-Game"
+description: "Balloon Burst – A TapJunkie Mini-Game"
 publish_to: "none"
 
 version: 1.0.0+1
@@ -14,7 +14,7 @@ dependencies:
   flame: ^1.17.0
   tapjunkie_engine:
     git:
-      url: https://github.com/Sinhuej/tapjunkie_engine.git
+      url: git@github.com:Sinhuej/tapjunkie_engine.git
 
 dev_dependencies:
   flutter_test:
@@ -26,4 +26,3 @@ flutter:
   assets:
     - assets/sprites/
     - assets/images/
-
