@@ -19,27 +19,24 @@ jobs:
         with:
           channel: stable
 
-      - name: Install dependencies
-        working-directory: ./balloon_burst
+      - name: Get dependencies
         run: flutter pub get
 
       - name: Build APK
-        working-directory: ./balloon_burst
         run: flutter build apk --release
 
       - name: Build AAB
-        working-directory: ./balloon_burst
         run: flutter build appbundle --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: balloon-burst-apk
-          path: balloon_burst/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: balloon-burst-aab
-          path: balloon_burst/build/app/outputs/bundle/release/app-release.aab
+          path: build/app/outputs/bundle/release/app-release.aab
 
