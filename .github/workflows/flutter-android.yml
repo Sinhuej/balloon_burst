@@ -1,37 +1,45 @@
-name: Flutter Android Build
+name: Build Balloon Burst APK
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          cache: true
 
-      - name: Flutter pub get
+      - name: Install dependencies
+        working-directory: ./balloon_burst
         run: flutter pub get
 
-      - name: Build Android APK
+      - name: Build APK
+        working-directory: ./balloon_burst
         run: flutter build apk --release
 
-      - name: Build Android App Bundle
+      - name: Build AAB
+        working-directory: ./balloon_burst
         run: flutter build appbundle --release
 
-      - name: Upload build artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-build-${{ github.sha }}
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+          name: balloon-burst-apk
+          path: balloon_burst/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: balloon-burst-aab
+          path: balloon_burst/build/app/outputs/bundle/release/app-release.aab
+
