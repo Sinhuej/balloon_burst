@@ -9,11 +9,16 @@ environment:
   flutter: ">=3.13.0"
 
 dependencies:
+  tapjunkie_engine:
+
+    git:
+
+      url: https://github.com/${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/Sinhuej/tapjunkie_engine.git
+
+      url: "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/Sinhuej/tapjunkie_engine.git"
   flutter:
     sdk: flutter
   flame: ^1.17.0
-  tapjunkie_engine:
-  git:
     url: https://github.com/${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/Sinhuej/tapjunkie_engine.git
 
 dev_dependencies:
