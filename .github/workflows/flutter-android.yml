@@ -9,25 +9,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ENGINE_TOKEN: ${{ secrets.ENGINE_TOKEN }}
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo with token
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.ENGINE_TOKEN }}
 
-      - name: Install Flutter
+      - name: Force git to use token for tapjunkie_engine
+        run: |
+          git config --global url."https://${{ secrets.ENGINE_TOKEN }}:@github.com/".insteadOf "https://github.com/"
+
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      - name: Install dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Build release APK
+      - name: Build APK
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: balloon_burst-apk
