@@ -1,36 +1,38 @@
-name: Flutter Android Build
+name: Build Android APK
 
 on:
   push:
     branches: [ main ]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          submodules: true
-          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup SSH for tapjunkie_engine
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ENGINE_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-      - name: Install Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      - name: Get dependencies
+      - name: Enable GitHub Token for private dependencies
+        run: |
+          git config --global url."https://${GITHUB_ACTOR}:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+      
+      - name: Get Dependencies
         run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: balloon_burst-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
