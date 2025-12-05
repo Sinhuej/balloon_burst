@@ -1,8 +1,9 @@
 import 'package:flame/components.dart';
 import 'package:tapjunkie_engine/tapjunkie_engine.dart';
+import 'package:tapjunkie_engine/engine/core/states.dart';
 
 class BalloonComponent extends RectangleComponent
-    with HasGameReference<TJGame> {
+    with HasGameRef<TJGame> {
   BalloonComponent({required Vector2 startPosition})
       : super(
           position: startPosition,
@@ -15,11 +16,8 @@ class BalloonComponent extends RectangleComponent
   @override
   void update(double dt) {
     super.update(dt);
-
-    // Move balloon upward
     position.y -= riseSpeed * dt;
 
-    // If balloon goes off-screen → game over
     if (position.y < -200) {
       removeFromParent();
       gameRef.gameManager.setState(GameState.gameOver);
@@ -28,11 +26,9 @@ class BalloonComponent extends RectangleComponent
 
   void pop() {
     removeFromParent();
-    // Add scoring logic here if needed
   }
 
   bool hitTest(Vector2 point) {
     return toRect().contains(point.toOffset());
   }
 }
-

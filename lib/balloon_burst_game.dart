@@ -1,10 +1,11 @@
 import 'dart:math';
 import 'package:flame/components.dart';
-import 'package:flame/input.dart';
+import 'package:flame/events.dart';        // TapDownEvent + TapCallbacks
 import 'package:tapjunkie_engine/tapjunkie_engine.dart';
+
 import 'balloon_component.dart';
 
-class BalloonBurstGame extends TJGame with TapDetector {
+class BalloonBurstGame extends TJGame with TapCallbacks {
   final _rng = Random();
   late final Spawner spawner;
 
@@ -30,12 +31,14 @@ class BalloonBurstGame extends TJGame with TapDetector {
 
     final x = _rng.nextDouble() * size.x;
     final pos = Vector2(x, size.y + 120);
+
     add(BalloonComponent(startPosition: pos));
   }
 
   @override
-  void onTapDown(TapDownInfo info) {
-    final pos = info.eventPosition.game;
+  void onTapDown(TapDownEvent event) {
+    final pos = event.localPosition;
+
     for (final b in children.whereType<BalloonComponent>()) {
       if (b.hitTest(pos)) {
         b.pop();
