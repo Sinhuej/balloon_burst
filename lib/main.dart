@@ -1,8 +1,10 @@
 import 'dart:math';
+import 'dart:ui' show Canvas, MaskFilter, BlurStyle;
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
@@ -11,7 +13,7 @@ Future<void> main() async {
   runApp(BalloonApp(storage: GameStorage(prefs)));
 }
 
-/// Simple storage for coins and high score.
+/// Simple storage for scores, coins, and meta.
 class GameStorage {
   final SharedPreferences prefs;
   GameStorage(this.prefs);
@@ -21,6 +23,12 @@ class GameStorage {
 
   int get coins => prefs.getInt('coins') ?? 0;
   set coins(int v) => prefs.setInt('coins', v);
+
+  int get bestCombo => prefs.getInt('best_combo') ?? 0;
+  set bestCombo(int v) => prefs.setInt('best_combo', v);
+
+  int get lastScore => prefs.getInt('last_score') ?? 0;
+  set lastScore(int v) => prefs.setInt('last_score', v);
 }
 
 /// Root app widget
@@ -68,6 +76,16 @@ class MainMenu extends StatelessWidget {
               Text(
                 "High Score: ${storage.highScore}",
                 style: const TextStyle(fontSize: 18, color: Colors.white70),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Best Combo: ${storage.bestCombo}",
+                style: const TextStyle(fontSize: 16, color: Colors.cyanAccent),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Last Score: ${storage.lastScore}",
+                style: const TextStyle(fontSize: 16, color: Colors.white54),
               ),
               const SizedBox(height: 4),
               Text(
@@ -121,7 +139,7 @@ class GameScreen extends StatelessWidget {
 enum BalloonType { normal, golden, bomb, lightning }
 
 /// ===============================
-/// CORE GAME (Step A upgrades)
+/// CORE GAME (TapJunkie Step A.2)
 /// ===============================
 class BalloonGame extends FlameGame {
   final GameStorage storage;
@@ -138,9 +156,12 @@ class BalloonGame extends FlameGame {
 
   bool inFrenzy = false;
   double frenzyTimeLeft = 0;
+  double frenzyFlashTime = 0;
 
   double _lastPopTimeSeconds = 0;
   static const double _comboWindowSeconds = 0.8;
+
+  double comboPulseTime = 0;
 
   late TextComponent scoreText;
   late TextComponent livesText;
@@ -151,8 +172,28 @@ class BalloonGame extends FlameGame {
   bool _gameOver = false;
 
   @override
-  Color backgroundColor() =>
-      inFrenzy ? const Color(0xFF1B2B4A) : const Color(0xFF101528);
+  Color backgroundColor() {
+    if (frenzyFlashTime > 0) {
+      return Colors.yellowAccent;
+    }
+    if (!inFrenzy) {
+      return const Color(0xFF101528);
+    }
+
+    // Electric-green / firestorm palette
+    final t = DateTime.now().millisecondsSinceEpoch ~/ 140 % 4;
+    switch (t) {
+      case 0:
+        return const Color(0xFF00FF66); // neon green
+      case 1:
+        return const Color(0xFFFF8800); // fire orange
+      case 2:
+        return const Color(0xFFFFFF33); // electric yellow
+      case 3:
+      default:
+        return const Color(0xFFFF0033); // hot red
+    }
+  }
 
   @override
   Future<void> onLoad() async {
@@ -196,9 +237,15 @@ class BalloonGame extends FlameGame {
 
     add(
       TimerComponent(
-        period: 0.9,
+        period: 0.7, // faster base spawn
         repeat: true,
-        onTick: spawnBalloon,
+        onTick: () {
+          spawnBalloon();
+          // Extra spawn during frenzy for chaos
+          if (inFrenzy && rng.nextDouble() < 0.7) {
+            spawnBalloon();
+          }
+        },
       ),
     );
   }
@@ -215,6 +262,19 @@ class BalloonGame extends FlameGame {
         frenzyText.text = "";
       }
     }
+
+    if (frenzyFlashTime > 0) {
+      frenzyFlashTime -= dt;
+      if (frenzyFlashTime < 0) frenzyFlashTime = 0;
+    }
+
+    if (comboPulseTime > 0) {
+      comboPulseTime -= dt;
+      if (comboPulseTime < 0) comboPulseTime = 0;
+    }
+    final pulseT = (comboPulseTime / 0.2).clamp(0.0, 1.0);
+    final scale = 1.0 + 0.3 * pulseT;
+    comboText.scale = Vector2.all(scale);
   }
 
   void spawnBalloon() {
@@ -237,10 +297,11 @@ class BalloonGame extends FlameGame {
       type = BalloonType.normal;
     }
 
-    double speed = 60 + score * 0.25;
-    if (inFrenzy) speed *= 1.3;
+    // TapJunkie speed curve
+    double speed = 120 + score * 0.45;
+    if (inFrenzy) speed *= 1.7;
 
-    final color = _colorForType(type);
+    final baseColor = _colorForType(type);
 
     add(
       Balloon(
@@ -248,7 +309,7 @@ class BalloonGame extends FlameGame {
         radius: radius,
         position: position,
         speed: speed,
-        paint: Paint()..color = color,
+        baseColor: baseColor,
       ),
     );
   }
@@ -270,21 +331,24 @@ class BalloonGame extends FlameGame {
   void handleBalloonTap(Balloon balloon) {
     if (_gameOver) return;
 
+    // Basic system sound click (no assets needed)
+    SystemSound.play(SystemSoundType.click);
+
     switch (balloon.type) {
       case BalloonType.bomb:
         _handleBombHit();
         break;
-
       case BalloonType.golden:
         _handlePop(balloonType: BalloonType.golden);
         break;
-
       case BalloonType.lightning:
         _handlePop(balloonType: BalloonType.lightning);
+        _popNearbyBalloons(balloon);
         break;
-
+      case BalloonType.normal:
       default:
         _handlePop(balloonType: BalloonType.normal);
+        break;
     }
 
     balloon.removeFromParent();
@@ -314,14 +378,18 @@ class BalloonGame extends FlameGame {
 
     if (combo > bestCombo) bestCombo = combo;
 
+    // Enter frenzy at 10+ combo
     if (combo >= 10 && !inFrenzy) {
       inFrenzy = true;
       frenzyTimeLeft = 5;
       frenzyText.text = "FRENZY!";
+      frenzyFlashTime = 0.15;
     }
 
     comboText.text = "Combo: $combo";
+    comboPulseTime = 0.2;
 
+    // TapJunkie scoring
     int base;
     switch (balloonType) {
       case BalloonType.golden:
@@ -330,8 +398,10 @@ class BalloonGame extends FlameGame {
       case BalloonType.lightning:
         base = 3;
         break;
+      case BalloonType.normal:
       default:
         base = 1;
+        break;
     }
 
     int multiplier = 1;
@@ -346,6 +416,22 @@ class BalloonGame extends FlameGame {
 
     scoreText.text = "Score: $score";
     coinsText.text = "Coins: ${storage.coins + coinsEarned}";
+  }
+
+  void _popNearbyBalloons(Balloon source) {
+    const double radius = 140;
+    final toRemove = <Balloon>[];
+    for (final c in children.whereType<Balloon>()) {
+      if (c == source) continue;
+      if (c.position.distanceTo(source.position) <= radius) {
+        toRemove.add(c);
+      }
+    }
+    for (final b in toRemove) {
+      // chain pops count as normal pops
+      _handlePop(balloonType: BalloonType.normal);
+      b.removeFromParent();
+    }
   }
 
   void handleMiss() {
@@ -370,41 +456,86 @@ class BalloonGame extends FlameGame {
 
     storage.coins = storage.coins + coinsEarned;
     if (score > storage.highScore) storage.highScore = score;
+    if (bestCombo > storage.bestCombo) storage.bestCombo = bestCombo;
+    storage.lastScore = score;
 
     overlays.add('GameOver');
   }
 }
 
 /// ===============================
-/// BALLOON COMPONENT
+/// BALLOON COMPONENT WITH GLOW
 /// ===============================
 class Balloon extends CircleComponent
     with TapCallbacks, HasGameRef<BalloonGame> {
   final double speed;
   final BalloonType type;
+  final Color baseColor;
+
+  late final Paint glowPaint;
+  double _time = 0;
 
   Balloon({
     required this.type,
     required double radius,
     required Vector2 position,
     required this.speed,
-    required Paint paint,
+    required this.baseColor,
   }) : super(
           radius: radius,
           position: position,
-          paint: paint,
           anchor: Anchor.center,
-        );
+        ) {
+    paint = Paint()..color = baseColor;
+
+    // Neon glow for special balloons
+    final glowColor = _glowColorForType(type);
+    glowPaint = Paint()
+      ..color = glowColor.withOpacity(0.7)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+  }
+
+  Color _glowColorForType(BalloonType type) {
+    switch (type) {
+      case BalloonType.golden:
+        return const Color(0xFFFFEE55); // neon gold
+      case BalloonType.bomb:
+        return const Color(0xFFFF3333); // hot red
+      case BalloonType.lightning:
+        return const Color(0xFF33CCFF); // electric blue
+      case BalloonType.normal:
+      default:
+        return Colors.transparent;
+    }
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
+    _time += dt;
+
     position.y -= speed * dt;
 
     if (position.y < -radius) {
       gameRef.handleMiss();
       removeFromParent();
     }
+
+    // Bomb pulsation
+    if (type == BalloonType.bomb) {
+      final pulse = 0.5 + 0.3 * sin(_time * 8);
+      glowPaint.color =
+          glowPaint.color.withOpacity(pulse.clamp(0.2, 1.0).toDouble());
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // Draw glow for special balloons
+    if (type != BalloonType.normal) {
+      canvas.drawCircle(Offset.zero, radius * 1.4, glowPaint);
+    }
+    super.render(canvas);
   }
 
   @override
@@ -446,9 +577,10 @@ class GameOverOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text("Score: ${game.score}"),
-            Text("Best Combo: ${game.bestCombo}"),
+            Text("Best Combo (this run): ${game.bestCombo}"),
             Text("Coins this run: ${game.coinsEarned}"),
             Text("High Score: ${storage.highScore}"),
+            Text("Best Combo: ${storage.bestCombo}"),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
@@ -462,4 +594,3 @@ class GameOverOverlay extends StatelessWidget {
     );
   }
 }
-
