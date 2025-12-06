@@ -1,6 +1,8 @@
 name: balloon_burst
-description: Balloon popping game
+description: A Flame-based Balloon Burst game for TapJunkie
 publish_to: "none"
+
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -8,17 +10,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flame: ^1.17.0
-
-  tapjunkie_engine:
-    git:
-      url: https://github.com/Sinhuej/tapjunkie_engine.git
-      ref: main
+  flame: ^1.15.0
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/
 
