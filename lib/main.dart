@@ -476,24 +476,32 @@ class Balloon extends CircleComponent
   double _time = 0;
 
   Balloon({
-    required this.type,
-    required double radius,
-    required Vector2 position,
-    required this.speed,
-    required this.baseColor,
-  }) : super(
-          radius: radius,
-          position: position,
-          anchor: Anchor.center,
-        ) {
-    paint = Paint()..color = baseColor;
+  required this.type,
+  required double radius,
+  required Vector2 position,
+  required this.speed,
+  required this.baseColor,
+}) : super(
+        radius: radius,
+        position: position,
+        anchor: Anchor.center,
+      ) {
+  
+  // Base balloon paint
+  paint = Paint()..color = baseColor;
 
-    // Neon glow for special balloons
-    final glowColor = _glowColorForType(type);
-    glowPaint = Paint()
-      ..color = glowColor.withOpacity(0.7)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-  }
+  // ⭐ HITBOX — fixes missed taps
+  add(
+    CircleHitbox()
+      ..collisionType = CollisionType.inactive,
+  );
+
+  // Glow paint depending on balloon type
+  final glowColor = _glowColorForType(type);
+  glowPaint = Paint()
+    ..color = glowColor.withOpacity(0.7)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+}
 
   Color _glowColorForType(BalloonType type) {
     switch (type) {
