@@ -12,7 +12,7 @@ Future<void> main() async {
   runApp(BalloonBurstApp(storage: storage));
 }
 
-/// Handles coins, skins, and high scores.
+/// SIMPLE DATA STORAGE (coins, high score, skins)
 class GameStorage {
   final SharedPreferences prefs;
 
@@ -31,16 +31,11 @@ class GameStorage {
   String get selectedSkin => prefs.getString(_keySkin) ?? 'classic';
   set selectedSkin(String v) => prefs.setString(_keySkin, v);
 
-  bool isSkinUnlocked(String id) {
-    if (id == 'classic') return true;
-    return prefs.getBool('skin_$id') ?? false;
-  }
-
-  void unlockSkin(String id) {
-    if (id != 'classic') prefs.setBool('skin_$id', true);
-  }
+  bool isSkinUnlocked(String id) => id == 'classic' || (prefs.getBool('skin_$id') ?? false);
+  void unlockSkin(String id) => prefs.setBool('skin_$id', true);
 }
 
+/// APP ROOT
 class BalloonBurstApp extends StatelessWidget {
   final GameStorage storage;
   const BalloonBurstApp({super.key, required this.storage});
@@ -55,9 +50,9 @@ class BalloonBurstApp extends StatelessWidget {
   }
 }
 
-/// ------------------------------
-/// MAIN MENU UI
-/// ------------------------------
+/// ===============================
+/// MAIN MENU
+/// ===============================
 class MainMenuScreen extends StatefulWidget {
   final GameStorage storage;
   const MainMenuScreen({super.key, required this.storage});
@@ -67,89 +62,51 @@ class MainMenuScreen extends StatefulWidget {
 }
 
 class _MainMenuScreenState extends State<MainMenuScreen> {
-  late int _coins;
-  late int _highScore;
-
-  @override
-  void initState() {
-    super.initState();
-    _refresh();
-  }
-
-  void _refresh() {
-    _coins = widget.storage.coins;
-    _highScore = widget.storage.highScore;
-  }
-
-  Future<void> _startGame() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => GameScreen(storage: widget.storage),
-      ),
-    );
-    setState(_refresh);
-  }
-
-  Future<void> _openShop() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ShopScreen(storage: widget.storage),
-      ),
-    );
-    setState(_refresh);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF101528),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "BALLOON BURST",
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.pinkAccent,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "High Score: $_highScore",
-                style: const TextStyle(fontSize: 18, color: Colors.white70),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                "Coins: $_coins",
-                style: const TextStyle(fontSize: 18, color: Colors.amberAccent),
-              ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: _startGame,
-                child: const Text("PLAY"),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _openShop,
-                child: const Text("SHOP & SKINS"),
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text("BALLOON BURST",
+                style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.pinkAccent)),
+            const SizedBox(height: 20),
+            Text("High Score: ${widget.storage.highScore}",
+                style: const TextStyle(fontSize: 18)),
+            Text("Coins: ${widget.storage.coins}",
+                style: const TextStyle(fontSize: 18, color: Colors.amberAccent)),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(context,
+                  MaterialPageRoute(
+                    builder: (_) => GameScreen(storage: widget.storage),
+                  ));
+              },
+              child: const Text("PLAY"),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(context,
+                  MaterialPageRoute(
+                    builder: (_) => ShopScreen(storage: widget.storage),
+                  ));
+              },
+              child: const Text("SHOP"),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// ------------------------------
-/// GAME SCREEN
-/// ------------------------------
+/// ===============================
+/// GAME SCREEN (Flame GameWidget)
+/// ===============================
 class GameScreen extends StatelessWidget {
   final GameStorage storage;
   const GameScreen({super.key, required this.storage});
@@ -164,62 +121,57 @@ class GameScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.pause),
-            onPressed: () => game.pause(),
+            onPressed: () => game.pauseGame(),
           )
         ],
       ),
-      body: GameWidget(
+      body: GameWidget<BalloonBurstGame>(
         game: game,
         overlayBuilderMap: {
-          'PauseMenu': (ctx, game) => PauseOverlay(game: game),
-          'GameOver': (ctx, game) =>
-              GameOverOverlay(game: game, storage: storage),
+          'PauseMenu': (context, BalloonBurstGame game) =>
+            PauseOverlay(game: game),
+          'GameOver': (context, BalloonBurstGame game) =>
+            GameOverOverlay(game: game, storage: storage),
         },
       ),
     );
   }
 }
 
-/// ------------------------------
-/// FLAME GAME CORE LOGIC
-/// ------------------------------
-class BalloonBurstGame extends FlameGame with HasTappables {
+/// ===============================
+/// FLAME GAME CORE
+/// ===============================
+class BalloonBurstGame extends FlameGame with HasTappableComponents {
   final GameStorage storage;
   BalloonBurstGame({required this.storage});
 
-  final Random _rng = Random();
+  final Random rng = Random();
   int score = 0;
   int lives = 3;
   int coinsEarned = 0;
 
+  bool isGameOver = false;
+
   late TextComponent scoreText;
   late TextComponent livesText;
   late TextComponent coinsText;
-
-  bool gameOver = false;
-
-  @override
-  Color backgroundColor() => const Color(0xFF101528);
 
   @override
   Future<void> onLoad() async {
     scoreText = TextComponent(
       text: "Score: 0",
       position: Vector2(10, 10),
-      textRenderer:
-          TextPaint(style: const TextStyle(color: Colors.white, fontSize: 16)),
+      textRenderer: TextPaint(style: const TextStyle(color: Colors.white)),
     );
     livesText = TextComponent(
       text: "Lives: 3",
       position: Vector2(10, 30),
-      textRenderer:
-          TextPaint(style: const TextStyle(color: Colors.red, fontSize: 16)),
+      textRenderer: TextPaint(style: const TextStyle(color: Colors.red)),
     );
     coinsText = TextComponent(
       text: "Coins: ${storage.coins}",
       position: Vector2(10, 50),
-      textRenderer:
-          TextPaint(style: const TextStyle(color: Colors.amber, fontSize: 16)),
+      textRenderer: TextPaint(style: const TextStyle(color: Colors.amber)),
     );
 
     add(scoreText);
@@ -227,35 +179,37 @@ class BalloonBurstGame extends FlameGame with HasTappables {
     add(coinsText);
 
     add(TimerComponent(
-      period: 0.9,
+      period: 1,
       repeat: true,
       onTick: spawnBalloon,
     ));
   }
 
   void spawnBalloon() {
-    if (gameOver || size.x == 0) return;
+    if (isGameOver) return;
 
-    final radius = 20 + _rng.nextDouble() * 25;
-    final x = radius + _rng.nextDouble() * (size.x - radius * 2);
-    final isGolden = _rng.nextDouble() < 0.08;
+    final radius = 20 + rng.nextDouble() * 25;
+    final x = radius + rng.nextDouble() * (size.x - radius * 2);
+
+    final isGolden = rng.nextDouble() < 0.1;
 
     final balloon = Balloon(
       radius: radius,
-      position: Vector2(x, size.y + radius + 20),
-      speed: 60 + score * 0.3,
+      position: Vector2(x, size.y + radius + 10),
+      speed: 50 + score * 0.3,
       isGolden: isGolden,
-      color: isGolden ? Colors.amberAccent : Colors.primaries[_rng.nextInt(Colors.primaries.length)],
+      color: isGolden ? Colors.amberAccent : Colors.primaries[rng.nextInt(Colors.primaries.length)],
       onPop: handlePop,
       onMiss: handleMiss,
     );
+
     add(balloon);
   }
 
   void handlePop(bool golden) {
-    final amount = golden ? 10 : 1;
-    score += amount;
-    coinsEarned += amount;
+    final gained = golden ? 10 : 1;
+    score += gained;
+    coinsEarned += gained;
 
     scoreText.text = "Score: $score";
     coinsText.text = "Coins: ${storage.coins + coinsEarned}";
@@ -263,43 +217,40 @@ class BalloonBurstGame extends FlameGame with HasTappables {
 
   void handleMiss() {
     lives -= 1;
-    if (lives <= 0) {
-      triggerGameOver();
-    }
     livesText.text = "Lives: $lives";
+
+    if (lives <= 0) {
+      endGame();
+    }
   }
 
-  void triggerGameOver() {
-    gameOver = true;
+  void endGame() {
+    isGameOver = true;
     pauseEngine();
 
-    // Save coins
     storage.coins += coinsEarned;
-
-    // Save high score
-    if (score > storage.highScore) {
-      storage.highScore = score;
-    }
+    if (score > storage.highScore) storage.highScore = score;
 
     overlays.add("GameOver");
   }
 
-  void pause() {
+  void pauseGame() {
     pauseEngine();
     overlays.add("PauseMenu");
   }
 
-  void resume() {
+  void resumeGame() {
     overlays.remove("PauseMenu");
     resumeEngine();
   }
 
   void restart() {
     children.whereType<Balloon>().forEach((b) => b.removeFromParent());
+
     score = 0;
     lives = 3;
     coinsEarned = 0;
-    gameOver = false;
+    isGameOver = false;
 
     scoreText.text = "Score: 0";
     livesText.text = "Lives: 3";
@@ -310,13 +261,14 @@ class BalloonBurstGame extends FlameGame with HasTappables {
   }
 }
 
-/// ------------------------------
+/// ===============================
 /// BALLOON COMPONENT
-/// ------------------------------
-class Balloon extends CircleComponent with TapCallbacks, HasGameRef<BalloonBurstGame> {
+/// ===============================
+class Balloon extends CircleComponent
+    with TapCallbacks, HasGameRef<BalloonBurstGame> {
   final double speed;
   final bool isGolden;
-  final Function(bool golden) onPop;
+  final Function(bool) onPop;
   final VoidCallback onMiss;
 
   Balloon({
@@ -352,9 +304,9 @@ class Balloon extends CircleComponent with TapCallbacks, HasGameRef<BalloonBurst
   }
 }
 
-/// ------------------------------
+/// ===============================
 /// PAUSE OVERLAY
-/// ------------------------------
+/// ===============================
 class PauseOverlay extends StatelessWidget {
   final BalloonBurstGame game;
   const PauseOverlay({super.key, required this.game});
@@ -370,27 +322,23 @@ class PauseOverlay extends StatelessWidget {
           const Text("Paused", style: TextStyle(fontSize: 24)),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: game.resume,
+            onPressed: game.resumeGame,
             child: const Text("Resume"),
-          ),
+          )
         ],
       ),
     );
   }
 }
 
-/// ------------------------------
+/// ===============================
 /// GAME OVER OVERLAY
-/// ------------------------------
+/// ===============================
 class GameOverOverlay extends StatelessWidget {
   final BalloonBurstGame game;
   final GameStorage storage;
 
-  const GameOverOverlay({
-    super.key,
-    required this.game,
-    required this.storage,
-  });
+  const GameOverOverlay({super.key, required this.game, required this.storage});
 
   @override
   Widget build(BuildContext context) {
@@ -400,11 +348,8 @@ class GameOverOverlay extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            "GAME OVER",
-            style: TextStyle(fontSize: 28, color: Colors.pinkAccent),
-          ),
-          const SizedBox(height: 10),
+          const Text("GAME OVER",
+              style: TextStyle(fontSize: 28, color: Colors.pinkAccent)),
           Text("Score: ${game.score}"),
           Text("High Score: ${storage.highScore}"),
           Text("Coins Earned: ${game.coinsEarned}"),
@@ -413,7 +358,6 @@ class GameOverOverlay extends StatelessWidget {
             onPressed: game.restart,
             child: const Text("Play Again"),
           ),
-          const SizedBox(height: 10),
           OutlinedButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Quit to Menu"),
@@ -424,9 +368,9 @@ class GameOverOverlay extends StatelessWidget {
   }
 }
 
-/// ------------------------------
+/// ===============================
 /// SHOP SCREEN
-/// ------------------------------
+/// ===============================
 class ShopScreen extends StatefulWidget {
   final GameStorage storage;
   const ShopScreen({super.key, required this.storage});
@@ -446,21 +390,23 @@ class _ShopScreenState extends State<ShopScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("Shop & Skins")),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          Text(
-            "Coins: ${widget.storage.coins}",
-            style: const TextStyle(color: Colors.amberAccent, fontSize: 20),
-          ),
+          const SizedBox(height: 10),
+          Text("Coins: ${widget.storage.coins}",
+              style: const TextStyle(color: Colors.amber, fontSize: 20)),
           const SizedBox(height: 20),
-          ...skins.map((skin) => _buildSkinTile(skin)),
+          Expanded(
+            child: ListView(
+              children: skins.map((skin) => _buildTile(skin)).toList(),
+            ),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildSkinTile(Skin skin) {
+  Widget _buildTile(Skin skin) {
     final unlocked = widget.storage.isSkinUnlocked(skin.id);
     final equipped = widget.storage.selectedSkin == skin.id;
 
@@ -472,22 +418,21 @@ class _ShopScreenState extends State<ShopScreen> {
             ? (equipped
                 ? const Chip(label: Text("Equipped"))
                 : TextButton(
+                    child: const Text("Equip"),
                     onPressed: () {
                       widget.storage.selectedSkin = skin.id;
                       setState(() {});
                     },
-                    child: const Text("Equip"),
                   ))
             : TextButton(
+                child: const Text("Buy"),
                 onPressed: () {
                   if (widget.storage.coins >= skin.cost) {
                     widget.storage.coins -= skin.cost;
                     widget.storage.unlockSkin(skin.id);
                     setState(() {});
                   }
-                },
-                child: const Text("Buy"),
-              ),
+                }),
       ),
     );
   }
