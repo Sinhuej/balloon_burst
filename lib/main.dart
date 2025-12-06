@@ -1,3 +1,4 @@
+import 'package:flame/collisions.dart';
 import 'dart:math';
 import 'dart:ui' show Canvas, MaskFilter, BlurStyle;
 import 'package:flame/game.dart';
