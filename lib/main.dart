@@ -12,7 +12,6 @@ Future<void> main() async {
 }
 
 /// Simple storage for coins and high score.
-/// This will later grow into global TapJunkie storage.
 class GameStorage {
   final SharedPreferences prefs;
   GameStorage(this.prefs);
@@ -118,11 +117,11 @@ class GameScreen extends StatelessWidget {
   }
 }
 
-/// Types of balloons for Step A.
+/// Types of balloons
 enum BalloonType { normal, golden, bomb, lightning }
 
 /// ===============================
-/// CORE GAME (combos, frenzy, special balloons)
+/// CORE GAME (Step A upgrades)
 /// ===============================
 class BalloonGame extends FlameGame {
   final GameStorage storage;
@@ -225,7 +224,7 @@ class BalloonGame extends FlameGame {
     final x = radius + rng.nextDouble() * (size.x - radius * 2);
     final position = Vector2(x, size.y + radius + 20);
 
-    // Decide type
+    // Balloon type RNG
     final roll = rng.nextDouble();
     BalloonType type;
     if (roll < 0.08) {
@@ -238,7 +237,6 @@ class BalloonGame extends FlameGame {
       type = BalloonType.normal;
     }
 
-    // Base speed scales with score, slightly faster in frenzy
     double speed = 60 + score * 0.25;
     if (inFrenzy) speed *= 1.3;
 
@@ -250,7 +248,8 @@ class BalloonGame extends FlameGame {
         radius: radius,
         position: position,
         speed: speed,
-      )..paint = Paint()..color = color,
+        paint: Paint()..color = color,
+      ),
     );
   }
 
@@ -275,16 +274,17 @@ class BalloonGame extends FlameGame {
       case BalloonType.bomb:
         _handleBombHit();
         break;
+
       case BalloonType.golden:
         _handlePop(balloonType: BalloonType.golden);
         break;
+
       case BalloonType.lightning:
         _handlePop(balloonType: BalloonType.lightning);
         break;
-      case BalloonType.normal:
+
       default:
         _handlePop(balloonType: BalloonType.normal);
-        break;
     }
 
     balloon.removeFromParent();
@@ -312,11 +312,8 @@ class BalloonGame extends FlameGame {
     }
     _lastPopTimeSeconds = nowSeconds;
 
-    if (combo > bestCombo) {
-      bestCombo = combo;
-    }
+    if (combo > bestCombo) bestCombo = combo;
 
-    // Enter frenzy at 10+ combo
     if (combo >= 10 && !inFrenzy) {
       inFrenzy = true;
       frenzyTimeLeft = 5;
@@ -325,7 +322,6 @@ class BalloonGame extends FlameGame {
 
     comboText.text = "Combo: $combo";
 
-    // TapJunkie scoring style
     int base;
     switch (balloonType) {
       case BalloonType.golden:
@@ -334,10 +330,8 @@ class BalloonGame extends FlameGame {
       case BalloonType.lightning:
         base = 3;
         break;
-      case BalloonType.normal:
       default:
         base = 1;
-        break;
     }
 
     int multiplier = 1;
@@ -374,11 +368,8 @@ class BalloonGame extends FlameGame {
     _gameOver = true;
     pauseEngine();
 
-    // Persist coins & high score
     storage.coins = storage.coins + coinsEarned;
-    if (score > storage.highScore) {
-      storage.highScore = score;
-    }
+    if (score > storage.highScore) storage.highScore = score;
 
     overlays.add('GameOver');
   }
@@ -397,9 +388,11 @@ class Balloon extends CircleComponent
     required double radius,
     required Vector2 position,
     required this.speed,
+    required Paint paint,
   }) : super(
           radius: radius,
           position: position,
+          paint: paint,
           anchor: Anchor.center,
         );
 
