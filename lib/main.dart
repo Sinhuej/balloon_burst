@@ -122,7 +122,7 @@ class BalloonApp extends StatelessWidget {
 }
 
 /// ===============================
-/// MAIN MENU (now stateful)
+/// MAIN MENU (stateful for refresh)
 /// ===============================
 class MainMenu extends StatefulWidget {
   final GameStorage storage;
@@ -326,7 +326,7 @@ class GameScreen extends StatelessWidget {
 enum BalloonType { normal, golden, bomb, lightning }
 
 /// ===============================
-/// CORE GAME (TapJunkie Step A.2 + missions hooks)
+/// CORE GAME (TapJunkie engine v1)
 /// ===============================
 class BalloonGame extends FlameGame {
   final GameStorage storage;
@@ -819,13 +819,20 @@ class GameOverOverlay extends StatelessWidget {
                 for (final msg in game.missionMessages)
                   Text(
                     "• $msg",
-                    style: const TextStyle(color: Colors.lightGreenAccent),
+                    style:
+                        const TextStyle(color: Colors.lightGreenAccent),
                   ),
                 const SizedBox(height: 16),
               ],
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  // 🔥 IMPORTANT: rebuild main menu so stats refresh
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MainMenu(storage: storage),
+                    ),
+                  );
                 },
                 child: const Text("Back to Menu"),
               ),
@@ -836,4 +843,3 @@ class GameOverOverlay extends StatelessWidget {
     );
   }
 }
-
