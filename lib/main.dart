@@ -1,157 +1,148 @@
+import 'dart:async';
 import 'dart:math';
 
-import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const BalloonBurstApp());
+  final prefs = await SharedPreferences.getInstance();
+  runApp(BalloonBurstApp(prefs: prefs));
 }
 
-/// Root Flutter app
-class BalloonBurstApp extends StatelessWidget {
-  const BalloonBurstApp({super.key});
+/// ---------- DATA MODELS ----------
 
-  @override
-  Widget build(BuildContext context) {
-    final game = BalloonGame();
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Balloon Burst',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF050816),
-        textTheme: ThemeData.dark().textTheme.apply(
-              fontFamily: 'Roboto',
-            ),
-      ),
-      home: Scaffold(
-        body: GameWidget<BalloonGame>(
-          game: game,
-          overlayBuilderMap: {
-            'mainMenu': (context, game) => MainMenuOverlay(game: game),
-            'gameOver': (context, game) => GameOverOverlay(game: game),
-            'shop': (context, game) => ShopOverlay(game: game),
-          },
-          initialActiveOverlays: const ['mainMenu'],
-        ),
-      ),
-    );
-  }
-}
-
-/// ==== SKIN SYSTEM ==========================================================
-
-class SkinDef {
+class TapJunkieSkin {
   final String id;
   final String name;
-  final String description;
-  final int price;
-  final List<Color> palette;
-  final Color accent;
+  final int cost;
   final bool legendary;
 
-  const SkinDef({
+  /// base balloon colors
+  final List<Color> balloonColors;
+
+  /// glow color for normal balloons
+  final Color glowColor;
+
+  /// glow color for golden balloons
+  final Color goldenGlowColor;
+
+  /// bomb glow color
+  final Color bombGlowColor;
+
+  const TapJunkieSkin({
     required this.id,
     required this.name,
-    required this.description,
-    required this.price,
-    required this.palette,
-    required this.accent,
-    this.legendary = false,
+    required this.cost,
+    required this.legendary,
+    required this.balloonColors,
+    required this.glowColor,
+    required this.goldenGlowColor,
+    required this.bombGlowColor,
   });
 }
 
-const classicMixSkin = SkinDef(
+const classicMixSkin = TapJunkieSkin(
   id: 'classic',
   name: 'Classic Mix',
-  description: 'Original TapJunkie balloon colors.',
-  price: 0,
-  palette: [
-    Color(0xFFFCD34D),
-    Color(0xFF60A5FA),
-    Color(0xFF34D399),
-    Color(0xFFF97373),
-    Color(0xFFA855F7),
+  cost: 0,
+  legendary: false,
+  balloonColors: [
+    Color(0xFFFFD54F),
+    Color(0xFF64B5F6),
+    Color(0xFFBA68C8),
+    Color(0xFF4DB6AC),
   ],
-  accent: Color(0xFFFCD34D),
+  glowColor: Color(0x33FFFFFF),
+  goldenGlowColor: Color(0x66FFD54F),
+  bombGlowColor: Color(0x66FF5252),
 );
 
-const neonCitySkin = SkinDef(
-  id: 'neon',
+const neonCitySkin = TapJunkieSkin(
+  id: 'neon_city',
   name: 'Neon City',
-  description: 'Electric cyan, magenta and violet.',
-  price: 250,
-  palette: [
-    Color(0xFF22D3EE),
-    Color(0xFFEC4899),
-    Color(0xFFA855F7),
-    Color(0xFF4ADE80),
+  cost: 250,
+  legendary: false,
+  balloonColors: [
+    Color(0xFF00E5FF),
+    Color(0xFFFF6E40),
+    Color(0xFFE040FB),
+    Color(0xFF69F0AE),
   ],
-  accent: Color(0xFF22D3EE),
+  glowColor: Color(0x6621CBF3),
+  goldenGlowColor: Color(0xFFFFF176),
+  bombGlowColor: Color(0x66FF1744),
 );
 
-const retroArcadeSkin = SkinDef(
-  id: 'retro',
+const retroArcadeSkin = TapJunkieSkin(
+  id: 'retro_arcade',
   name: 'Retro Arcade',
-  description: 'Warm oranges and synthwave sunset.',
-  price: 300,
-  palette: [
-    Color(0xFFFB923C),
-    Color(0xFFF97316),
-    Color(0xFFEC4899),
-    Color(0xFFEAB308),
+  cost: 300,
+  legendary: false,
+  balloonColors: [
+    Color(0xFFFFC400),
+    Color(0xFFFF3D00),
+    Color(0xFF00E676),
+    Color(0xFF2979FF),
   ],
-  accent: Color(0xFFF97316),
+  glowColor: Color(0x66FFAB40),
+  goldenGlowColor: Color(0x66FFE082),
+  bombGlowColor: Color(0x88FF1744),
 );
 
-const mysticGlowSkin = SkinDef(
-  id: 'mystic',
+const mysticGlowSkin = TapJunkieSkin(
+  id: 'mystic_glow',
   name: 'Mystic Glow',
-  description: 'Deep purple, blue and magic vibes.',
-  price: 350,
-  palette: [
-    Color(0xFF6366F1),
-    Color(0xFF22C55E),
-    Color(0xFFA855F7),
-    Color(0xFF0EA5E9),
+  cost: 350,
+  legendary: false,
+  balloonColors: [
+    Color(0xFF7C4DFF),
+    Color(0xFF448AFF),
+    Color(0xFF00E5FF),
+    Color(0xFFE040FB),
   ],
-  accent: Color(0xFF6366F1),
+  glowColor: Color(0x663F51B5),
+  goldenGlowColor: Color(0x66FFF59D),
+  bombGlowColor: Color(0x88D32F2F),
 );
 
-const cosmicBurstSkin = SkinDef(
-  id: 'cosmic',
+const cosmicBurstSkin = TapJunkieSkin(
+  id: 'cosmic_burst',
   name: 'Cosmic Burst',
-  description: 'Space-grade gradients and starlight.',
-  price: 400,
-  palette: [
-    Color(0xFF22D3EE),
-    Color(0xFFA855F7),
-    Color(0xFFFACC15),
-    Color(0xFF4ADE80),
+  cost: 400,
+  legendary: false,
+  balloonColors: [
+    Color(0xFF00E5FF),
+    Color(0xFF69F0AE),
+    Color(0xFFFFD740),
+    Color(0xFF7C4DFF),
   ],
-  accent: Color(0xFFF97316),
+  glowColor: Color(0x663F51B5),
+  goldenGlowColor: Color(0x66FFE57F),
+  bombGlowColor: Color(0x88FF1744),
 );
 
-const junkieJuiceSkin = SkinDef(
-  id: 'junkie',
+const junkieJuiceSkin = TapJunkieSkin(
+  id: 'junkie_juice',
   name: 'Junkie Juice',
-  description: 'TapJunkie legendary toxic-lime & hot pink.',
-  price: 500,
-  palette: [
-    Color(0xFF22C55E),
-    Color(0xFFEC4899),
-    Color(0xFFFACC15),
-    Color(0xFF0EA5E9),
-  ],
-  accent: Color(0xFF22C55E),
+  cost: 500,
   legendary: true,
+  balloonColors: [
+    Color(0xFF00FF95), // toxic lime
+    Color(0xFFFF2FB3), // hot pink
+    Color(0xFF00F0FF),
+    Color(0xFF9B5CFF),
+  ],
+  glowColor: Color(0x6600FF95),
+  goldenGlowColor: Color(0x88FFFF00),
+  bombGlowColor: Color(0xAAFF1744),
 );
 
-const allSkins = <SkinDef>[
+const allSkins = <TapJunkieSkin>[
   classicMixSkin,
   neonCitySkin,
   retroArcadeSkin,
@@ -160,1276 +151,1178 @@ const allSkins = <SkinDef>[
   junkieJuiceSkin,
 ];
 
-SkinDef skinById(String id) {
-  return allSkins.firstWhere(
-    (s) => s.id == id,
-    orElse: () => classicMixSkin,
-  );
-}
+TapJunkieSkin skinById(String id) =>
+    allSkins.firstWhere((s) => s.id == id, orElse: () => classicMixSkin);
 
-/// ==== MISSIONS =============================================================
+class DailyMission {
+  final String id;
+  final String description;
+  final int target;
+  final int reward;
+  int progress;
+  bool completed;
 
-class DailyMissions {
-  final int scoreTarget;
-  final int comboTarget;
-  final int frenzyTarget;
-
-  bool scoreCompleted;
-  bool comboCompleted;
-  bool frenzyCompleted;
-
-  DailyMissions({
-    required this.scoreTarget,
-    required this.comboTarget,
-    required this.frenzyTarget,
-    this.scoreCompleted = false,
-    this.comboCompleted = false,
-    this.frenzyCompleted = false,
+  DailyMission({
+    required this.id,
+    required this.description,
+    required this.target,
+    required this.reward,
+    this.progress = 0,
+    this.completed = false,
   });
 
-  bool get allCompleted =>
-      scoreCompleted && comboCompleted && frenzyCompleted;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'description': description,
+        'target': target,
+        'reward': reward,
+        'progress': progress,
+        'completed': completed,
+      };
+
+  factory DailyMission.fromJson(Map<String, dynamic> json) => DailyMission(
+        id: json['id'] as String,
+        description: json['description'] as String,
+        target: json['target'] as int,
+        reward: json['reward'] as int,
+        progress: json['progress'] as int,
+        completed: json['completed'] as bool,
+      );
 }
 
-/// ==== GAME ENUMS ===========================================================
+class GameResult {
+  final int score;
+  final int coinsThisRun;
+  final int comboBestThisRun;
+  final int livesLeft;
+  final int frenzyTriggers;
 
-enum BalloonType { normal, golden, bomb, lightning }
+  final List<DailyMission> missions;
 
-/// ==== MAIN GAME ============================================================
+  GameResult({
+    required this.score,
+    required this.coinsThisRun,
+    required this.comboBestThisRun,
+    required this.livesLeft,
+    required this.frenzyTriggers,
+    required this.missions,
+  });
+}
 
-class BalloonGame extends FlameGame with TapCallbacks {
-  BalloonGame();
+/// ---------- APP & MAIN MENU ----------
 
-  final Random rng = Random();
-
-  // Core run state
-  int score = 0;
-  int bestComboThisRun = 0;
-  int combo = 0;
-  int lives = 3;
-  int coinsThisRun = 0;
-  bool _gameOver = false;
-
-  // Persistent stats
-  int highScore = 0;
-  int bestComboEver = 0;
-  int totalCoins = 0;
-  int lastScore = 0;
-  int dailyStreak = 1;
-
-  // Frenzy
-  bool inFrenzy = false;
-  double _frenzyTimer = 0;
-  int frenzyTriggersThisRun = 0;
-
-  // Spawning
-  double _spawnTimer = 0;
-  double _spawnInterval = 0.8;
-
-  // Missions
-  late DailyMissions missions;
-
-  // Skins
-  SkinDef skin = classicMixSkin;
-  final Set<String> ownedSkinIds = {'classic'};
-  SharedPreferences? _prefs;
-
-  // For mission display on GameOver
-  final List<String> completedMissionMessages = [];
-
-  // HUD
-  late TextPaint hudWhite;
-  late TextPaint hudYellow;
-  late TextPaint hudCyan;
-  late TextPaint hudRed;
+class BalloonBurstApp extends StatefulWidget {
+  final SharedPreferences prefs;
+  const BalloonBurstApp({super.key, required this.prefs});
 
   @override
-  Color backgroundColor() => const Color(0xFF050816);
+  State<BalloonBurstApp> createState() => _BalloonBurstAppState();
+}
+
+class _BalloonBurstAppState extends State<BalloonBurstApp> {
+  late int highScore;
+  late int bestCombo;
+  late int lastScore;
+  late int coins;
+  late int dailyStreak;
+  late List<DailyMission> missions;
+  late TapJunkieSkin equippedSkin;
+
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFromPrefs();
+  }
+
+  void _loadFromPrefs() {
+    final p = widget.prefs;
+    highScore = p.getInt('high_score') ?? 0;
+    bestCombo = p.getInt('best_combo') ?? 0;
+    lastScore = p.getInt('last_score') ?? 0;
+    coins = p.getInt('coins') ?? 50;
+    dailyStreak = _calculateDailyStreak(p);
+    equippedSkin = skinById(p.getString('equipped_skin') ?? 'classic');
+
+    missions = _loadOrGenerateMissions(p);
+    _loaded = true;
+    setState(() {});
+  }
+
+  int _calculateDailyStreak(SharedPreferences p) {
+    final lastDate = p.getString('last_play_date');
+    final today = DateTime.now();
+
+    if (lastDate == null) {
+      p.setString('last_play_date',
+          DateTime(today.year, today.month, today.day).toIso8601String());
+      p.setInt('daily_streak', 1);
+      return 1;
+    }
+
+    final parsed = DateTime.tryParse(lastDate) ??
+        DateTime(today.year, today.month, today.day);
+    final diff = today.difference(parsed).inDays;
+
+    if (diff == 0) {
+      return p.getInt('daily_streak') ?? 1;
+    }
+    if (diff == 1) {
+      final streak = (p.getInt('daily_streak') ?? 1) + 1;
+      p.setInt('daily_streak', streak);
+      p.setString('last_play_date',
+          DateTime(today.year, today.month, today.day).toIso8601String());
+      return streak;
+    }
+
+    p.setInt('daily_streak', 1);
+    p.setString('last_play_date',
+        DateTime(today.year, today.month, today.day).toIso8601String());
+    return 1;
+  }
+
+  List<DailyMission> _loadOrGenerateMissions(SharedPreferences p) {
+    final todayKey =
+        '${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}';
+    final savedDate = p.getString('missions_date');
+
+    if (savedDate == todayKey) {
+      final raw = p.getStringList('missions');
+      if (raw != null) {
+        return raw
+            .map((s) =>
+                DailyMission.fromJson(Map<String, dynamic>.from(_decode(s))))
+            .toList();
+      }
+    }
+
+    final random = Random();
+    final missions = <DailyMission>[
+      DailyMission(
+        id: 'score_${random.nextInt(200) + 600}',
+        description: 'Score ${(random.nextInt(200) + 600)}+ in a run',
+        target: random.nextInt(200) + 600,
+        reward: 100,
+      ),
+      DailyMission(
+        id: 'combo_${random.nextInt(10) + 12}',
+        description: 'Reach combo ${(random.nextInt(10) + 12)}+',
+        target: random.nextInt(10) + 12,
+        reward: 100,
+      ),
+      DailyMission(
+        id: 'frenzy_${random.nextInt(3) + 2}',
+        description: 'Trigger Frenzy ${(random.nextInt(3) + 2)} time(s)',
+        target: random.nextInt(3) + 2,
+        reward: 100,
+      ),
+    ];
+
+    p.setString('missions_date', todayKey);
+    p.setStringList(
+        'missions', missions.map((m) => _encode(m.toJson())).toList());
+
+    return missions;
+  }
+
+  static String _encode(Map<String, dynamic> map) => map.toString();
+
+  static Map<String, dynamic> _decode(String s) {
+    // VERY small & controlled: we stored as Map.toString(). We’ll parse back.
+    final trimmed = s.substring(1, s.length - 1); // remove { }
+    final parts = trimmed.split(', ');
+    final result = <String, dynamic>{};
+    for (final part in parts) {
+      final idx = part.indexOf(':');
+      if (idx == -1) continue;
+      final k = part.substring(0, idx);
+      final v = part.substring(idx + 2); // skip ": "
+      if (int.tryParse(v) != null) {
+        result[k] = int.parse(v);
+      } else if (v == 'true' || v == 'false') {
+        result[k] = v == 'true';
+      } else {
+        result[k] = v;
+      }
+    }
+    return result;
+  }
+
+  Future<void> _startGame(BuildContext context) async {
+    if (!_loaded) return;
+
+    final result = await Navigator.of(context).push<GameResult>(
+      MaterialPageRoute(
+        builder: (_) => GameScreen(
+          prefs: widget.prefs,
+          equippedSkin: equippedSkin,
+          missions: missions.map((m) => DailyMission(
+                id: m.id,
+                description: m.description,
+                target: m.target,
+                reward: m.reward,
+                progress: m.progress,
+                completed: m.completed,
+              )).toList(),
+        ),
+      ),
+    );
+
+    if (result == null) return;
+
+    // Update stats and missions
+    setState(() {
+      lastScore = result.score;
+      highScore = max(highScore, result.score);
+      bestCombo = max(bestCombo, result.comboBestThisRun);
+      coins += result.coinsThisRun;
+
+      for (final resM in result.missions) {
+        final idx = missions.indexWhere((m) => m.id == resM.id);
+        if (idx != -1) {
+          missions[idx] = resM;
+          if (resM.completed) {
+            coins += resM.reward;
+          }
+        }
+      }
+    });
+
+    final p = widget.prefs;
+    p.setInt('high_score', highScore);
+    p.setInt('best_combo', bestCombo);
+    p.setInt('last_score', lastScore);
+    p.setInt('coins', coins);
+    p.setStringList(
+      'missions',
+      missions.map((m) => _encode(m.toJson())).toList(),
+    );
+  }
+
+  Future<void> _openShop(BuildContext context) async {
+    final owned = widget.prefs.getStringList('owned_skins') ?? ['classic'];
+    final result = await Navigator.of(context).push<_ShopResult>(
+      MaterialPageRoute(
+        builder: (_) => ShopScreen(
+          prefs: widget.prefs,
+          coins: coins,
+          equipped: equippedSkin,
+          ownedSkinIds: owned,
+        ),
+      ),
+    );
+
+    if (result == null) return;
+
+    setState(() {
+      coins = result.coins;
+      equippedSkin = result.equippedSkin;
+    });
+
+    final p = widget.prefs;
+    p.setInt('coins', coins);
+    p.setString('equipped_skin', equippedSkin.id);
+    p.setStringList('owned_skins', result.ownedSkinIds);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) {
+      return const MaterialApp(
+        home: Scaffold(
+          backgroundColor: Color(0xFF050814),
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Balloon Burst',
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF050814),
+        textTheme: ThemeData.dark().textTheme.apply(
+              fontFamily: 'Roboto',
+            ),
+      ),
+      home: Scaffold(
+        backgroundColor: const Color(0xFF050814),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 32),
+                const Text(
+                  'BALLOON BURST',
+                  style: TextStyle(
+                    fontSize: 32,
+                    letterSpacing: 4,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFF4F9A),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'High Score: $highScore',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Best Combo: $bestCombo',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Color(0xFF00E5FF),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Last Score: $lastScore',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Coins: $coins',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Color(0xFFFFD54F),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Equipped Skin: ${equippedSkin.name}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white60,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Daily streak: $dailyStreak day(s)',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white60,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _MissionsCard(missions: missions),
+                const Spacer(),
+                _PrimaryButton(
+                  label: 'PLAY',
+                  onTap: () => _startGame(context),
+                ),
+                const SizedBox(height: 12),
+                _SecondaryButton(
+                  label: 'SHOP',
+                  onTap: () => _openShop(context),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ---------- MAIN MENU WIDGET HELPERS ----------
+
+class _MissionsCard extends StatelessWidget {
+  final List<DailyMission> missions;
+  const _MissionsCard({required this.missions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1020),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Today's Missions",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00E5FF),
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final m in missions)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    m.completed ? Icons.check_circle : Icons.radio_button_off,
+                    size: 18,
+                    color: m.completed ? Colors.greenAccent : Colors.white38,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      m.description,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _PrimaryButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF25293A),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE0D4FF),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SecondaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _SecondaryButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFF5C6BC0)),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF9FA8DA),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ---------- GAME SCREEN + FLAME GAME ----------
+
+class GameScreen extends StatefulWidget {
+  final SharedPreferences prefs;
+  final TapJunkieSkin equippedSkin;
+  final List<DailyMission> missions;
+
+  const GameScreen({
+    super.key,
+    required this.prefs,
+    required this.equippedSkin,
+    required this.missions,
+  });
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  late BalloonGame _game;
+
+  @override
+  void initState() {
+    super.initState();
+    _game = BalloonGame(
+      equippedSkin: widget.equippedSkin,
+      missions: widget.missions,
+      onGameOver: (result) {
+        Navigator.of(context).pop(result);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF050814),
+      body: GameWidget(game: _game),
+    );
+  }
+}
+
+class BalloonGame extends FlameGame with HasCollisionDetection {
+  final TapJunkieSkin equippedSkin;
+  final List<DailyMission> missions;
+  final void Function(GameResult) onGameOver;
+
+  BalloonGame({
+    required this.equippedSkin,
+    required this.missions,
+    required this.onGameOver,
+  });
+
+  final Random _random = Random();
+
+  int score = 0;
+  int coins = 0;
+  int lives = 3;
+  int combo = 0;
+  int bestComboThisRun = 0;
+  int frenzyTriggers = 0;
+
+  double _spawnTimer = 0;
+  double _spawnInterval = 0.9;
+
+  bool inFrenzy = false;
+  double frenzyTimer = 0;
+  double frenzyDuration = 6.0;
+
+  final int frenzyComboThreshold = 12;
+
+  bool _gameOverSent = false;
+
+  @override
+  Color backgroundColor() => const Color(0xFF050814);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    hudWhite = TextPaint(
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 14,
-      ),
-    );
-    hudYellow = TextPaint(
-      style: const TextStyle(
-        color: Color(0xFFFACC15),
-        fontSize: 14,
-      ),
-    );
-    hudCyan = TextPaint(
-      style: const TextStyle(
-        color: Color(0xFF22D3EE),
-        fontSize: 14,
-      ),
-    );
-    hudRed = TextPaint(
-      style: const TextStyle(
-        color: Color(0xFFEF4444),
-        fontSize: 14,
-      ),
-    );
-
-    await _loadPrefs();
-    _loadPersistentState();
-    _loadMissionsForToday();
-
-    pauseEngine();
-  }
-
-  Future<void> _loadPrefs() async {
-    _prefs ??= await SharedPreferences.getInstance();
-  }
-
-  void _loadPersistentState() {
-    final p = _prefs;
-    if (p == null) return;
-
-    highScore = p.getInt('bb_highScore') ?? 0;
-    bestComboEver = p.getInt('bb_bestCombo') ?? 0;
-    totalCoins = p.getInt('bb_totalCoins') ?? 50;
-    lastScore = p.getInt('bb_lastScore') ?? 0;
-    dailyStreak = p.getInt('bb_dailyStreak') ?? 1;
-
-    final equippedId = p.getString('bb_skin_equipped') ?? 'classic';
-    skin = skinById(equippedId);
-
-    final owned = p.getStringList('bb_ownedSkins') ?? ['classic'];
-    ownedSkinIds
-      ..clear()
-      ..addAll(owned);
-
-    // Daily login bonus
-    final today = DateTime.now();
-    final lastPlayStr = p.getString('bb_lastPlayDate');
-    DateTime? lastPlay;
-    if (lastPlayStr != null) {
-      lastPlay = DateTime.tryParse(lastPlayStr);
-    }
-
-    if (lastPlay == null) {
-      p.setString('bb_lastPlayDate', today.toIso8601String());
-    } else {
-      final diff = today.difference(
-        DateTime(lastPlay.year, lastPlay.month, lastPlay.day),
-      ).inDays;
-      if (diff == 0) {
-        // same day, streak unchanged
-      } else if (diff == 1) {
-        dailyStreak += 1;
-        totalCoins += 25;
-      } else if (diff > 1) {
-        dailyStreak = 1;
-      }
-      p
-        ..setInt('bb_dailyStreak', dailyStreak)
-        ..setInt('bb_totalCoins', totalCoins)
-        ..setString('bb_lastPlayDate', today.toIso8601String());
-    }
-  }
-
-  void _loadMissionsForToday() {
-    // Simple: regenerate each day based on date hash.
-    final now = DateTime.now();
-    final seed =
-        now.year * 10000 + now.month * 100 + now.day; // crude but fine
-    final r = Random(seed);
-
-    missions = DailyMissions(
-      scoreTarget: 600 + r.nextInt(401), // 600–1000
-      comboTarget: 15 + r.nextInt(10), // 15–24
-      frenzyTarget: 2 + r.nextInt(3), // 2–4
-    );
-  }
-
-  Future<void> _savePersistentState() async {
-    final p = _prefs;
-    if (p == null) return;
-    await p.setInt('bb_highScore', highScore);
-    await p.setInt('bb_bestCombo', bestComboEver);
-    await p.setInt('bb_totalCoins', totalCoins);
-    await p.setInt('bb_lastScore', lastScore);
-    await p.setInt('bb_dailyStreak', dailyStreak);
-    await p.setString('bb_skin_equipped', skin.id);
-    await p.setStringList('bb_ownedSkins', ownedSkinIds.toList());
-  }
-
-  // Public helpers for overlays
-
-  void equipSkin(SkinDef s) {
-    skin = s;
-    _savePersistentState();
-  }
-
-  bool isSkinOwned(String id) => ownedSkinIds.contains(id);
-
-  bool canAfford(int price) => totalCoins >= price;
-
-  void unlockAndEquipSkin(SkinDef s) {
-    ownedSkinIds.add(s.id);
-    totalCoins -= s.price;
-    skin = s;
-    _savePersistentState();
-  }
-
-  // Gameplay control
-
-  void startGame() {
-    score = 0;
-    combo = 0;
-    bestComboThisRun = 0;
-    lives = 3;
-    coinsThisRun = 0;
-    _spawnInterval = 0.8;
-    _spawnTimer = 0;
-    inFrenzy = false;
-    _frenzyTimer = 0;
-    frenzyTriggersThisRun = 0;
-    _gameOver = false;
-    completedMissionMessages.clear();
-
-    children.whereType<Balloon>().forEach((b) => b.removeFromParent());
-
-    overlays.remove('gameOver');
-    overlays.remove('mainMenu');
-    resumeEngine();
-  }
-
-  void goToMenu() {
-    overlays.remove('gameOver');
-    overlays.add('mainMenu');
-    pauseEngine();
-  }
-
-  void _triggerFrenzy() {
-    inFrenzy = true;
-    _frenzyTimer = 8;
-    frenzyTriggersThisRun += 1;
-  }
-
-  void _endFrenzy() {
-    inFrenzy = false;
-    _frenzyTimer = 0;
-  }
-
-  void handleBalloonTap(Balloon b) {
-    if (_gameOver) return;
-
-    switch (b.type) {
-      case BalloonType.normal:
-        combo += 1;
-        final added = 10 + (combo ~/ 3);
-        score += added;
-        coinsThisRun += 1;
-        if (combo > bestComboThisRun) {
-          bestComboThisRun = combo;
-        }
-        // Frenzy trigger based on combo
-        if (!inFrenzy && combo >= 20) {
-          _triggerFrenzy();
-        }
-        break;
-      case BalloonType.golden:
-        combo += 2;
-        score += 75;
-        coinsThisRun += 25;
-        if (combo > bestComboThisRun) {
-          bestComboThisRun = combo;
-        }
-        if (!inFrenzy) {
-          _triggerFrenzy();
-        }
-        break;
-      case BalloonType.lightning:
-        combo += 1;
-        score += 25;
-        coinsThisRun += 5;
-        if (combo > bestComboThisRun) {
-          bestComboThisRun = combo;
-        }
-        _triggerFrenzy();
-        break;
-      case BalloonType.bomb:
-        // Bombs only punish on tap – NOT on escape.
-        lives -= 1;
-        combo = 0;
-        if (lives <= 0) {
-          _onGameOver();
-        }
-        break;
-    }
-
-    b.removeFromParent();
-  }
-
-  void handleMiss() {
-    if (_gameOver) return;
-    lives -= 1;
-    combo = 0;
-    if (lives <= 0) {
-      _onGameOver();
-    }
-  }
-
-  void _evaluateMissions() {
-    if (score >= missions.scoreTarget) {
-      missions.scoreCompleted = true;
-    }
-    if (bestComboThisRun >= missions.comboTarget) {
-      missions.comboCompleted = true;
-    }
-    if (frenzyTriggersThisRun >= missions.frenzyTarget) {
-      missions.frenzyCompleted = true;
-    }
-
-    int bonus = 0;
-    if (missions.scoreCompleted) {
-      bonus += 100;
-      completedMissionMessages
-          .add('Mission complete: Score ${missions.scoreTarget}+ (+100 coins)');
-    }
-    if (missions.comboCompleted) {
-      bonus += 100;
-      completedMissionMessages.add(
-          'Mission complete: Reach combo ${missions.comboTarget}+ (+100 coins)');
-    }
-    if (missions.frenzyCompleted) {
-      bonus += 100;
-      completedMissionMessages
-          .add('Mission complete: Trigger Frenzy ${missions.frenzyTarget}x (+100 coins)');
-    }
-    if (bonus > 0) {
-      totalCoins += bonus;
-    }
-  }
-
-  void _onGameOver() {
-    if (_gameOver) return;
-    _gameOver = true;
-    lastScore = score;
-    totalCoins += coinsThisRun;
-
-    if (score > highScore) {
-      highScore = score;
-    }
-    if (bestComboThisRun > bestComboEver) {
-      bestComboEver = bestComboThisRun;
-    }
-
-    _evaluateMissions();
-
-    _savePersistentState();
-    pauseEngine();
-    overlays.add('gameOver');
-  }
-
-  void spawnBalloon() {
-    if (_gameOver || size.x <= 0 || size.y <= 0) return;
-
-    final radius = 20 + rng.nextDouble() * 25;
-    final x = radius + rng.nextDouble() * (size.x - radius * 2);
-    final position = Vector2(x, size.y + radius + 20);
-
-    final roll = rng.nextDouble();
-    BalloonType type;
-    if (roll < 0.08) {
-      type = BalloonType.golden;
-    } else if (roll < 0.13) {
-      type = BalloonType.bomb;
-    } else if (roll < 0.18) {
-      type = BalloonType.lightning;
-    } else {
-      type = BalloonType.normal;
-    }
-
-    double speed = 120 + score * 0.45;
-    if (inFrenzy) speed *= 1.7;
-
-    final currentSkin = skin;
-    final baseColor = _colorForType(type, currentSkin);
+    add(ScreenHitbox());
 
     add(
-      Balloon(
-        skin: currentSkin,
-        type: type,
-        radius: radius,
-        position: position,
-        speed: speed,
-        baseColor: baseColor,
-      ),
+      TextComponent(
+        text: '',
+        position: Vector2(8, 8),
+        priority: 10,
+      )..add(
+          TimerComponent(
+            period: 0.05,
+            repeat: true,
+            onTick: () {
+              final textComponent = children
+                  .whereType<TextComponent>()
+                  .firstWhere((c) => c.position.x == 8 && c.position.y == 8);
+              textComponent.text =
+                  'Score: $score\nLives: $lives\nCoins: $coins\nCombo: $combo';
+            },
+          ),
+        ),
     );
-  }
-
-  Color _colorForType(BalloonType type, SkinDef s) {
-    switch (type) {
-      case BalloonType.golden:
-        return Colors.amberAccent;
-      case BalloonType.bomb:
-        return const Color(0xFFEF5350);
-      case BalloonType.lightning:
-        return Colors.lightBlueAccent;
-      case BalloonType.normal:
-      default:
-        final palette = s.palette;
-        if (palette.isEmpty) return Colors.white;
-        return palette[rng.nextInt(palette.length)];
-    }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    if (_gameOver) return;
 
-    // Spawning
+    if (_gameOverSent) return;
+
     _spawnTimer += dt;
-    final minInterval = 0.35;
-    _spawnInterval = 0.8 - (score / 1200).clamp(0, 0.45);
-    if (_spawnInterval < minInterval) _spawnInterval = minInterval;
-
     if (_spawnTimer >= _spawnInterval) {
       _spawnTimer = 0;
-      spawnBalloon();
+      _spawnBalloon();
     }
 
-    // Frenzy timer
     if (inFrenzy) {
-      _frenzyTimer -= dt;
-      if (_frenzyTimer <= 0) {
-        _endFrenzy();
+      frenzyTimer -= dt;
+      if (frenzyTimer <= 0) {
+        inFrenzy = false;
+        _spawnInterval = 0.9;
+      }
+    }
+
+    if (lives <= 0 && !_gameOverSent) {
+      _gameOverSent = true;
+      _finishGame();
+    }
+  }
+
+  void _spawnBalloon() {
+    final isBomb = _random.nextDouble() < 0.12;
+    final isGolden = !isBomb && _random.nextDouble() < 0.08;
+
+    final radius = isGolden ? 22.0 : 16.0;
+
+    final x = _random.nextDouble() * (size.x - radius * 2) + radius;
+    final y = size.y + radius + 10;
+
+    final baseSpeed = inFrenzy ? 130.0 : 90.0;
+    final speed = baseSpeed + _random.nextDouble() * 70;
+
+    final normalColors = equippedSkin.balloonColors;
+
+    final color = isBomb
+        ? const Color(0xFFFF5252)
+        : (isGolden ? const Color(0xFFFFD54F) : normalColors[_random.nextInt(normalColors.length)]);
+
+    final glowColor = isBomb
+        ? equippedSkin.bombGlowColor
+        : (isGolden ? equippedSkin.goldenGlowColor : equippedSkin.glowColor);
+
+    final balloon = Balloon(
+      position: Vector2(x, y),
+      radius: radius,
+      speed: speed,
+      color: color,
+      glowColor: glowColor,
+      isBomb: isBomb,
+      isGolden: isGolden,
+      onPopped: _handleBalloonPopped,
+      onMissed: _handleBalloonMissed,
+    );
+
+    add(balloon);
+  }
+
+  void _handleBalloonPopped(Balloon balloon) {
+    if (balloon.isBomb) {
+      // Option A: ONLY tapping bombs hurts you
+      lives = max(0, lives - 1);
+      combo = 0;
+      return;
+    }
+
+    final basePoints = balloon.isGolden ? 15 : 5;
+    final baseCoins = balloon.isGolden ? 10 : 1;
+
+    final multiplier = inFrenzy ? 2 : 1;
+
+    score += basePoints * multiplier;
+    coins += baseCoins * multiplier;
+    combo += 1;
+    bestComboThisRun = max(bestComboThisRun, combo);
+
+    if (!inFrenzy && combo >= frenzyComboThreshold) {
+      inFrenzy = true;
+      frenzyTimer = frenzyDuration;
+      _spawnInterval = 0.55;
+      frenzyTriggers += 1;
+    }
+
+    _updateMissionsOnPop(balloon);
+  }
+
+  void _handleBalloonMissed(Balloon balloon) {
+    // Missing bombs is SAFE with Option A locked in.
+    if (!balloon.isBomb) {
+      lives = max(0, lives - 1);
+    }
+    combo = 0;
+  }
+
+  void _updateMissionsOnPop(Balloon balloon) {
+    for (final m in missions) {
+      if (m.completed) continue;
+
+      if (m.id.startsWith('score_')) {
+        if (score >= m.target) {
+          m.completed = true;
+        }
+      } else if (m.id.startsWith('combo_')) {
+        if (bestComboThisRun >= m.target) {
+          m.completed = true;
+        }
+      } else if (m.id.startsWith('frenzy_')) {
+        if (frenzyTriggers >= m.target) {
+          m.completed = true;
+        }
       }
     }
   }
 
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
+  void _finishGame() {
+    final result = GameResult(
+      score: score,
+      coinsThisRun: coins,
+      comboBestThisRun: bestComboThisRun,
+      livesLeft: lives,
+      frenzyTriggers: frenzyTriggers,
+      missions: missions,
+    );
 
-    // HUD
-    double y = 8;
-    hudWhite.render(canvas, 'Score: $score', Vector2(8, y));
-    y += 16;
-    hudRed.render(canvas, 'Lives: $lives', Vector2(8, y));
-    y += 16;
-    hudYellow.render(
-        canvas, 'Coins: ${totalCoins + coinsThisRun}', Vector2(8, y));
-    y += 16;
-    hudCyan.render(canvas, 'Combo: $combo', Vector2(8, y));
-
-    if (inFrenzy) {
-      final frenzyPaint = TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFFB7185),
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      frenzyPaint.render(
-        canvas,
-        'FRENZY!',
-        Vector2(size.x - 90, 10),
-      );
-    }
+    // Flame Game can't directly call Navigator, but our GameScreen passed a callback.
+    onGameOver(result);
   }
 }
 
-/// ==== BALLOON COMPONENT (SKIN ENGINE C2) ===================================
+/// ---------- BALLOON COMPONENT ----------
 
-class Balloon extends CircleComponent
+class Balloon extends PositionComponent
     with TapCallbacks, HasGameRef<BalloonGame> {
+  final double radius;
   final double speed;
-  final BalloonType type;
-  final Color baseColor;
-  final SkinDef skin;
+  final Color color;
+  final Color glowColor;
+  final bool isBomb;
+  final bool isGolden;
 
-  late final Paint glowPaint;
-  late final Paint innerGlowPaint;
-  double _time = 0;
+  final void Function(Balloon) onPopped;
+  final void Function(Balloon) onMissed;
 
   Balloon({
-    required this.skin,
-    required this.type,
-    required double radius,
     required Vector2 position,
+    required this.radius,
     required this.speed,
-    required this.baseColor,
-  }) : super(
-          radius: radius,
-          position: position,
-          anchor: Anchor.center,
-        ) {
-    paint = Paint()..color = _computeCoreColor();
+    required this.color,
+    required this.glowColor,
+    required this.isBomb,
+    required this.isGolden,
+    required this.onPopped,
+    required this.onMissed,
+  }) {
+    this.position = position;
+    size = Vector2.all(radius * 2);
+    anchor = Anchor.center;
+  }
 
-    glowPaint = Paint()
-      ..color = _computeGlowColor().withOpacity(
-        skin.legendary ? 0.95 : (type == BalloonType.normal ? 0.55 : 0.75),
-      )
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-
-    innerGlowPaint = Paint()
-      ..color = Colors.white.withOpacity(0.15)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
     add(
-      CircleHitbox()..collisionType = CollisionType.inactive,
+      CircleHitbox()
+        ..radius = radius
+        ..anchor = Anchor.center
+        ..collisionType = CollisionType.inactive,
     );
-  }
-
-  Color _computeCoreColor() {
-    switch (type) {
-      case BalloonType.golden:
-        return Colors.amberAccent;
-      case BalloonType.bomb:
-        return Colors.redAccent;
-      case BalloonType.lightning:
-        return Colors.lightBlueAccent;
-      case BalloonType.normal:
-      default:
-        return baseColor;
-    }
-  }
-
-  Color _computeGlowColor() {
-    switch (type) {
-      case BalloonType.golden:
-        return const Color(0xFFFFF176);
-      case BalloonType.bomb:
-        return const Color(0xFFFF5252);
-      case BalloonType.lightning:
-        return const Color(0xFF40C4FF);
-      case BalloonType.normal:
-      default:
-        return skin.accent;
-    }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    _time += dt;
-
     position.y -= speed * dt;
-
-    if (position.y < -radius) {
-      if (type != BalloonType.bomb) {
-        gameRef.handleMiss();
-      }
+    if (position.y + radius < 0) {
+      onMissed(this);
       removeFromParent();
-    }
-
-    if (type == BalloonType.bomb) {
-      final pulse = 0.5 + 0.3 * sin(_time * 8);
-      glowPaint.color =
-          glowPaint.color.withOpacity(pulse.clamp(0.25, 1.0).toDouble());
-    }
-
-    if (skin.legendary) {
-      final wave = 0.6 + 0.4 * sin(_time * 6);
-      final base = _computeGlowColor();
-      glowPaint.color = base.withOpacity(wave.clamp(0.4, 1.0));
-    }
-
-    if (gameRef.inFrenzy && type == BalloonType.normal) {
-      final idx = ((_time * 5).floor().abs()) % skin.palette.length;
-      paint.color = skin.palette[idx];
     }
   }
 
   @override
   void render(Canvas canvas) {
-    double auraRadius = radius * 1.6;
-    if (skin.legendary) {
-      auraRadius = radius * 1.9;
-    } else if (type != BalloonType.normal) {
-      auraRadius = radius * 1.8;
-    }
-
-    canvas.drawCircle(Offset.zero, auraRadius, glowPaint);
-
-    final highlightOffset = const Offset(-6, -6);
-    canvas.drawCircle(highlightOffset, radius * 0.7, innerGlowPaint);
-
     super.render(canvas);
 
-    if (skin.legendary) {
-      final starPaint =
-          Paint()..color = Colors.white.withOpacity(0.5);
-      const starRadius = 4.0;
-      final center = Offset.zero;
+    final glowPaint = Paint()
+      ..color = glowColor
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+    canvas.drawCircle(Offset(radius, radius), radius * 1.8, glowPaint);
 
-      canvas.drawCircle(center, starRadius, starPaint);
-      canvas.drawLine(
-        center.translate(-starRadius * 1.5, 0),
-        center.translate(starRadius * 1.5, 0),
-        starPaint..strokeWidth = 1.5,
-      );
-      canvas.drawLine(
-        center.translate(0, -starRadius * 1.5),
-        center.translate(0, starRadius * 1.5),
-        starPaint..strokeWidth = 1.5,
-      );
+    final balloonPaint = Paint()..color = color;
+    canvas.drawCircle(Offset(radius, radius), radius, balloonPaint);
+
+    if (isBomb) {
+      final center = Offset(radius, radius);
+      final pulsePaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.white.withOpacity(0.9);
+      canvas.drawCircle(center, radius * 0.55, pulsePaint);
     }
   }
 
   @override
   void onTapDown(TapDownEvent event) {
-    gameRef.handleBalloonTap(this);
+    super.onTapDown(event);
+    onPopped(this);
+    removeFromParent();
   }
 }
 
-/// ==== FLUTTER OVERLAYS =====================================================
+/// ---------- SHOP ----------
 
-class MainMenuOverlay extends StatelessWidget {
-  final BalloonGame game;
-  const MainMenuOverlay({super.key, required this.game});
+class _ShopResult {
+  final int coins;
+  final TapJunkieSkin equippedSkin;
+  final List<String> ownedSkinIds;
+
+  _ShopResult({
+    required this.coins,
+    required this.equippedSkin,
+    required this.ownedSkinIds,
+  });
+}
+
+class ShopScreen extends StatefulWidget {
+  final SharedPreferences prefs;
+  final int coins;
+  final TapJunkieSkin equipped;
+  final List<String> ownedSkinIds;
+
+  const ShopScreen({
+    super.key,
+    required this.prefs,
+    required this.coins,
+    required this.equipped,
+    required this.ownedSkinIds,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    final missions = game.missions;
-    return SafeArea(
-      child: Container(
-        color: const Color(0xFF050816),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'BALLOON BURST',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-                color: Color(0xFFF472B6),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'High Score: ${game.highScore}',
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              'Best Combo: ${game.bestComboEver}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF22D3EE),
-              ),
-            ),
-            Text(
-              'Last Score: ${game.lastScore}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Coins: ${game.totalCoins}',
-              style: const TextStyle(
-                fontSize: 18,
-                color: Color(0xFFFACC15),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Equipped Skin: ${game.skin.name}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF22D3EE),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Daily streak: ${game.dailyStreak} day(s)',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.white54,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0B1120),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Today's Missions",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Color(0xFF38BDF8),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _missionRow(
-                    completed: game.missions.scoreCompleted,
-                    text: 'Score ${missions.scoreTarget}+ in a run',
-                  ),
-                  _missionRow(
-                    completed: game.missions.comboCompleted,
-                    text: 'Reach combo ${missions.comboTarget}+',
-                  ),
-                  _missionRow(
-                    completed: game.missions.frenzyCompleted,
-                    text:
-                        'Trigger Frenzy ${missions.frenzyTarget} time(s)',
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            _primaryButton(
-              label: 'PLAY',
-              onPressed: () {
-                game.startGame();
-              },
-            ),
-            const SizedBox(height: 12),
-            _secondaryButton(
-              label: 'SHOP',
-              onPressed: () {
-                game.overlays.add('shop');
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _missionRow({required bool completed, required String text}) {
-    return Row(
-      children: [
-        Icon(
-          completed ? Icons.check_circle : Icons.circle_outlined,
-          size: 18,
-          color: completed ? Colors.greenAccent : Colors.white60,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: completed ? Colors.greenAccent : Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _primaryButton({
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1E293B),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _secondaryButton({
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFF6366F1)),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 15,
-            letterSpacing: 1.1,
-          ),
-        ),
-      ),
-    );
-  }
+  State<ShopScreen> createState() => _ShopScreenState();
 }
 
-class GameOverOverlay extends StatelessWidget {
-  final BalloonGame game;
-  const GameOverOverlay({super.key, required this.game});
+class _ShopScreenState extends State<ShopScreen> {
+  late int _coins;
+  late TapJunkieSkin _equipped;
+  late List<String> _owned;
 
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        color: const Color(0xFF020617),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 32),
-            const Text(
-              'GAME OVER',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFF472B6),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Score: ${game.score}',
-              style: const TextStyle(fontSize: 18),
-            ),
-            Text(
-              'Best Combo (this run): ${game.bestComboThisRun}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            Text(
-              'Coins this run: ${game.coinsThisRun}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'High Score: ${game.highScore}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF22D3EE),
-              ),
-            ),
-            Text(
-              'Best Combo: ${game.bestComboEver}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF22D3EE),
-              ),
-            ),
-            Text(
-              'Total Coins: ${game.totalCoins}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFFFACC15),
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (game.completedMissionMessages.isNotEmpty) ...[
-              const Text(
-                'Missions Completed:',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.lightGreenAccent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...game.completedMissionMessages.map(
-                (m) => Text(
-                  '• $m',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.lightGreenAccent,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E293B),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                onPressed: () {
-                  game.goToMenu();
-                },
-                child: const Text(
-                  'Back to Menu',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// SHOP OVERLAY – with SafeArea & bottom padding for nav bar
-class ShopOverlay extends StatefulWidget {
-  final BalloonGame game;
-  const ShopOverlay({super.key, required this.game});
-
-  @override
-  State<ShopOverlay> createState() => _ShopOverlayState();
-}
-
-class _ShopOverlayState extends State<ShopOverlay> {
-  late SkinDef selected;
-
-  BalloonGame get game => widget.game;
+  TapJunkieSkin? _selected;
 
   @override
   void initState() {
     super.initState();
-    selected = game.skin;
+    _coins = widget.coins;
+    _equipped = widget.equipped;
+    _owned = [...widget.ownedSkinIds];
+    _selected = _equipped;
+  }
+
+  bool get _selectedOwned =>
+      _selected != null && _owned.contains(_selected!.id);
+
+  bool get _selectedEquipped =>
+      _selected != null && _equipped.id == _selected!.id;
+
+  String get _bottomLabel {
+    if (_selected == null) return '';
+    if (_selectedEquipped) return 'Equipped';
+    if (_selectedOwned) return 'Equip';
+    if (_coins < _selected!.cost) return 'Not enough coins';
+    return 'Buy for ${_selected!.cost}';
+  }
+
+  void _onBottomButton() {
+    if (_selected == null) return;
+    final skin = _selected!;
+
+    if (_selectedEquipped) return;
+
+    if (_selectedOwned) {
+      setState(() {
+        _equipped = skin;
+      });
+      return;
+    }
+
+    if (_coins < skin.cost) return;
+
+    setState(() {
+      _coins -= skin.cost;
+      _owned.add(skin.id);
+      _equipped = skin;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final owned = game.isSkinOwned(selected.id);
-    final equipped = game.skin.id == selected.id;
-    final canAfford = game.canAfford(selected.price);
-
     return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+      backgroundColor: const Color(0xFF050814),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF050814),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'TapJunkie Shop',
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          Row(
+            children: [
+              const Icon(Icons.monetization_on, color: Color(0xFFFFD54F)),
+              const SizedBox(width: 4),
+              Text(
+                '$_coins',
+                style: const TextStyle(color: Color(0xFFFFD54F)),
+              ),
+              const SizedBox(width: 16),
+            ],
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
+            if (_selected != null) _SelectedSkinHeader(skin: _selected!),
+            const SizedBox(height: 12),
+            Expanded(
+              child: GridView.count(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new),
-                    color: Colors.white70,
-                    onPressed: () {
-                      game.overlays.remove('shop');
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'TapJunkie Shop',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  for (final skin in allSkins)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selected = skin;
+                        });
+                      },
+                      child: _SkinCard(
+                        skin: skin,
+                        owned: _owned.contains(skin.id),
+                        equipped: _equipped.id == skin.id,
+                        selected: _selected?.id == skin.id,
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.monetization_on,
-                        color: Color(0xFFFACC15),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${game.totalCoins}',
-                        style: const TextStyle(
-                          color: Color(0xFFFACC15),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
-
-            // Preview card
+            // BIG bottom button with extra padding to avoid nav bar overlap.
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    colors: [
-                      selected.palette.first,
-                      selected.palette.last,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: GestureDetector(
+                onTap: _onBottomButton,
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: _bottomLabel == 'Not enough coins'
+                        ? Colors.grey.shade800
+                        : const Color(0xFF25293A),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                  border: Border.all(
-                    color: selected.legendary
-                        ? const Color(0xFFFACC15)
-                        : Colors.white24,
-                    width: 2,
+                  child: Center(
+                    child: Text(
+                      _bottomLabel,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFE0D4FF),
+                      ),
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    // Balloon preview
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected.palette.first,
-                        boxShadow: [
-                          BoxShadow(
-                            color: selected.accent.withOpacity(0.9),
-                            blurRadius: 30,
-                            spreadRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: selected.legendary
-                          ? const Icon(
-                              Icons.star,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            selected.name,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            selected.description,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            selected.legendary ? 'LEGENDARY' : '',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              letterSpacing: 2,
-                              color: Color(0xFFFACC15),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${selected.price}c',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          owned
-                              ? (equipped ? 'Equipped' : 'Owned')
-                              : 'Not owned',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: owned
-                                ? Colors.greenAccent
-                                : Colors.white70,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Grid of skins
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.75,
-                  children: allSkins.map((s) {
-                    final isOwned = game.isSkinOwned(s.id);
-                    final isEquipped = game.skin.id == s.id;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selected = s;
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          gradient: LinearGradient(
-                            colors: [
-                              s.palette.first,
-                              s.palette.last,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          border: Border.all(
-                            color: selected.id == s.id
-                                ? Colors.white
-                                : Colors.white24,
-                            width: selected.id == s.id ? 2 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              s.name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (s.legendary)
-                              const Text(
-                                'LEGENDARY',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  letterSpacing: 2,
-                                  color: Color(0xFFFACC15),
-                                ),
-                              ),
-                            const SizedBox(height: 4),
-                            Text(
-                              isEquipped
-                                  ? 'Equipped'
-                                  : isOwned
-                                      ? 'Owned'
-                                      : '${s.price}c',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isEquipped
-                                    ? Colors.greenAccent
-                                    : isOwned
-                                        ? Colors.white
-                                        : Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
                 ),
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: Builder(
-        builder: (context) {
-          final bottomInset = MediaQuery.of(context).padding.bottom;
-          final owned = game.isSkinOwned(selected.id);
-          final equipped = game.skin.id == selected.id;
-          final canAfford = game.canAfford(selected.price);
+      bottomNavigationBar: SizedBox(
+        height: 0,
+        child: Container(), // keeps nav bar area reserved
+      ),
+    );
+  }
 
-          String label;
-          VoidCallback? onPressed;
+  @override
+  void dispose() {
+    Navigator.of(context).pop(
+      _ShopResult(
+        coins: _coins,
+        equippedSkin: _equipped,
+        ownedSkinIds: _owned,
+      ),
+    );
+    super.dispose();
+  }
+}
 
-          if (equipped) {
-            label = 'Equipped';
-            onPressed = null;
-          } else if (owned) {
-            label = 'Equip';
-            onPressed = () {
-              setState(() {
-                game.equipSkin(selected);
-              });
-            };
-          } else {
-            label = 'Buy for ${selected.price}';
-            onPressed = canAfford
-                ? () {
-                    setState(() {
-                      game.unlockAndEquipSkin(selected);
-                    });
-                  }
-                : null;
-          }
+class _SelectedSkinHeader extends StatelessWidget {
+  final TapJunkieSkin skin;
+  const _SelectedSkinHeader({required this.skin});
 
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 8,
-              bottom: bottomInset + 16,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            skin.balloonColors.first,
+            skin.balloonColors.last,
+          ],
+        ),
+        border: Border.all(
+          color: skin.legendary ? const Color(0xFFFFD54F) : Colors.white24,
+          width: 2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: skin.glowColor,
+                  blurRadius: 16,
+                  spreadRadius: 4,
+                ),
+              ],
+              gradient: LinearGradient(
+                colors: skin.balloonColors,
+              ),
             ),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: onPressed == null
-                      ? Colors.grey.shade700
-                      : const Color(0xFF1E293B),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  skin.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-                onPressed: onPressed,
-                child: Text(
-                  label,
-                  style: const TextStyle(fontSize: 16),
+                const SizedBox(height: 4),
+                Text(
+                  skin.legendary ? 'LEGENDARY' : 'Skin',
+                  style: TextStyle(
+                    fontSize: 12,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w500,
+                    color: skin.legendary
+                        ? const Color(0xFFFFD54F)
+                        : Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (skin.cost > 0)
+            Text(
+              '${skin.cost}c',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFFFFD54F),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkinCard extends StatelessWidget {
+  final TapJunkieSkin skin;
+  final bool owned;
+  final bool equipped;
+  final bool selected;
+
+  const _SkinCard({
+    required this.skin,
+    required this.owned,
+    required this.equipped,
+    required this.selected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: skin.balloonColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: selected ? Colors.white : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 4,
+            top: 4,
+            child: Text(
+              skin.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 4,
+            bottom: 4,
+            child: Text(
+              skin.cost == 0 ? '' : '${skin.cost}c',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          if (equipped)
+            const Positioned(
+              left: 4,
+              bottom: 4,
+              child: Text(
+                'Equipped',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          else if (owned)
+            const Positioned(
+              left: 4,
+              bottom: 4,
+              child: Text(
+                'Owned',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-          );
-        },
+        ],
       ),
     );
   }
