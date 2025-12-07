@@ -11,10 +11,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  runApp(BalloonApp(storage: GameStorage(prefs)));
+  final storage = GameStorage(prefs);
+  runApp(BalloonApp(storage: storage));
 }
 
-/// Simple storage for scores, coins, and meta.
+/// Simple storage for scores, coins, meta, and cosmetics.
 class GameStorage {
   final SharedPreferences prefs;
   GameStorage(this.prefs);
@@ -35,7 +36,8 @@ class GameStorage {
   set dailyStreak(int v) => prefs.setInt('daily_streak', v);
 
   int get lastDailyClaimDay => prefs.getInt('last_daily_claim_day') ?? 0;
-  set lastDailyClaimDay(int v) => prefs.setInt('last_daily_claim_day', v);
+  set lastDailyClaimDay(int v) =>
+      prefs.setInt('last_daily_claim_day', v);
 
   int get missionsDay => prefs.getInt('missions_day') ?? 0;
   set missionsDay(int v) => prefs.setInt('missions_day', v);
@@ -54,6 +56,41 @@ class GameStorage {
       prefs.getBool('mission_frenzy_rewarded') ?? false;
   set missionFrenzyRewarded(bool v) =>
       prefs.setBool('mission_frenzy_rewarded', v);
+
+  bool get seenOnboarding =>
+      prefs.getBool('seen_onboarding') ?? false;
+  set seenOnboarding(bool v) =>
+      prefs.setBool('seen_onboarding', v);
+
+  // Cosmetics: skins
+  List<String> get ownedSkins =>
+      prefs.getStringList('owned_skins') ?? <String>[];
+  set ownedSkins(List<String> v) =>
+      prefs.setStringList('owned_skins', v);
+
+  String get equippedSkinId =>
+      prefs.getString('equipped_skin_id') ?? 'classic';
+
+  set equippedSkinId(String v) =>
+      prefs.setString('equipped_skin_id', v);
+
+  // Convenience helpers
+  Set<String> get ownedSkinSet => ownedSkins.toSet();
+
+  bool isSkinOwned(String id) {
+    final set = ownedSkinSet;
+    if (!set.contains('classic')) {
+      set.add('classic'); // ensure default is always owned
+      ownedSkins = set.toList();
+    }
+    return set.contains(id);
+  }
+
+  void unlockSkin(String id) {
+    final set = ownedSkinSet;
+    set.add(id);
+    ownedSkins = set.toList();
+  }
 
   /// Returns YYYYMMDD as int for "today".
   static int todayKey() {
@@ -105,6 +142,124 @@ class GameStorage {
   }
 }
 
+/// TapJunkie Skin definition.
+class SkinDef {
+  final String id;
+  final String name;
+  final String description;
+  final int price;
+  final List<Color> palette;
+  final Color accent;
+  final bool legendary;
+
+  const SkinDef({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.price,
+    required this.palette,
+    required this.accent,
+    this.legendary = false,
+  });
+}
+
+/// Master list of TapJunkie skins (Pack D vibe).
+class TapJunkieSkins {
+  static const List<SkinDef> all = [
+    SkinDef(
+      id: 'classic',
+      name: 'Classic Mix',
+      description: 'Original Balloon Burst palette.',
+      price: 0,
+      palette: [
+        Colors.yellow,
+        Colors.blue,
+        Colors.green,
+        Colors.purple,
+        Colors.orange,
+        Colors.cyan,
+      ],
+      accent: Colors.pinkAccent,
+    ),
+    SkinDef(
+      id: 'neon_city',
+      name: 'Neon City',
+      description: 'Electric blues and magentas from a rainy cyber-night.',
+      price: 250,
+      palette: [
+        Color(0xFF00E5FF),
+        Color(0xFFFF00FF),
+        Color(0xFF00FFB0),
+        Color(0xFF8E24AA),
+      ],
+      accent: Color(0xFFFF4081),
+    ),
+    SkinDef(
+      id: 'retro_arcade',
+      name: 'Retro Arcade',
+      description: 'Hot pink, teal, and arcade cabinet glow.',
+      price: 300,
+      palette: [
+        Color(0xFFFF4081),
+        Color(0xFF00E676),
+        Color(0xFF40C4FF),
+        Color(0xFFFFD740),
+      ],
+      accent: Color(0xFFFFAB40),
+    ),
+    SkinDef(
+      id: 'mystic_glow',
+      name: 'Mystic Glow',
+      description: 'Purples, teals and deep magic energy.',
+      price: 350,
+      palette: [
+        Color(0xFF7C4DFF),
+        Color(0xFF18FFFF),
+        Color(0xFF64FFDA),
+        Color(0xFF6200EA),
+      ],
+      accent: Color(0xFFB388FF),
+    ),
+    SkinDef(
+      id: 'cosmic_burst',
+      name: 'Cosmic Burst',
+      description: 'Galactic gradients from deep space.',
+      price: 400,
+      palette: [
+        Color(0xFF536DFE),
+        Color(0xFF9575CD),
+        Color(0xFF26C6DA),
+        Color(0xFFFFCA28),
+      ],
+      accent: Color(0xFFFF7043),
+    ),
+    SkinDef(
+      id: 'junkie_juice',
+      name: 'Junkie Juice',
+      description: 'TapJunkie signature toxic-lime and hot pink.',
+      price: 500,
+      palette: [
+        Color(0xFF00FF6A),
+        Color(0xFFFF4081),
+        Color(0xFFFFFF00),
+        Color(0xFF00E5FF),
+      ],
+      accent: Color(0xFFFFEA00),
+      legendary: true,
+    ),
+  ];
+
+  static SkinDef get defaultSkin =>
+      all.firstWhere((s) => s.id == 'classic');
+
+  static SkinDef byId(String id) {
+    return all.firstWhere(
+      (s) => s.id == id,
+      orElse: () => defaultSkin,
+    );
+  }
+}
+
 /// Root app widget
 class BalloonApp extends StatelessWidget {
   final GameStorage storage;
@@ -112,11 +267,76 @@ class BalloonApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final home = storage.seenOnboarding
+        ? MainMenu(storage: storage)
+        : OnboardingScreen(storage: storage);
+
     return MaterialApp(
       title: 'Balloon Burst',
       theme: ThemeData.dark(),
       debugShowCheckedModeBanner: false,
-      home: MainMenu(storage: storage),
+      home: home,
+    );
+  }
+}
+
+/// ===============================
+/// ONBOARDING
+/// ===============================
+class OnboardingScreen extends StatelessWidget {
+  final GameStorage storage;
+  const OnboardingScreen({super.key, required this.storage});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF101528),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "WELCOME TO TAPJUNKIE",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.pinkAccent,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "• Tap balloons to score.\n\n"
+                  "• Golden balloons = bonus points & coins.\n\n"
+                  "• Lightning balloons zap nearby balloons.\n\n"
+                  "• Bomb balloons cost a life ONLY if you tap them.\n"
+                  "  Let them float away.\n\n"
+                  "• Chain quick pops to build Combo.\n"
+                  "  Hit 10+ combo to trigger FRENZY.\n\n"
+                  "• Earn coins to unlock skins in the TapJunkie Shop.",
+                  style: TextStyle(fontSize: 16, height: 1.5),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () {
+                    storage.seenOnboarding = true;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MainMenu(storage: storage),
+                      ),
+                    );
+                  },
+                  child: const Text("Got it — Let’s Play!"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -143,6 +363,8 @@ class _MainMenuState extends State<MainMenu> {
   Widget build(BuildContext context) {
     final storage = widget.storage;
     final canClaimDaily = storage.canClaimDailyReward;
+    final equipped =
+        TapJunkieSkins.byId(storage.equippedSkinId);
 
     return Scaffold(
       backgroundColor: const Color(0xFF101528),
@@ -185,6 +407,14 @@ class _MainMenuState extends State<MainMenu> {
                   style: const TextStyle(
                       fontSize: 18, color: Colors.amberAccent),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  "Equipped Skin: ${equipped.name}",
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.lightBlueAccent,
+                  ),
+                ),
                 const SizedBox(height: 16),
 
                 // Daily reward section
@@ -223,6 +453,7 @@ class _MainMenuState extends State<MainMenu> {
 
                 // Simple missions panel
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF181C30),
@@ -262,11 +493,26 @@ class _MainMenuState extends State<MainMenu> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => GameScreen(storage: storage),
+                        builder: (_) =>
+                            GameScreen(storage: storage),
                       ),
                     );
                   },
                   child: const Text("PLAY"),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ShopScreen(storage: storage),
+                      ),
+                    );
+                    setState(() {}); // refresh coins/skin
+                  },
+                  child: const Text("SHOP"),
                 ),
               ],
             ),
@@ -300,6 +546,316 @@ class _MainMenuState extends State<MainMenu> {
 }
 
 /// ===============================
+/// TAPJUNKIE SHOP (Hybrid: preview + grid)
+/// ===============================
+class ShopScreen extends StatefulWidget {
+  final GameStorage storage;
+  const ShopScreen({super.key, required this.storage});
+
+  @override
+  State<ShopScreen> createState() => _ShopScreenState();
+}
+
+class _ShopScreenState extends State<ShopScreen> {
+  late int selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    final equippedId = widget.storage.equippedSkinId;
+    final idx = TapJunkieSkins.all
+        .indexWhere((s) => s.id == equippedId);
+    selectedIndex = idx >= 0 ? idx : 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final storage = widget.storage;
+    final skins = TapJunkieSkins.all;
+    final selectedSkin = skins[selectedIndex];
+    final owned = storage.isSkinOwned(selectedSkin.id);
+    final isEquipped =
+        storage.equippedSkinId == selectedSkin.id;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF050814),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF050814),
+        title: const Text("TapJunkie Shop"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Top: big preview / carousel feel
+            _buildBigPreview(selectedSkin, owned, isEquipped),
+            const SizedBox(height: 16),
+            // Coins display
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.circle, color: Colors.amber),
+                const SizedBox(width: 6),
+                Text(
+                  "Coins: ${storage.coins}",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.amberAccent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Bottom: grid
+            Expanded(
+              child: GridView.builder(
+                itemCount: skins.length,
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 0.8,
+                ),
+                itemBuilder: (context, index) {
+                  final skin = skins[index];
+                  final skinOwned =
+                      storage.isSkinOwned(skin.id);
+                  final selected = index == selectedIndex;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => selectedIndex = index);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected
+                              ? skin.accent
+                              : Colors.white24,
+                          width: selected ? 2 : 1,
+                        ),
+                        gradient: LinearGradient(
+                          colors: [
+                            skin.palette.first,
+                            skin.palette.last,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            skin.name,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (skin.legendary)
+                            const Text(
+                              "LEGENDARY",
+                              style: TextStyle(
+                                color: Colors.yellowAccent,
+                                fontSize: 10,
+                              ),
+                            ),
+                          Text(
+                            skinOwned
+                                ? (storage.equippedSkinId ==
+                                        skin.id
+                                    ? "Equipped"
+                                    : "Owned")
+                                : "${skin.price}c",
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: skinOwned
+                                  ? Colors.greenAccent
+                                  : Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildActionButton(selectedSkin, owned, isEquipped),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBigPreview(
+    SkinDef skin,
+    bool owned,
+    bool isEquipped,
+  ) {
+    return Container(
+      height: 190,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF050814),
+            skin.palette.first.withOpacity(0.4),
+            skin.palette.last.withOpacity(0.6),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: skin.accent, width: 2),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // Balloon preview
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          skin.palette.first,
+                          skin.palette.last,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: skin.accent.withOpacity(0.8),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (skin.legendary)
+                    const Icon(
+                      Icons.star,
+                      color: Colors.yellowAccent,
+                      size: 30,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Text info
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  skin.name,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: skin.accent,
+                  ),
+                ),
+                Text(
+                  skin.description,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.white70,
+                  ),
+                ),
+                Text(
+                  owned
+                      ? (isEquipped
+                          ? "Equipped"
+                          : "Owned")
+                      : "${skin.price} coins",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: owned
+                        ? Colors.greenAccent
+                        : Colors.amberAccent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+    SkinDef skin,
+    bool owned,
+    bool isEquipped,
+  ) {
+    final storage = widget.storage;
+
+    if (isEquipped) {
+      return ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green.withOpacity(0.5),
+        ),
+        child: const Text("Equipped"),
+      );
+    }
+
+    if (owned) {
+      return ElevatedButton(
+        onPressed: () {
+          storage.equippedSkinId = skin.id;
+          setState(() {});
+        },
+        child: const Text("Equip"),
+      );
+    }
+
+    return ElevatedButton(
+      onPressed: () {
+        if (storage.coins < skin.price) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Not enough coins!"),
+            ),
+          );
+          return;
+        }
+        storage.coins = storage.coins - skin.price;
+        storage.unlockSkin(skin.id);
+        storage.equippedSkinId = skin.id;
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Unlocked ${skin.name}!",
+            ),
+          ),
+        );
+      },
+      child: Text("Buy for ${skin.price}"),
+    );
+  }
+}
+
+/// ===============================
 /// GAME SCREEN (wraps Flame Game)
 /// ===============================
 class GameScreen extends StatelessWidget {
@@ -308,14 +864,19 @@ class GameScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final game = BalloonGame(storage: storage);
+    final skin =
+        TapJunkieSkins.byId(storage.equippedSkinId);
+    final game =
+        BalloonGame(storage: storage, skin: skin);
 
     return Scaffold(
       body: GameWidget(
         game: game,
         overlayBuilderMap: {
-          'GameOver': (context, game) =>
-              GameOverOverlay(game: game as BalloonGame, storage: storage),
+          'GameOver': (context, game) => GameOverOverlay(
+                game: game as BalloonGame,
+                storage: storage,
+              ),
         },
       ),
     );
@@ -326,11 +887,12 @@ class GameScreen extends StatelessWidget {
 enum BalloonType { normal, golden, bomb, lightning }
 
 /// ===============================
-/// CORE GAME (TapJunkie engine v1)
+/// CORE GAME (TapJunkie engine v1 + skins)
 /// ===============================
 class BalloonGame extends FlameGame {
   final GameStorage storage;
-  BalloonGame({required this.storage});
+  final SkinDef skin;
+  BalloonGame({required this.storage, required this.skin});
 
   final Random rng = Random();
 
@@ -516,7 +1078,7 @@ class BalloonGame extends FlameGame {
         return Colors.lightBlueAccent;
       case BalloonType.normal:
       default:
-        return Colors.primaries[rng.nextInt(Colors.primaries.length)];
+        return skin.palette[rng.nextInt(skin.palette.length)];
     }
   }
 
@@ -560,8 +1122,10 @@ class BalloonGame extends FlameGame {
   }
 
   void _handlePop({required BalloonType balloonType}) {
-    final nowSeconds = DateTime.now().millisecondsSinceEpoch / 1000.0;
-    if (nowSeconds - _lastPopTimeSeconds <= _comboWindowSeconds) {
+    final nowSeconds =
+        DateTime.now().millisecondsSinceEpoch / 1000.0;
+    if (nowSeconds - _lastPopTimeSeconds <=
+        _comboWindowSeconds) {
       combo++;
     } else {
       combo = 1;
@@ -592,6 +1156,7 @@ class BalloonGame extends FlameGame {
         base = 3;
         break;
       case BalloonType.normal:
+      case BalloonType.bomb:
       default:
         base = 1;
         break;
@@ -659,21 +1224,21 @@ class BalloonGame extends FlameGame {
     if (!storage.missionScoreRewarded && score >= 800) {
       storage.missionScoreRewarded = true;
       storage.coins = storage.coins + 100;
-      missionMessages
-          .add("Mission complete: Score 800+ (+100 coins)");
+      missionMessages.add(
+          "Mission complete: Score 800+ (+100 coins)");
     }
     if (!storage.missionComboRewarded && bestCombo >= 20) {
       storage.missionComboRewarded = true;
       storage.coins = storage.coins + 100;
-      missionMessages
-          .add("Mission complete: Reach combo 20+ (+100 coins)");
+      missionMessages.add(
+          "Mission complete: Reach combo 20+ (+100 coins)");
     }
     if (!storage.missionFrenzyRewarded &&
         frenzyTriggersThisRun >= 3) {
       storage.missionFrenzyRewarded = true;
       storage.coins = storage.coins + 150;
-      missionMessages
-          .add("Mission complete: Trigger Frenzy 3 times (+150 coins)");
+      missionMessages.add(
+          "Mission complete: Trigger Frenzy 3 times (+150 coins)");
     }
 
     overlays.add('GameOver');
@@ -682,6 +1247,7 @@ class BalloonGame extends FlameGame {
 
 /// ===============================
 /// BALLOON COMPONENT WITH GLOW + HITBOX
+/// and bomb fix: bombs only punish on tap
 /// ===============================
 class Balloon extends CircleComponent
     with TapCallbacks, HasGameRef<BalloonGame> {
@@ -739,16 +1305,19 @@ class Balloon extends CircleComponent
 
     position.y -= speed * dt;
 
+    // IMPORTANT: bombs do NOT punish if they escape.
     if (position.y < -radius) {
-      gameRef.handleMiss();
+      if (type != BalloonType.bomb) {
+        gameRef.handleMiss();
+      }
       removeFromParent();
     }
 
     // Bomb pulsation
     if (type == BalloonType.bomb) {
       final pulse = 0.5 + 0.3 * sin(_time * 8);
-      glowPaint.color =
-          glowPaint.color.withOpacity(pulse.clamp(0.2, 1.0).toDouble());
+      glowPaint.color = glowPaint.color
+          .withOpacity(pulse.clamp(0.2, 1.0).toDouble());
     }
   }
 
@@ -819,18 +1388,19 @@ class GameOverOverlay extends StatelessWidget {
                 for (final msg in game.missionMessages)
                   Text(
                     "• $msg",
-                    style:
-                        const TextStyle(color: Colors.lightGreenAccent),
+                    style: const TextStyle(
+                      color: Colors.lightGreenAccent,
+                    ),
                   ),
                 const SizedBox(height: 16),
               ],
               ElevatedButton(
                 onPressed: () {
-                  // 🔥 IMPORTANT: rebuild main menu so stats refresh
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => MainMenu(storage: storage),
+                      builder: (_) =>
+                          MainMenu(storage: storage),
                     ),
                   );
                 },
