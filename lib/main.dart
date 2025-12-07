@@ -197,7 +197,7 @@ enum BalloonType { normal, golden, bomb, lightning }
 
 /// ==== MAIN GAME ============================================================
 
-class BalloonGame extends FlameGame with HasTappables {
+class BalloonGame extends FlameGame with TapCallbacks {
   BalloonGame();
 
   final Random rng = Random();
