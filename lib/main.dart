@@ -1059,6 +1059,7 @@ class BalloonGame extends FlameGame {
 
     add(
       Balloon(
+        skin: skin,        // 🔥 pass the equipped skin in
         type: type,
         radius: radius,
         position: position,
@@ -1246,19 +1247,23 @@ class BalloonGame extends FlameGame {
 }
 
 /// ===============================
-/// BALLOON COMPONENT WITH GLOW + HITBOX
-/// and bomb fix: bombs only punish on tap
+/// BALLOON COMPONENT – Skin Engine C2 (Option D)
+/// Skins now control color + glow. Legendary goes extra wild.
+/// Bombs still only punish on tap (not when missed).
 /// ===============================
 class Balloon extends CircleComponent
     with TapCallbacks, HasGameRef<BalloonGame> {
   final double speed;
   final BalloonType type;
   final Color baseColor;
+  final SkinDef skin; // 🔥 active skin at spawn time
 
   late final Paint glowPaint;
+  late final Paint innerGlowPaint;
   double _time = 0;
 
   Balloon({
+    required this.skin,
     required this.type,
     required double radius,
     required Vector2 position,
@@ -1269,32 +1274,53 @@ class Balloon extends CircleComponent
           position: position,
           anchor: Anchor.center,
         ) {
-    paint = Paint()..color = baseColor;
+    // Core fill starts from baseColor (already using skin palette for normal)
+    paint = Paint()..color = _computeCoreColor();
+
+    // Outer glow – strongly styled per skin and type
+    glowPaint = Paint()
+      ..color = _computeGlowColor().withOpacity(
+        skin.legendary ? 0.95 : (type == BalloonType.normal ? 0.55 : 0.75),
+      )
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+
+    // Inner glow – subtle highlight inside the balloon
+    innerGlowPaint = Paint()
+      ..color = Colors.white.withOpacity(0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
 
     // Hitbox so taps are reliable
     add(
       CircleHitbox()
         ..collisionType = CollisionType.inactive,
     );
-
-    // Neon glow for special balloons
-    final glowColor = _glowColorForType(type);
-    glowPaint = Paint()
-      ..color = glowColor.withOpacity(0.7)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
   }
 
-  Color _glowColorForType(BalloonType type) {
+  Color _computeCoreColor() {
     switch (type) {
       case BalloonType.golden:
-        return const Color(0xFFFFEE55); // neon gold
+        return Colors.amberAccent;
       case BalloonType.bomb:
-        return const Color(0xFFFF3333); // hot red
+        return Colors.redAccent;
       case BalloonType.lightning:
-        return const Color(0xFF33CCFF); // electric blue
+        return Colors.lightBlueAccent;
       case BalloonType.normal:
       default:
-        return Colors.transparent;
+        return baseColor; // already chosen from skin.palette for normals
+    }
+  }
+
+  Color _computeGlowColor() {
+    switch (type) {
+      case BalloonType.golden:
+        return const Color(0xFFFFF176); // soft gold glow
+      case BalloonType.bomb:
+        return const Color(0xFFFF5252); // hot danger red
+      case BalloonType.lightning:
+        return const Color(0xFF40C4FF); // electric blue
+      case BalloonType.normal:
+      default:
+        return skin.accent;
     }
   }
 
@@ -1317,17 +1343,64 @@ class Balloon extends CircleComponent
     if (type == BalloonType.bomb) {
       final pulse = 0.5 + 0.3 * sin(_time * 8);
       glowPaint.color = glowPaint.color
-          .withOpacity(pulse.clamp(0.2, 1.0).toDouble());
+          .withOpacity(pulse.clamp(0.25, 1.0).toDouble());
+    }
+
+    // Legendary skin: animate glow for ALL balloons under this skin
+    if (skin.legendary) {
+      final wave = 0.6 + 0.4 * sin(_time * 6);
+      final base = _computeGlowColor();
+      glowPaint.color = base.withOpacity(wave.clamp(0.4, 1.0));
+    }
+
+    // During Frenzy, give normals a subtle color shift for extra chaos
+    if (gameRef.inFrenzy && type == BalloonType.normal) {
+      final idx =
+          ( (_time * 5).floor().abs() ) % skin.palette.length;
+      paint.color = skin.palette[idx];
     }
   }
 
   @override
   void render(Canvas canvas) {
-    // Draw glow for special balloons
-    if (type != BalloonType.normal) {
-      canvas.drawCircle(Offset.zero, radius * 1.4, glowPaint);
+    // Outer aura: larger radius for special / legendary skins
+    double auraRadius = radius * 1.6;
+    if (skin.legendary) {
+      auraRadius = radius * 1.9;
+    } else if (type != BalloonType.normal) {
+      auraRadius = radius * 1.8;
     }
+
+    // Draw outer glow (TapJunkie identity)
+    canvas.drawCircle(Offset.zero, auraRadius, glowPaint);
+
+    // Draw inner soft glow highlight near top-left
+    final highlightOffset = const Offset(-6, -6);
+    canvas.drawCircle(highlightOffset, radius * 0.7, innerGlowPaint);
+
+    // Base balloon fill
     super.render(canvas);
+
+    // For legendary skin, draw a faint star highlight on top
+    if (skin.legendary) {
+      final starPaint = Paint()
+        ..color = Colors.white.withOpacity(0.5);
+      final center = Offset.zero;
+      const starRadius = 4.0;
+
+      // Simple 4-point star
+      canvas.drawCircle(center, starRadius, starPaint);
+      canvas.drawLine(
+        center.translate(-starRadius * 1.5, 0),
+        center.translate(starRadius * 1.5, 0),
+        starPaint..strokeWidth = 1.5,
+      );
+      canvas.drawLine(
+        center.translate(0, -starRadius * 1.5),
+        center.translate(0, starRadius * 1.5),
+        starPaint..strokeWidth = 1.5,
+      );
+    }
   }
 
   @override
