@@ -120,6 +120,14 @@ class PlayerProfile {
   }
 }
 
+/// How strict / generous tap hit detection should be.
+enum TapPrecisionMode {
+  skinDefault,  // use whatever the skin says
+  precision,    // smaller hitbox, more skill
+  tapJunkie,    // default - generous, fun
+  overlord,     // huge hitbox, chaos mode
+}
+
 enum MissionType { score, combo, frenzy }
 
 class Mission {
@@ -296,6 +304,50 @@ SkinDef skinById(String id) {
     (s) => s.id == id,
     orElse: () => allSkins.first,
   );
+double getHitboxMultiplierForSkin(String skinId) {
+  // 1) base per-skin default
+  double baseMultiplier;
+  switch (skinId) {
+    case 'classic':
+      baseMultiplier = 1.15; // fairly honest
+      break;
+    case 'neon':
+      baseMultiplier = 1.25;
+      break;
+    case 'retro':
+      baseMultiplier = 1.3;
+      break;
+    case 'mystic':
+      baseMultiplier = 1.35;
+      break;
+    case 'cosmic':
+      baseMultiplier = 1.4;
+      break;
+    case 'junkie_juice':
+      baseMultiplier = 1.55; // LEGENDARY chaos
+      break;
+    default:
+      baseMultiplier = 1.2;
+  }
+
+  // 2) if we’re using skin defaults, just return that
+  if (useSkinDefaultPrecision ||
+      tapPrecisionMode == TapPrecisionMode.skinDefault) {
+    return baseMultiplier;
+  }
+
+  // 3) override by mode
+  switch (tapPrecisionMode) {
+    case TapPrecisionMode.precision:
+      return 1.1;   // tighter
+    case TapPrecisionMode.tapJunkie:
+      return 1.4;   // generous, default
+    case TapPrecisionMode.overlord:
+      return 2.0;   // LOL
+    case TapPrecisionMode.skinDefault:
+      return baseMultiplier;
+  }
+}
 }
 
 /// ---------- MISSIONS STORAGE ----------
@@ -339,7 +391,8 @@ Future<List<Mission>> loadMissions(SharedPreferences prefs) async {
   return missions;
 }
 
-Future<void> saveMissions(
+Future<void> 
+saveMissions(
   SharedPreferences prefs,
   List<Mission> missions, [
   String? dateKey,
@@ -349,6 +402,8 @@ Future<void> saveMissions(
   await prefs.setString('missionsDate', key);
   final jsonStr = jsonEncode(missions.map((m) => m.toMap()).toList());
   await prefs.setString('missionsData', jsonStr);
+await prefs.setInt('tap_precision_mode', tapPrecisionMode.index);
+await prefs.setBool('use_skin_default_precision', useSkinDefaultPrecision);
 }
 
 /// ---------- MAIN MENU ----------
@@ -381,6 +436,10 @@ class _MainMenuState extends State<MainMenu> {
       loading = false;
     });
   }
+
+// Put these as fields on your BalloonGame or profile class:
+TapPrecisionMode tapPrecisionMode = TapPrecisionMode.tapJunkie;
+bool useSkinDefaultPrecision = true;
 
   Future<void> _openShop() async {
     final changed = await Navigator.of(context).push<bool>(
@@ -910,7 +969,15 @@ class _ShopScreenState extends State<ShopScreen> {
                     color: Colors.yellowAccent,
                   ),
                 ),
-              ),
+              )
+final precisionIndex = prefs.getInt('tap_precision_mode') ?? 1; // default TapJunkie
+tapPrecisionMode = TapPrecisionMode.values[
+  precisionIndex.clamp(0, TapPrecisionMode.values.length - 1)
+];
+
+useSkinDefaultPrecision =
+    prefs.getBool('use_skin_default_precision') ?? true;
+
           ],
         ),
       ),
@@ -920,6 +987,28 @@ class _ShopScreenState extends State<ShopScreen> {
 
 /// ---------- GAME DATA ----------
 
+double getTapPrecisionMultiplier({
+  required TapPrecisionMode tapPrecisionMode,
+  required bool useSkinDefault,
+  required String equippedSkinId,
+}) {
+  if (useSkinDefault) {
+    // Skin-specific tuning
+    if (equippedSkinId == 'junkie_juice') return 1.25; // easy huge hits
+    if (equippedSkinId == 'cosmic_burst') return 1.15;
+  }
+
+  switch (tapPrecisionMode) {
+    case TapPrecisionMode.precision:
+      return 0.65;    // skill mode
+    case TapPrecisionMode.tapJunkie:
+      return 1.0;     // classic
+    case TapPrecisionMode.overlord:
+      return 1.8;     // MASSIVE hitboxes
+    case TapPrecisionMode.skinDefault:
+      return 1.0;
+  }
+}
 class Balloon {
   Offset position;
   double radius;
@@ -1113,10 +1202,20 @@ class _GameScreenState extends State<GameScreen>
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
       final dist = (pos - b.position).distance;
-      if (dist <= b.radius * 1.1) {
-        _popBalloon(i);
-        return;
-      }
+      // Compute precision multiplier
+final multiplier = getTapPrecisionMultiplier(
+  tapPrecisionMode: tapPrecisionMode,
+  useSkinDefault: useSkinDefaultPrecision,
+  equippedSkinId: profile.equippedSkinId,
+);
+
+// Adjust hitbox radius dynamically
+final effectiveRadius = b.radius * multiplier;
+
+if (dist <= effectiveRadius) {
+  _popBalloon(i);
+  return;
+}
     }
     // Tap in empty space: optional small penalty (here: reset combo softly)
     setState(() {
