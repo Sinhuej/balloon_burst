@@ -6,40 +6,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
+/// ---------- ENTRYPOINT ----------
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   runApp(MyApp(prefs: prefs));
 }
 
-/// ---------- CORE APP ----------
+/// ---------- ENUMS ----------
 
-class MyApp extends StatelessWidget {
-  final SharedPreferences prefs;
-
-  const MyApp({super.key, required this.prefs});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Balloon Burst',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF050817),
-        textTheme: ThemeData.dark().textTheme.apply(
-              fontFamily: 'Roboto',
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
-            ),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFFF4F9A),
-          secondary: Color(0xFF00E0FF),
-        ),
-      ),
-      home: MainMenu(prefs: prefs),
-    );
-  }
+/// How strict / generous tap hit detection should be.
+enum TapPrecisionMode {
+  skinDefault, // use whatever the skin says
+  precision,   // smaller hitbox, more skill
+  tapJunkie,   // default - generous, fun
+  overlord,    // huge hitbox, chaos mode
 }
+
+enum MissionType { score, combo, frenzy }
 
 /// ---------- DATA MODELS ----------
 
@@ -53,6 +38,10 @@ class PlayerProfile {
   Set<String> ownedSkins;
   DateTime? lastLoginDate;
 
+  /// Stored as index of TapPrecisionMode
+  int tapPrecisionIndex;
+  bool useSkinDefaultPrecision;
+
   PlayerProfile({
     required this.highScore,
     required this.bestCombo,
@@ -62,6 +51,8 @@ class PlayerProfile {
     required this.equippedSkinId,
     required this.ownedSkins,
     required this.lastLoginDate,
+    required this.tapPrecisionIndex,
+    required this.useSkinDefaultPrecision,
   });
 
   factory PlayerProfile.fromPrefs(SharedPreferences prefs) {
@@ -71,20 +62,22 @@ class PlayerProfile {
     final totalCoins = prefs.getInt('totalCoins') ?? 50;
     final equippedSkinId = prefs.getString('equippedSkinId') ?? 'classic';
     final ownedSkinsList = prefs.getStringList('ownedSkins') ?? ['classic'];
+
     final lastLoginStr = prefs.getString('lastLoginDate');
     DateTime? lastLogin;
     if (lastLoginStr != null) {
       lastLogin = DateTime.tryParse(lastLoginStr);
     }
-    int dailyStreak = prefs.getInt('dailyStreak') ?? 0;
 
+    int dailyStreak = prefs.getInt('dailyStreak') ?? 0;
     final today = DateTime.now();
+
     if (lastLogin == null) {
       dailyStreak = 1;
     } else {
-      final diff = today.difference(
-        DateTime(lastLogin.year, lastLogin.month, lastLogin.day),
-      ).inDays;
+      final diff = today
+          .difference(DateTime(lastLogin.year, lastLogin.month, lastLogin.day))
+          .inDays;
       if (diff == 0) {
         // same day, keep streak
       } else if (diff == 1) {
@@ -93,6 +86,10 @@ class PlayerProfile {
         dailyStreak = 1;
       }
     }
+
+    final tapPrecisionIndex = prefs.getInt('tap_precision_mode') ?? 1; // TapJunkie
+    final useSkinDefaultPrecision =
+        prefs.getBool('use_skin_default_precision') ?? true;
 
     return PlayerProfile(
       highScore: highScore,
@@ -103,6 +100,8 @@ class PlayerProfile {
       equippedSkinId: equippedSkinId,
       ownedSkins: ownedSkinsList.toSet(),
       lastLoginDate: today,
+      tapPrecisionIndex: tapPrecisionIndex,
+      useSkinDefaultPrecision: useSkinDefaultPrecision,
     );
   }
 
@@ -117,18 +116,11 @@ class PlayerProfile {
     if (lastLoginDate != null) {
       await prefs.setString('lastLoginDate', lastLoginDate!.toIso8601String());
     }
+
+    await prefs.setInt('tap_precision_mode', tapPrecisionIndex);
+    await prefs.setBool('use_skin_default_precision', useSkinDefaultPrecision);
   }
 }
-
-/// How strict / generous tap hit detection should be.
-enum TapPrecisionMode {
-  skinDefault,  // use whatever the skin says
-  precision,    // smaller hitbox, more skill
-  tapJunkie,    // default - generous, fun
-  overlord,     // huge hitbox, chaos mode
-}
-
-enum MissionType { score, combo, frenzy }
 
 class Mission {
   final String id;
@@ -304,50 +296,6 @@ SkinDef skinById(String id) {
     (s) => s.id == id,
     orElse: () => allSkins.first,
   );
-double getHitboxMultiplierForSkin(String skinId) {
-  // 1) base per-skin default
-  double baseMultiplier;
-  switch (skinId) {
-    case 'classic':
-      baseMultiplier = 1.15; // fairly honest
-      break;
-    case 'neon':
-      baseMultiplier = 1.25;
-      break;
-    case 'retro':
-      baseMultiplier = 1.3;
-      break;
-    case 'mystic':
-      baseMultiplier = 1.35;
-      break;
-    case 'cosmic':
-      baseMultiplier = 1.4;
-      break;
-    case 'junkie_juice':
-      baseMultiplier = 1.55; // LEGENDARY chaos
-      break;
-    default:
-      baseMultiplier = 1.2;
-  }
-
-  // 2) if we’re using skin defaults, just return that
-  if (useSkinDefaultPrecision ||
-      tapPrecisionMode == TapPrecisionMode.skinDefault) {
-    return baseMultiplier;
-  }
-
-  // 3) override by mode
-  switch (tapPrecisionMode) {
-    case TapPrecisionMode.precision:
-      return 1.1;   // tighter
-    case TapPrecisionMode.tapJunkie:
-      return 1.4;   // generous, default
-    case TapPrecisionMode.overlord:
-      return 2.0;   // LOL
-    case TapPrecisionMode.skinDefault:
-      return baseMultiplier;
-  }
-}
 }
 
 /// ---------- MISSIONS STORAGE ----------
@@ -391,8 +339,7 @@ Future<List<Mission>> loadMissions(SharedPreferences prefs) async {
   return missions;
 }
 
-Future<void> 
-saveMissions(
+Future<void> saveMissions(
   SharedPreferences prefs,
   List<Mission> missions, [
   String? dateKey,
@@ -402,8 +349,35 @@ saveMissions(
   await prefs.setString('missionsDate', key);
   final jsonStr = jsonEncode(missions.map((m) => m.toMap()).toList());
   await prefs.setString('missionsData', jsonStr);
-await prefs.setInt('tap_precision_mode', tapPrecisionMode.index);
-await prefs.setBool('use_skin_default_precision', useSkinDefaultPrecision);
+}
+
+/// ---------- CORE APP WIDGET ----------
+
+class MyApp extends StatelessWidget {
+  final SharedPreferences prefs;
+
+  const MyApp({super.key, required this.prefs});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Balloon Burst',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF050817),
+        textTheme: ThemeData.dark().textTheme.apply(
+              fontFamily: 'Roboto',
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            ),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFFF4F9A),
+          secondary: Color(0xFF00E0FF),
+        ),
+      ),
+      home: MainMenu(prefs: prefs),
+    );
+  }
 }
 
 /// ---------- MAIN MENU ----------
@@ -437,10 +411,6 @@ class _MainMenuState extends State<MainMenu> {
     });
   }
 
-// Put these as fields on your BalloonGame or profile class:
-TapPrecisionMode tapPrecisionMode = TapPrecisionMode.tapJunkie;
-bool useSkinDefaultPrecision = true;
-
   Future<void> _openShop() async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -461,16 +431,28 @@ bool useSkinDefaultPrecision = true;
     if (loading) return;
 
     final equipped = skinById(profile.equippedSkinId);
+
+    // convert stored index to enum safely
+    final mode = TapPrecisionMode.values[
+        profile.tapPrecisionIndex.clamp(0, TapPrecisionMode.values.length - 1)];
+
     final result = await Navigator.of(context).push<GameResult?>(
       MaterialPageRoute(
         builder: (_) => GameScreen(
           skin: equipped,
-          missions: missions.map((m) => Mission(
-                id: m.id,
-                type: m.type,
-                target: m.target,
-                completed: m.completed,
-              )).toList(),
+          missions: missions
+              .map(
+                (m) => Mission(
+                  id: m.id,
+                  type: m.type,
+                  target: m.target,
+                  completed: m.completed,
+                ),
+              )
+              .toList(),
+          tapPrecisionMode: mode,
+          useSkinDefaultPrecision: profile.useSkinDefaultPrecision,
+          equippedSkinId: profile.equippedSkinId,
         ),
       ),
     );
@@ -716,6 +698,7 @@ class _ShopScreenState extends State<ShopScreen> {
     }
     await profile.save(widget.prefs);
     setState(() {});
+    Navigator.of(context).pop(true);
   }
 
   @override
@@ -861,7 +844,8 @@ class _ShopScreenState extends State<ShopScreen> {
                 const SizedBox(height: 4),
                 Text(
                   selectedSkin.description,
-                  style: const TextStyle(fontSize: 13, color: Colors.white70),
+                  style:
+                      const TextStyle(fontSize: 13, color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -969,15 +953,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     color: Colors.yellowAccent,
                   ),
                 ),
-              )
-final precisionIndex = prefs.getInt('tap_precision_mode') ?? 1; // default TapJunkie
-tapPrecisionMode = TapPrecisionMode.values[
-  precisionIndex.clamp(0, TapPrecisionMode.values.length - 1)
-];
-
-useSkinDefaultPrecision =
-    prefs.getBool('use_skin_default_precision') ?? true;
-
+              ),
           ],
         ),
       ),
@@ -985,30 +961,8 @@ useSkinDefaultPrecision =
   }
 }
 
-/// ---------- GAME DATA ----------
+/// ---------- GAME DATA STRUCTS ----------
 
-double getTapPrecisionMultiplier({
-  required TapPrecisionMode tapPrecisionMode,
-  required bool useSkinDefault,
-  required String equippedSkinId,
-}) {
-  if (useSkinDefault) {
-    // Skin-specific tuning
-    if (equippedSkinId == 'junkie_juice') return 1.25; // easy huge hits
-    if (equippedSkinId == 'cosmic_burst') return 1.15;
-  }
-
-  switch (tapPrecisionMode) {
-    case TapPrecisionMode.precision:
-      return 0.65;    // skill mode
-    case TapPrecisionMode.tapJunkie:
-      return 1.0;     // classic
-    case TapPrecisionMode.overlord:
-      return 1.8;     // MASSIVE hitboxes
-    case TapPrecisionMode.skinDefault:
-      return 1.0;
-  }
-}
 class Balloon {
   Offset position;
   double radius;
@@ -1047,16 +1001,115 @@ class GameResult {
   });
 }
 
-/// ---------- GAME SCREEN (NO FLAME, PURE FLUTTER) ----------
+/// ---------- TAP PRECISION ENGINE (Overlord Dynamic) ----------
+
+double getTapPrecisionMultiplier({
+  required TapPrecisionMode tapPrecisionMode,
+  required bool useSkinDefault,
+  required String equippedSkinId,
+  required bool isGolden,
+  required bool isBomb,
+  required bool isFrenzy,
+  required double balloonSpeed,
+  required int combo,
+}) {
+  double base = 1.0;
+
+  // Skin defaults (subtle differences)
+  if (useSkinDefault || tapPrecisionMode == TapPrecisionMode.skinDefault) {
+    switch (equippedSkinId) {
+      case 'classic':
+        base = 1.15;
+        break;
+      case 'neon_city':
+        base = 1.2;
+        break;
+      case 'retro_arcade':
+        base = 1.22;
+        break;
+      case 'mystic_glow':
+        base = 1.25;
+        break;
+      case 'cosmic_burst':
+        base = 1.3;
+        break;
+      case 'junkie_juice':
+        base = 1.35;
+        break;
+      default:
+        base = 1.2;
+        break;
+    }
+  }
+
+  // Mode scaling
+  double modeFactor;
+  switch (tapPrecisionMode) {
+    case TapPrecisionMode.precision:
+      modeFactor = 0.7;
+      break;
+    case TapPrecisionMode.tapJunkie:
+      modeFactor = 1.0;
+      break;
+    case TapPrecisionMode.overlord:
+      modeFactor = 1.6;
+      break;
+    case TapPrecisionMode.skinDefault:
+      modeFactor = 1.0;
+      break;
+  }
+
+  // Combo-based assistance (higher combo = slightly bigger hitbox)
+  final comboBoost = min(combo / 80.0, 0.3); // max +30%
+  final comboFactor = 1.0 + comboBoost;
+
+  // Speed-based assistance (very fast balloons get slight bonus)
+  final speedFactor = balloonSpeed > 160.0 ? 1.12 : 1.0;
+
+  // Rarity & bomb logic
+  double rarityFactor = 1.0;
+  if (isGolden) {
+    rarityFactor = 1.1; // easier to hit golden
+  }
+  if (isBomb) {
+    rarityFactor *= 0.85; // slightly tighter hitbox on bombs
+  }
+
+  // Frenzy: small assist because chaos
+  final frenzyFactor = isFrenzy ? 1.12 : 1.0;
+
+  double total = base * modeFactor * comboFactor * speedFactor * rarityFactor * frenzyFactor;
+
+  // Overlord: ensure it's chunky but not insane
+  if (tapPrecisionMode == TapPrecisionMode.overlord) {
+    total = max(total, 1.8);
+    total = min(total, 2.6);
+  }
+
+  // Precision: keep from getting too big
+  if (tapPrecisionMode == TapPrecisionMode.precision) {
+    total = min(total, 1.1);
+  }
+
+  return total;
+}
+
+/// ---------- GAME SCREEN (PURE FLUTTER) ----------
 
 class GameScreen extends StatefulWidget {
   final SkinDef skin;
   final List<Mission> missions;
+  final TapPrecisionMode tapPrecisionMode;
+  final bool useSkinDefaultPrecision;
+  final String equippedSkinId;
 
   const GameScreen({
     super.key,
     required this.skin,
     required this.missions,
+    required this.tapPrecisionMode,
+    required this.useSkinDefaultPrecision,
+    required this.equippedSkinId,
   });
 
   @override
@@ -1085,7 +1138,6 @@ class _GameScreenState extends State<GameScreen>
   double _frenzyTimer = 0;
   double _spawnTimer = 0;
 
-  // For missions
   List<String> _completedMissionIds = [];
 
   @override
@@ -1135,7 +1187,7 @@ class _GameScreenState extends State<GameScreen>
             _lives -= 1;
             _combo = 0;
           } else {
-            // Option A: bombs are only bad when tapped; no penalty if they escape
+            // Bombs only hurt when tapped
           }
           if (_lives <= 0) {
             _triggerGameOver();
@@ -1202,22 +1254,27 @@ class _GameScreenState extends State<GameScreen>
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
       final dist = (pos - b.position).distance;
-      // Compute precision multiplier
-final multiplier = getTapPrecisionMultiplier(
-  tapPrecisionMode: tapPrecisionMode,
-  useSkinDefault: useSkinDefaultPrecision,
-  equippedSkinId: profile.equippedSkinId,
-);
 
-// Adjust hitbox radius dynamically
-final effectiveRadius = b.radius * multiplier;
+      final multiplier = getTapPrecisionMultiplier(
+        tapPrecisionMode: widget.tapPrecisionMode,
+        useSkinDefault: widget.useSkinDefaultPrecision,
+        equippedSkinId: widget.equippedSkinId,
+        isGolden: b.isGolden,
+        isBomb: b.isBomb,
+        isFrenzy: _frenzy,
+        balloonSpeed: b.speed,
+        combo: _combo,
+      );
 
-if (dist <= effectiveRadius) {
-  _popBalloon(i);
-  return;
-}
+      final effectiveRadius = b.radius * multiplier;
+
+      if (dist <= effectiveRadius) {
+        _popBalloon(i);
+        return;
+      }
     }
-    // Tap in empty space: optional small penalty (here: reset combo softly)
+
+    // Tap in empty space: reset combo softly
     setState(() {
       _combo = 0;
     });
@@ -1302,15 +1359,12 @@ if (dist <= effectiveRadius) {
       }
     }
     _completedMissionIds = completedIds;
+    _coins += bonusCoins;
 
-    // Delay a bit before showing overlay to let last pops finish visually
     Future.delayed(const Duration(milliseconds: 150), () {
       if (!mounted) return;
-      setState(() {}); // just to repaint overlay
+      setState(() {});
     });
-
-    // When user taps "Back to Menu" button, we actually pop with result.
-    // (see _buildGameOverOverlay)
   }
 
   void _exitToMenu() {
@@ -1403,7 +1457,10 @@ if (dist <= effectiveRadius) {
         missionLines.add(
           Text(
             '• Mission complete: ${m.description} (+100 coins)',
-            style: const TextStyle(fontSize: 14, color: Colors.lightGreenAccent),
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.lightGreenAccent,
+            ),
           ),
         );
       }
@@ -1442,7 +1499,8 @@ if (dist <= effectiveRadius) {
                 if (_frenzyCount > 0)
                   Text(
                     'Frenzy triggered: $_frenzyCount time(s)',
-                    style: const TextStyle(fontSize: 14, color: Colors.white70),
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70),
                   ),
                 const SizedBox(height: 16),
                 if (missionLines.isNotEmpty) ...[
@@ -1535,10 +1593,16 @@ class BalloonPainter extends CustomPainter {
 
         final center = b.position - Offset(b.radius * 0.3, b.radius * 0.3);
         const len = 4.0;
-        canvas.drawLine(center.translate(-len, 0), center.translate(len, 0),
-            sparklePaint);
-        canvas.drawLine(center.translate(0, -len), center.translate(0, len),
-            sparklePaint);
+        canvas.drawLine(
+          center.translate(-len, 0),
+          center.translate(len, 0),
+          sparklePaint,
+        );
+        canvas.drawLine(
+          center.translate(0, -len),
+          center.translate(0, len),
+          sparklePaint,
+        );
       }
 
       // Bomb pulse ring
