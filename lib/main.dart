@@ -6,15 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// ---------- ENTRY POINT ----------
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   runApp(MyApp(prefs: prefs));
 }
 
-/// ------------------------------------------------------------
-/// CORE APP
-/// ------------------------------------------------------------
+/// ---------- CORE APP ----------
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
@@ -43,15 +43,79 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// ------------------------------------------------------------
-/// DATA MODELS
-/// ------------------------------------------------------------
+/// ---------- DATA MODELS ----------
 
-enum MissionType {
-  score,
-  combo,
-  frenzy,
+class PlayerProfile {
+  int highScore;
+  int bestCombo;
+  int lastScore;
+  int totalCoins;
+
+  /// Daily reward / streak
+  int dailyStreak;
+  DateTime? lastDailyClaimDate;
+
+  /// Skins
+  String equippedSkinId;
+  Set<String> ownedSkins;
+
+  PlayerProfile({
+    required this.highScore,
+    required this.bestCombo,
+    required this.lastScore,
+    required this.totalCoins,
+    required this.dailyStreak,
+    required this.lastDailyClaimDate,
+    required this.equippedSkinId,
+    required this.ownedSkins,
+  });
+
+  factory PlayerProfile.fromPrefs(SharedPreferences prefs) {
+    final highScore = prefs.getInt('highScore') ?? 0;
+    final bestCombo = prefs.getInt('bestCombo') ?? 0;
+    final lastScore = prefs.getInt('lastScore') ?? 0;
+    final totalCoins = prefs.getInt('totalCoins') ?? 50;
+
+    final equippedSkinId = prefs.getString('equippedSkinId') ?? 'classic';
+    final ownedSkinsList = prefs.getStringList('ownedSkins') ?? ['classic'];
+
+    final lastClaimStr = prefs.getString('lastDailyClaimDate');
+    DateTime? lastClaim;
+    if (lastClaimStr != null) {
+      lastClaim = DateTime.tryParse(lastClaimStr);
+    }
+    final dailyStreak = prefs.getInt('dailyStreak') ?? 0;
+
+    return PlayerProfile(
+      highScore: highScore,
+      bestCombo: bestCombo,
+      lastScore: lastScore,
+      totalCoins: totalCoins,
+      dailyStreak: dailyStreak,
+      lastDailyClaimDate: lastClaim,
+      equippedSkinId: equippedSkinId,
+      ownedSkins: ownedSkinsList.toSet(),
+    );
+  }
+
+  Future<void> save(SharedPreferences prefs) async {
+    await prefs.setInt('highScore', highScore);
+    await prefs.setInt('bestCombo', bestCombo);
+    await prefs.setInt('lastScore', lastScore);
+    await prefs.setInt('totalCoins', totalCoins);
+    await prefs.setString('equippedSkinId', equippedSkinId);
+    await prefs.setStringList('ownedSkins', ownedSkins.toList());
+    await prefs.setInt('dailyStreak', dailyStreak);
+    if (lastDailyClaimDate != null) {
+      await prefs.setString(
+        'lastDailyClaimDate',
+        lastDailyClaimDate!.toIso8601String(),
+      );
+    }
+  }
 }
+
+enum MissionType { score, combo, frenzy }
 
 class Mission {
   final String id;
@@ -120,134 +184,7 @@ class SkinDef {
   });
 }
 
-class PlayerProfile {
-  int highScore;
-  int bestCombo;
-  int lastScore;
-  int totalCoins;
-
-  int dailyStreak;
-  DateTime? lastDailyClaimDate;
-
-  String equippedSkinId;
-  Set<String> ownedSkins;
-
-  PlayerProfile({
-    required this.highScore,
-    required this.bestCombo,
-    required this.lastScore,
-    required this.totalCoins,
-    required this.dailyStreak,
-    required this.lastDailyClaimDate,
-    required this.equippedSkinId,
-    required this.ownedSkins,
-  });
-
-  factory PlayerProfile.fromPrefs(SharedPreferences prefs) {
-    final highScore = prefs.getInt('highScore') ?? 0;
-    final bestCombo = prefs.getInt('bestCombo') ?? 0;
-    final lastScore = prefs.getInt('lastScore') ?? 0;
-    final totalCoins = prefs.getInt('totalCoins') ?? 50;
-
-    final equippedSkinId = prefs.getString('equippedSkinId') ?? 'classic';
-    final ownedSkinsList = prefs.getStringList('ownedSkins') ?? ['classic'];
-
-    final lastClaimStr = prefs.getString('lastDailyClaimDate');
-    DateTime? lastClaim;
-    if (lastClaimStr != null) {
-      lastClaim = DateTime.tryParse(lastClaimStr);
-    }
-
-    final dailyStreak = prefs.getInt('dailyStreak') ?? 0;
-
-    return PlayerProfile(
-      highScore: highScore,
-      bestCombo: bestCombo,
-      lastScore: lastScore,
-      totalCoins: totalCoins,
-      dailyStreak: dailyStreak,
-      lastDailyClaimDate: lastClaim,
-      equippedSkinId: equippedSkinId,
-      ownedSkins: ownedSkinsList.toSet(),
-    );
-  }
-
-  Future<void> save(SharedPreferences prefs) async {
-    await prefs.setInt('highScore', highScore);
-    await prefs.setInt('bestCombo', bestCombo);
-    await prefs.setInt('lastScore', lastScore);
-    await prefs.setInt('totalCoins', totalCoins);
-    await prefs.setString('equippedSkinId', equippedSkinId);
-    await prefs.setStringList('ownedSkins', ownedSkins.toList());
-    await prefs.setInt('dailyStreak', dailyStreak);
-    if (lastDailyClaimDate != null) {
-      await prefs.setString(
-        'lastDailyClaimDate',
-        lastDailyClaimDate!.toIso8601String(),
-      );
-    }
-  }
-}
-
-/// Core in-run data
-
-class Balloon {
-  Offset position;
-  double radius;
-  double speed;
-  Color color;
-  bool isGolden;
-  bool isBomb;
-  double glowIntensity; // 0–1
-
-  Balloon({
-    required this.position,
-    required this.radius,
-    required this.speed,
-    required this.color,
-    required this.isGolden,
-    required this.isBomb,
-    required this.glowIntensity,
-  });
-}
-
-class Particle {
-  Offset position;
-  Offset velocity;
-  double life; // seconds remaining
-  Color color;
-  double size;
-
-  Particle({
-    required this.position,
-    required this.velocity,
-    required this.life,
-    required this.color,
-    required this.size,
-  });
-}
-
-class GameResult {
-  final int score;
-  final int bestCombo;
-  final int coinsEarned;
-  final int missionBonusCoins;
-  final List<String> completedMissionIds;
-  final int frenzyCount;
-
-  GameResult({
-    required this.score,
-    required this.bestCombo,
-    required this.coinsEarned,
-    required this.missionBonusCoins,
-    required this.completedMissionIds,
-    required this.frenzyCount,
-  });
-}
-
-/// ------------------------------------------------------------
-/// SKIN SYSTEM
-/// ------------------------------------------------------------
+/// ---------- SKIN DEFINITIONS ----------
 
 const List<SkinDef> allSkins = [
   SkinDef(
@@ -318,7 +255,7 @@ const List<SkinDef> allSkins = [
   SkinDef(
     id: 'cosmic_burst',
     name: 'Cosmic Burst',
-    description: 'Teal and cyan bursts from deep space.',
+    description: 'Teal and cyan streaks from deep space.',
     rarity: 'EPIC',
     price: 400,
     background: Color(0xFF000815),
@@ -334,7 +271,7 @@ const List<SkinDef> allSkins = [
   SkinDef(
     id: 'junkie_juice',
     name: 'Junkie Juice',
-    description: 'TapJunkie toxic lime + hot pink overdose.',
+    description: 'TapJunkie legendary toxic-lime & hot pink.',
     rarity: 'LEGENDARY',
     price: 500,
     background: Color(0xFF001006),
@@ -356,13 +293,119 @@ SkinDef skinById(String id) {
   );
 }
 
-/// ------------------------------------------------------------
-/// MISSIONS STORAGE
-/// ------------------------------------------------------------
+/// ---------- GAME MODES ----------
+
+enum GameMode { arcade, frenzy, chaos }
+
+class GameModeConfig {
+  final GameMode mode;
+  final String name;
+  final String tagline;
+  final String description;
+  final Color colorA;
+  final Color colorB;
+
+  final double spawnIntervalNormal;
+  final double spawnIntervalFrenzy;
+  final int maxBalloonsNormal;
+  final int maxBalloonsFrenzy;
+
+  final double baseSpeedScale;
+  final double scoreMultiplier;
+  final double coinMultiplier;
+
+  final double goldenChance;
+  final double goldenChanceFrenzy;
+  final double bombChance;
+  final double bombChanceFrenzy;
+
+  const GameModeConfig({
+    required this.mode,
+    required this.name,
+    required this.tagline,
+    required this.description,
+    required this.colorA,
+    required this.colorB,
+    required this.spawnIntervalNormal,
+    required this.spawnIntervalFrenzy,
+    required this.maxBalloonsNormal,
+    required this.maxBalloonsFrenzy,
+    required this.baseSpeedScale,
+    required this.scoreMultiplier,
+    required this.coinMultiplier,
+    required this.goldenChance,
+    required this.goldenChanceFrenzy,
+    required this.bombChance,
+    required this.bombChanceFrenzy,
+  });
+}
+
+const Map<GameMode, GameModeConfig> kGameModeConfigs = {
+  GameMode.arcade: GameModeConfig(
+    mode: GameMode.arcade,
+    name: 'Arcade',
+    tagline: 'Smooth & chill',
+    description: 'Relaxed pacing, generous spacing, perfect for new players.',
+    colorA: Color(0xFF00E5FF),
+    colorB: Color(0xFF00FF94),
+    spawnIntervalNormal: 0.70,
+    spawnIntervalFrenzy: 0.45,
+    maxBalloonsNormal: 22,
+    maxBalloonsFrenzy: 30,
+    baseSpeedScale: 1.0,
+    scoreMultiplier: 1.0,
+    coinMultiplier: 1.0,
+    goldenChance: 0.07,
+    goldenChanceFrenzy: 0.22,
+    bombChance: 0.09,
+    bombChanceFrenzy: 0.11,
+  ),
+  GameMode.frenzy: GameModeConfig(
+    mode: GameMode.frenzy,
+    name: 'Frenzy',
+    tagline: 'Chaotic & fast',
+    description: 'Rapid spawns, higher risk, juiced coins and scores.',
+    colorA: Color(0xFFFF4F9A),
+    colorB: Color(0xFFFFC400),
+    spawnIntervalNormal: 0.50,
+    spawnIntervalFrenzy: 0.32,
+    maxBalloonsNormal: 30,
+    maxBalloonsFrenzy: 40,
+    baseSpeedScale: 1.15,
+    scoreMultiplier: 1.2,
+    coinMultiplier: 1.3,
+    goldenChance: 0.09,
+    goldenChanceFrenzy: 0.27,
+    bombChance: 0.11,
+    bombChanceFrenzy: 0.14,
+  ),
+  GameMode.chaos: GameModeConfig(
+    mode: GameMode.chaos,
+    name: 'Chaos',
+    tagline: 'Balanced mayhem',
+    description:
+        'The sweet spot: lively pacing with room to breathe and strategize.',
+    colorA: Color(0xFF7C4DFF),
+    colorB: Color(0xFF00E5FF),
+    spawnIntervalNormal: 0.60,
+    spawnIntervalFrenzy: 0.38,
+    maxBalloonsNormal: 26,
+    maxBalloonsFrenzy: 34,
+    baseSpeedScale: 1.08,
+    scoreMultiplier: 1.1,
+    coinMultiplier: 1.15,
+    goldenChance: 0.08,
+    goldenChanceFrenzy: 0.24,
+    bombChance: 0.10,
+    bombChanceFrenzy: 0.13,
+  ),
+};
+
+/// ---------- MISSIONS STORAGE ----------
 
 Future<List<Mission>> loadMissions(SharedPreferences prefs) async {
-  final now = DateTime.now();
-  final todayKey = '${now.year}-${now.month}-${now.day}';
+  final today = DateTime.now();
+  final todayKey = '${today.year}-${today.month}-${today.day}';
   final storedDate = prefs.getString('missionsDate');
 
   if (storedDate == todayKey) {
@@ -375,22 +418,23 @@ Future<List<Mission>> loadMissions(SharedPreferences prefs) async {
     }
   }
 
+  // Generate new missions for today
   final rand = Random();
   final missions = <Mission>[
     Mission(
       id: 'score',
       type: MissionType.score,
-      target: 500 + rand.nextInt(400),
+      target: 500 + rand.nextInt(400), // 500–899
     ),
     Mission(
       id: 'combo',
       type: MissionType.combo,
-      target: 12 + rand.nextInt(10),
+      target: 12 + rand.nextInt(10), // 12–21
     ),
     Mission(
       id: 'frenzy',
       type: MissionType.frenzy,
-      target: 2 + rand.nextInt(3),
+      target: 2 + rand.nextInt(3), // 2–4
     ),
   ];
 
@@ -403,51 +447,54 @@ Future<void> saveMissions(
   List<Mission> missions, [
   String? dateKey,
 ]) async {
-  final now = DateTime.now();
-  final key = dateKey ?? '${now.year}-${now.month}-${now.day}';
+  final today = DateTime.now();
+  final key = dateKey ?? '${today.year}-${today.month}-${today.day}';
   await prefs.setString('missionsDate', key);
   final jsonStr = jsonEncode(missions.map((m) => m.toMap()).toList());
   await prefs.setString('missionsData', jsonStr);
 }
 
-/// ------------------------------------------------------------
-/// GAME STATE MANAGER
-/// ------------------------------------------------------------
+/// ---------- GAME RESULT & BALLOON MODEL ----------
 
-class GameStateManager {
-  final SharedPreferences prefs;
+class Balloon {
+  Offset position;
+  double radius;
+  double speed;
+  Color color;
+  bool isGolden;
+  bool isBomb;
+  double glowIntensity; // 0–1
 
-  late PlayerProfile profile;
-  List<Mission> missions = [];
-
-  GameStateManager(this.prefs);
-
-  Future<void> init() async {
-    profile = PlayerProfile.fromPrefs(prefs);
-    missions = await loadMissions(prefs);
-    await profile.save(prefs);
-  }
-
-  Future<void> applyGameResult(GameResult result) async {
-    profile.lastScore = result.score;
-    profile.highScore = max(profile.highScore, result.score);
-    profile.bestCombo = max(profile.bestCombo, result.bestCombo);
-    profile.totalCoins += result.coinsEarned + result.missionBonusCoins;
-
-    for (final m in missions) {
-      if (result.completedMissionIds.contains(m.id)) {
-        m.completed = true;
-      }
-    }
-
-    await profile.save(prefs);
-    await saveMissions(prefs, missions);
-  }
+  Balloon({
+    required this.position,
+    required this.radius,
+    required this.speed,
+    required this.color,
+    required this.isGolden,
+    required this.isBomb,
+    required this.glowIntensity,
+  });
 }
 
-/// ------------------------------------------------------------
-/// MAIN MENU
-/// ------------------------------------------------------------
+class GameResult {
+  final int score;
+  final int bestCombo;
+  final int coinsEarned;
+  final int missionBonusCoins;
+  final List<String> completedMissionIds;
+  final int frenzyCount;
+
+  GameResult({
+    required this.score,
+    required this.bestCombo,
+    required this.coinsEarned,
+    required this.missionBonusCoins,
+    required this.completedMissionIds,
+    required this.frenzyCount,
+  });
+}
+
+/// ---------- MAIN MENU ----------
 
 class MainMenu extends StatefulWidget {
   final SharedPreferences prefs;
@@ -459,18 +506,20 @@ class MainMenu extends StatefulWidget {
 }
 
 class _MainMenuState extends State<MainMenu> {
-  late GameStateManager manager;
+  late PlayerProfile profile;
+  List<Mission> missions = [];
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    manager = GameStateManager(widget.prefs);
-    _init();
+    _loadAll();
   }
 
-  Future<void> _init() async {
-    await manager.init();
+  Future<void> _loadAll() async {
+    profile = PlayerProfile.fromPrefs(widget.prefs);
+    missions = await loadMissions(widget.prefs);
+    await profile.save(widget.prefs);
     setState(() {
       loading = false;
     });
@@ -481,13 +530,12 @@ class _MainMenuState extends State<MainMenu> {
       MaterialPageRoute(
         builder: (_) => ShopScreen(
           prefs: widget.prefs,
-          profile: manager.profile,
+          profile: profile,
         ),
       ),
     );
-
     if (changed == true) {
-      await manager.init();
+      profile = PlayerProfile.fromPrefs(widget.prefs);
       setState(() {});
     }
   }
@@ -497,13 +545,13 @@ class _MainMenuState extends State<MainMenu> {
       MaterialPageRoute(
         builder: (_) => DailyRewardScreen(
           prefs: widget.prefs,
-          profile: manager.profile,
+          profile: profile,
         ),
       ),
     );
 
     if (claimed == true) {
-      await manager.init();
+      profile = PlayerProfile.fromPrefs(widget.prefs);
       setState(() {});
     }
   }
@@ -511,31 +559,53 @@ class _MainMenuState extends State<MainMenu> {
   Future<void> _startGame() async {
     if (loading) return;
 
-    final equippedSkin = skinById(manager.profile.equippedSkinId);
+    // 1) Pick mode
+    final chosenMode = await Navigator.of(context).push<GameMode?>(
+      MaterialPageRoute(
+        builder: (_) => ModeSelectScreen(),
+      ),
+    );
+    if (chosenMode == null) return;
 
-    final missionsCopy = manager.missions
-        .map(
-          (m) => Mission(
-            id: m.id,
-            type: m.type,
-            target: m.target,
-            completed: m.completed,
-          ),
-        )
-        .toList();
-
+    // 2) Start game in that mode
+    final equipped = skinById(profile.equippedSkinId);
     final result = await Navigator.of(context).push<GameResult?>(
       MaterialPageRoute(
         builder: (_) => GameScreen(
-          skin: equippedSkin,
-          missions: missionsCopy,
+          skin: equipped,
+          missions: missions
+              .map(
+                (m) => Mission(
+                  id: m.id,
+                  type: m.type,
+                  target: m.target,
+                  completed: m.completed,
+                ),
+              )
+              .toList(),
+          mode: chosenMode,
         ),
       ),
     );
 
     if (result == null) return;
 
-    await manager.applyGameResult(result);
+    // 3) Update stats
+    profile.lastScore = result.score;
+    profile.highScore = max(profile.highScore, result.score);
+    profile.bestCombo = max(profile.bestCombo, result.bestCombo);
+    profile.totalCoins += result.coinsEarned + result.missionBonusCoins;
+
+    // Update missions completion flags
+    for (final m in missions) {
+      if (result.completedMissionIds.contains(m.id)) {
+        m.completed = true;
+      }
+    }
+
+    await profile.save(widget.prefs);
+    await saveMissions(widget.prefs, missions);
+
     setState(() {});
   }
 
@@ -547,7 +617,6 @@ class _MainMenuState extends State<MainMenu> {
       );
     }
 
-    final profile = manager.profile;
     final equippedSkin = skinById(profile.equippedSkinId);
 
     return Scaffold(
@@ -568,13 +637,13 @@ class _MainMenuState extends State<MainMenu> {
                 ),
               ),
               const SizedBox(height: 24),
-              _stat('High Score', profile.highScore.toString(),
+              _buildStatText('High Score', profile.highScore.toString(),
                   color: Colors.white),
-              _stat('Best Combo', profile.bestCombo.toString(),
+              _buildStatText('Best Combo', profile.bestCombo.toString(),
                   color: const Color(0xFF00E5FF)),
-              _stat('Last Score', profile.lastScore.toString(),
+              _buildStatText('Last Score', profile.lastScore.toString(),
                   color: Colors.grey.shade300),
-              _stat('Coins', profile.totalCoins.toString(),
+              _buildStatText('Coins', profile.totalCoins.toString(),
                   color: const Color(0xFFFFD54F)),
               const SizedBox(height: 8),
               Text(
@@ -587,15 +656,12 @@ class _MainMenuState extends State<MainMenu> {
               const SizedBox(height: 4),
               Text(
                 'Daily streak: ${profile.dailyStreak} day(s)',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.white54,
-                ),
+                style: const TextStyle(fontSize: 13, color: Colors.white54),
               ),
               const SizedBox(height: 24),
-              _missionsCard(manager.missions),
+              _buildMissionsCard(),
               const Spacer(),
-              _mainButtons(),
+              _buildMainButtons(),
             ],
           ),
         ),
@@ -603,7 +669,7 @@ class _MainMenuState extends State<MainMenu> {
     );
   }
 
-  Widget _stat(String label, String value, {Color? color}) {
+  Widget _buildStatText(String label, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Text(
@@ -616,7 +682,7 @@ class _MainMenuState extends State<MainMenu> {
     );
   }
 
-  Widget _missionsCard(List<Mission> missions) {
+  Widget _buildMissionsCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -636,13 +702,13 @@ class _MainMenuState extends State<MainMenu> {
             ),
           ),
           const SizedBox(height: 8),
-          for (final m in missions) _missionRow(m),
+          for (final m in missions) _buildMissionRow(m),
         ],
       ),
     );
   }
 
-  Widget _missionRow(Mission m) {
+  Widget _buildMissionRow(Mission m) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -667,7 +733,7 @@ class _MainMenuState extends State<MainMenu> {
     );
   }
 
-  Widget _mainButtons() {
+  Widget _buildMainButtons() {
     return SafeArea(
       top: false,
       child: Column(
@@ -732,9 +798,192 @@ class _MainMenuState extends State<MainMenu> {
   }
 }
 
-/// ------------------------------------------------------------
-/// SHOP SCREEN
-/// ------------------------------------------------------------
+/// ---------- MODE SELECT SCREEN (NEON CARDS) ----------
+
+class ModeSelectScreen extends StatefulWidget {
+  const ModeSelectScreen({super.key});
+
+  @override
+  State<ModeSelectScreen> createState() => _ModeSelectScreenState();
+}
+
+class _ModeSelectScreenState extends State<ModeSelectScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  double _wave(double phase) {
+    // 0–1 sine wave
+    final v = sin(2 * pi * (_pulseController.value + phase));
+    return 0.5 + 0.5 * v;
+  }
+
+  void _select(GameMode mode) {
+    Navigator.of(context).pop(mode);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF050817),
+      appBar: AppBar(
+        title: const Text('Select Mode'),
+        backgroundColor: const Color(0xFF050817),
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, _) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'MODE SELECT',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Choose your play style.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildModeCard(
+                    config: kGameModeConfigs[GameMode.arcade]!,
+                    phase: 0.0,
+                    onTap: () => _select(GameMode.arcade),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildModeCard(
+                    config: kGameModeConfigs[GameMode.chaos]!,
+                    phase: 0.33,
+                    onTap: () => _select(GameMode.chaos),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildModeCard(
+                    config: kGameModeConfigs[GameMode.frenzy]!,
+                    phase: 0.66,
+                    onTap: () => _select(GameMode.frenzy),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeCard({
+    required GameModeConfig config,
+    required double phase,
+    required VoidCallback onTap,
+  }) {
+    final t = _wave(phase);
+    final color1 = Color.lerp(config.colorA, config.colorB, t)!;
+    final color2 = Color.lerp(config.colorB, config.colorA, 1 - t)!;
+    final scale = 1.0 + 0.02 * sin(2 * pi * (_pulseController.value + phase));
+
+    return Transform.scale(
+      scale: scale,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [color1, color2],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color1.withOpacity(0.4),
+                blurRadius: 24,
+                spreadRadius: 2,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                config.name.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                config.tagline,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                config.description,
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _chip('Coins x${config.coinMultiplier.toStringAsFixed(2)}'),
+                  const SizedBox(width: 8),
+                  _chip('Score x${config.scoreMultiplier.toStringAsFixed(2)}'),
+                  const Spacer(),
+                  const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 11),
+      ),
+    );
+  }
+}
+
+/// ---------- SHOP SCREEN ----------
 
 class ShopScreen extends StatefulWidget {
   final SharedPreferences prefs;
@@ -768,7 +1017,6 @@ class _ShopScreenState extends State<ShopScreen> {
   Future<void> _buyOrEquip() async {
     final profile = widget.profile;
     final owned = profile.ownedSkins.contains(selectedSkin.id);
-
     if (owned) {
       profile.equippedSkinId = selectedSkin.id;
     } else {
@@ -782,7 +1030,6 @@ class _ShopScreenState extends State<ShopScreen> {
       profile.ownedSkins.add(selectedSkin.id);
       profile.equippedSkinId = selectedSkin.id;
     }
-
     await profile.save(widget.prefs);
     setState(() {});
   }
@@ -816,18 +1063,15 @@ class _ShopScreenState extends State<ShopScreen> {
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-              child: _selectedSkinHeader(),
+              child: _buildSelectedSkinHeader(),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Icon(
-                    Icons.monetization_on,
-                    color: Color(0xFFFFD54F),
-                    size: 20,
-                  ),
+                  const Icon(Icons.monetization_on,
+                      color: Color(0xFFFFD54F), size: 20),
                   const SizedBox(width: 4),
                   Text(
                     profile.totalCoins.toString(),
@@ -848,7 +1092,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   children: [
-                    for (final skin in allSkins) _skinCard(skin),
+                    for (final skin in allSkins) _buildSkinCard(skin),
                   ],
                 ),
               ),
@@ -884,7 +1128,7 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  Widget _selectedSkinHeader() {
+  Widget _buildSelectedSkinHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -932,10 +1176,8 @@ class _ShopScreenState extends State<ShopScreen> {
                 const SizedBox(height: 4),
                 Text(
                   selectedSkin.description,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.white70,
-                  ),
+                  style:
+                      const TextStyle(fontSize: 13, color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -957,7 +1199,7 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  Widget _skinCard(SkinDef skin) {
+  Widget _buildSkinCard(SkinDef skin) {
     final profile = widget.profile;
     final owned = profile.ownedSkins.contains(skin.id);
     final equipped = profile.equippedSkinId == skin.id;
@@ -978,7 +1220,9 @@ class _ShopScreenState extends State<ShopScreen> {
             end: Alignment.bottomRight,
           ),
           border: Border.all(
-            color: selectedSkin.id == skin.id ? Colors.white : Colors.transparent,
+            color: selectedSkin.id == skin.id
+                ? Colors.white
+                : Colors.transparent,
             width: 2,
           ),
         ),
@@ -1050,9 +1294,7 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 }
 
-/// ------------------------------------------------------------
-/// DAILY REWARD SCREEN (CHEST + STREAK + COUNTDOWN)
-/// ------------------------------------------------------------
+/// ---------- DAILY REWARD SCREEN ----------
 
 class DailyRewardScreen extends StatefulWidget {
   final SharedPreferences prefs;
@@ -1088,7 +1330,9 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
     )..repeat(reverse: true);
 
     _evaluateState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _tick();
+    });
   }
 
   @override
@@ -1099,7 +1343,7 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
   }
 
   void _tick() {
-    if (!_canClaim && mounted) {
+    if (!_canClaim) {
       _evaluateState();
     }
   }
@@ -1119,7 +1363,8 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
 
     final diff = now.difference(last);
     if (diff >= const Duration(hours: 24)) {
-      final nextStreak = _nextStreakValue(now, last, widget.profile.dailyStreak);
+      final nextStreak =
+          _nextStreakValue(now, last, widget.profile.dailyStreak);
       setState(() {
         _canClaim = true;
         _timeRemaining = Duration.zero;
@@ -1130,16 +1375,13 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
       setState(() {
         _canClaim = false;
         _timeRemaining = remaining.isNegative ? Duration.zero : remaining;
-        final streakBase = widget.profile.dailyStreak == 0
-            ? 1
-            : widget.profile.dailyStreak;
-        _previewReward = _calculateRewardPreview(streakBase);
+        _previewReward = _calculateRewardPreview(
+            widget.profile.dailyStreak == 0 ? 1 : widget.profile.dailyStreak);
       });
     }
   }
 
-  int _nextStreakValue(
-      DateTime now, DateTime last, int currentStreak) {
+  int _nextStreakValue(DateTime now, DateTime last, int currentStreak) {
     final today = DateTime(now.year, now.month, now.day);
     final lastDay = DateTime(last.year, last.month, last.day);
     final dayDiff = today.difference(lastDay).inDays;
@@ -1158,7 +1400,7 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
     int streakBonus = max(0, streakValue - 1) * 10;
     int reward = base + streakBonus;
     if (streakValue % 7 == 0) {
-      reward += 100;
+      reward += 100; // weekly bonus
     }
     return reward;
   }
@@ -1170,8 +1412,9 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
     final last = widget.profile.lastDailyClaimDate;
     final currentStreak = widget.profile.dailyStreak;
 
-    final nextStreak =
-        last == null ? 1 : _nextStreakValue(now, last, currentStreak);
+    final nextStreak = last == null
+        ? 1
+        : _nextStreakValue(now, last, currentStreak);
 
     final rewardCoins = _calculateRewardPreview(nextStreak);
 
@@ -1228,7 +1471,8 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
         body: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1290,8 +1534,7 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
                             bottom: 24,
                             child: Row(
                               children: const [
-                                Icon(Icons.star,
-                                    color: Colors.white, size: 18),
+                                Icon(Icons.star, color: Colors.white, size: 18),
                                 SizedBox(width: 4),
                                 Icon(Icons.star,
                                     color: Colors.white70, size: 14),
@@ -1306,7 +1549,8 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
                               child: IgnorePointer(
                                 child: AnimatedOpacity(
                                   opacity: _showCoinBurst ? 1 : 0,
-                                  duration: const Duration(milliseconds: 900),
+                                  duration:
+                                      const Duration(milliseconds: 900),
                                   child: Stack(
                                     children: [
                                       _coinBurstOffset(-40, -40),
@@ -1408,18 +1652,18 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
   }
 }
 
-/// ------------------------------------------------------------
-/// GAME SCREEN (NO FLUTTER GIMMICKS, PURE TICKER + PAINTER)
-/// ------------------------------------------------------------
+/// ---------- GAME SCREEN (MODE-AWARE) ----------
 
 class GameScreen extends StatefulWidget {
   final SkinDef skin;
   final List<Mission> missions;
+  final GameMode mode;
 
   const GameScreen({
     super.key,
     required this.skin,
     required this.missions,
+    required this.mode,
   });
 
   @override
@@ -1433,7 +1677,6 @@ class _GameScreenState extends State<GameScreen>
   final Random _rand = Random();
 
   final List<Balloon> _balloons = [];
-  final List<Particle> _particles = [];
 
   bool _running = true;
   bool _gameOver = false;
@@ -1451,10 +1694,13 @@ class _GameScreenState extends State<GameScreen>
 
   List<String> _completedMissionIds = [];
 
+  late final GameModeConfig _config;
+
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker(_onTick)..start();
+    _config = kGameModeConfigs[widget.mode]!;
+    _ticker = Ticker(_onTick)..start();
   }
 
   @override
@@ -1464,6 +1710,10 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
+    if (_lastTick == Duration.zero) {
+      _lastTick = elapsed;
+      return;
+    }
     final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
     _lastTick = elapsed;
     if (!_running || _gameOver) return;
@@ -1474,13 +1724,12 @@ class _GameScreenState extends State<GameScreen>
     setState(() {
       _spawnTimer += dt;
 
-      final spawnInterval = _frenzy ? 0.28 : 0.6;
-      const maxBalloonsNormal = 30;
-      const maxBalloonsFrenzy = 40;
-      final maxAllowed = _frenzy ? maxBalloonsFrenzy : maxBalloonsNormal;
+      final spawnInterval =
+          _frenzy ? _config.spawnIntervalFrenzy : _config.spawnIntervalNormal;
+      final maxAllowed =
+          _frenzy ? _config.maxBalloonsFrenzy : _config.maxBalloonsNormal;
 
-      while (_spawnTimer >= spawnInterval &&
-          _balloons.length < maxAllowed) {
+      while (_spawnTimer >= spawnInterval && _balloons.length < maxAllowed) {
         _spawnTimer -= spawnInterval;
         _spawnBalloon();
       }
@@ -1497,20 +1746,14 @@ class _GameScreenState extends State<GameScreen>
           if (!b.isBomb) {
             _lives -= 1;
             _combo = 0;
-            if (_lives <= 0) {
-              _triggerGameOver();
-            }
+          }
+          if (_lives <= 0) {
+            _triggerGameOver();
           }
           return true;
         }
         return false;
       });
-
-      for (final p in _particles) {
-        p.position += p.velocity * dt;
-        p.life -= dt;
-      }
-      _particles.removeWhere((p) => p.life <= 0);
 
       if (_frenzy) {
         _frenzyTimer -= dt;
@@ -1526,12 +1769,14 @@ class _GameScreenState extends State<GameScreen>
     final x = 40 + _rand.nextDouble() * (size.width - 80);
     final radius = 18 + _rand.nextDouble() * 26;
 
-    const baseSpeed = 70.0;
-    final speedScale = 1.0 + (_score / 350.0);
+    final baseSpeed = 70.0;
+    final speedScale = _config.baseSpeedScale + (_score / 400.0);
     final speed = baseSpeed * speedScale * (0.85 + _rand.nextDouble() * 0.35);
 
-    final isGoldenChance = _frenzy ? 0.25 : 0.06;
-    final isBombChance = _frenzy ? 0.08 : 0.10;
+    final isGoldenChance =
+        _frenzy ? _config.goldenChanceFrenzy : _config.goldenChance;
+    final isBombChance =
+        _frenzy ? _config.bombChanceFrenzy : _config.bombChance;
 
     final isGolden = _rand.nextDouble() < isGoldenChance;
     final isBomb = !isGolden && _rand.nextDouble() < isBombChance;
@@ -1562,21 +1807,33 @@ class _GameScreenState extends State<GameScreen>
   }
 
   double _tapHitboxMultiplier() {
+    // Base generous detection per skin
+    double base;
     switch (widget.skin.id) {
       case 'classic':
-        return 1.6;
+        base = 1.5;
+        break;
       case 'neon_city':
-        return 1.7;
       case 'retro_arcade':
-        return 1.7;
       case 'mystic_glow':
-        return 1.7;
       case 'cosmic_burst':
-        return 1.8;
+        base = 1.6;
+        break;
       case 'junkie_juice':
-        return 2.0;
+        base = 1.8;
+        break;
       default:
-        return 1.7;
+        base = 1.6;
+    }
+
+    // Slightly more generous in Arcade, slightly tighter in Frenzy
+    switch (widget.mode) {
+      case GameMode.arcade:
+        return base * 1.05;
+      case GameMode.chaos:
+        return base;
+      case GameMode.frenzy:
+        return base * 0.95;
     }
   }
 
@@ -1601,29 +1858,10 @@ class _GameScreenState extends State<GameScreen>
     });
   }
 
-  void _spawnParticlesAt(Offset position, Color color) {
-    for (int i = 0; i < 10; i++) {
-      final angle = _rand.nextDouble() * 2 * pi;
-      final speed = 40 + _rand.nextDouble() * 80;
-      final velocity = Offset(cos(angle), sin(angle)) * speed;
-      _particles.add(
-        Particle(
-          position: position,
-          velocity: velocity,
-          life: 0.5 + _rand.nextDouble() * 0.5,
-          color: color,
-          size: 3 + _rand.nextDouble() * 3,
-        ),
-      );
-    }
-  }
-
   void _popBalloon(int index) {
     final b = _balloons[index];
-
     setState(() {
       _balloons.removeAt(index);
-      _spawnParticlesAt(b.position, b.color);
 
       if (b.isBomb) {
         _lives -= 1;
@@ -1652,6 +1890,10 @@ class _GameScreenState extends State<GameScreen>
           gainedCoins += 1;
         }
 
+        // Apply mode multipliers
+        gainedScore = (gainedScore * _config.scoreMultiplier).round();
+        gainedCoins = max(1, (gainedCoins * _config.coinMultiplier).round());
+
         _score += gainedScore;
         _coins += gainedCoins;
 
@@ -1676,7 +1918,6 @@ class _GameScreenState extends State<GameScreen>
 
     int bonusCoins = 0;
     final completedIds = <String>[];
-
     for (final m in widget.missions) {
       bool done = false;
       switch (m.type) {
@@ -1696,7 +1937,6 @@ class _GameScreenState extends State<GameScreen>
         bonusCoins += 100;
       }
     }
-
     _completedMissionIds = completedIds;
 
     Future.delayed(const Duration(milliseconds: 150), () {
@@ -1730,22 +1970,23 @@ class _GameScreenState extends State<GameScreen>
               child: CustomPaint(
                 painter: BalloonPainter(
                   balloons: _balloons,
-                  particles: _particles,
                   skin: widget.skin,
                   frenzy: _frenzy,
                 ),
                 child: const SizedBox.expand(),
               ),
             ),
-            _hud(),
-            if (_gameOver) _gameOverOverlay(),
+            _buildHud(),
+            if (_gameOver) _buildGameOverOverlay(),
           ],
         ),
       ),
     );
   }
 
-  Widget _hud() {
+  Widget _buildHud() {
+    final modeName = _config.name.toUpperCase();
+
     return Positioned(
       top: 8,
       left: 10,
@@ -1762,34 +2003,47 @@ class _GameScreenState extends State<GameScreen>
               _hudText('Combo: $_combo', const Color(0xFF00E5FF)),
             ],
           ),
-          if (_frenzy || _frenzyTimer > 0)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'FRENZY!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    color: Colors.pinkAccent.shade100,
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                modeName,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white70,
                 ),
-                Text(
-                  _frenzyTimer.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                  ),
-                )
-              ],
-            ),
+              ),
+              if (_frenzy || _frenzyTimer > 0)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'FRENZY!',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                        color: Colors.pinkAccent.shade100,
+                      ),
+                    ),
+                    Text(
+                      _frenzyTimer.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                    )
+                  ],
+                ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _gameOverOverlay() {
+  Widget _buildGameOverOverlay() {
     final missionLines = <Widget>[];
     for (final m in widget.missions) {
       if (m.completed && _completedMissionIds.contains(m.id)) {
@@ -1863,7 +2117,8 @@ class _GameScreenState extends State<GameScreen>
                     onPressed: _exitToMenu,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E2338),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -1890,19 +2145,15 @@ class _GameScreenState extends State<GameScreen>
   }
 }
 
-/// ------------------------------------------------------------
-/// BALLOON PAINTER
-/// ------------------------------------------------------------
+/// ---------- BALLOON PAINTER ----------
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
-  final List<Particle> particles;
   final SkinDef skin;
   final bool frenzy;
 
   BalloonPainter({
     required this.balloons,
-    required this.particles,
     required this.skin,
     required this.frenzy,
   });
@@ -1915,14 +2166,14 @@ class BalloonPainter extends CustomPainter {
     for (final b in balloons) {
       final glowPaint = Paint()
         ..color = (b.isGolden ? skin.goldGlowColor : skin.glowColor)
-            .withOpacity(0.25 + 0.4 * b.glowIntensity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
+            .withOpacity(0.22 + 0.35 * b.glowIntensity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
 
       final corePaint = Paint()
         ..color = b.color
         ..style = PaintingStyle.fill;
 
-      final glowRadius = b.radius * (frenzy ? 2.4 : 1.9);
+      final glowRadius = b.radius * (frenzy ? 2.2 : 1.7);
       canvas.drawCircle(b.position, glowRadius, glowPaint);
 
       canvas.drawCircle(b.position, b.radius, corePaint);
@@ -1933,18 +2184,13 @@ class BalloonPainter extends CustomPainter {
           ..strokeWidth = 1.2
           ..style = PaintingStyle.stroke;
 
-        final center = b.position - Offset(b.radius * 0.3, b.radius * 0.3);
+        final center =
+            b.position - Offset(b.radius * 0.3, b.radius * 0.3);
         const len = 4.0;
-        canvas.drawLine(
-          center.translate(-len, 0),
-          center.translate(len, 0),
-          sparklePaint,
-        );
-        canvas.drawLine(
-          center.translate(0, -len),
-          center.translate(0, len),
-          sparklePaint,
-        );
+        canvas.drawLine(center.translate(-len, 0),
+            center.translate(len, 0), sparklePaint);
+        canvas.drawLine(center.translate(0, -len),
+            center.translate(0, len), sparklePaint);
       }
 
       if (b.isBomb) {
@@ -1955,12 +2201,6 @@ class BalloonPainter extends CustomPainter {
         canvas.drawCircle(b.position, b.radius * 1.4, ringPaint);
       }
     }
-
-    for (final p in particles) {
-      final paint = Paint()
-        ..color = p.color.withOpacity(max(0, p.life));
-      canvas.drawCircle(p.position, p.size, paint);
-    }
   }
 
   @override
@@ -1968,4 +2208,3 @@ class BalloonPainter extends CustomPainter {
     return true;
   }
 }
-
