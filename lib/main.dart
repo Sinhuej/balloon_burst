@@ -6,25 +6,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// ---------- ENTRYPOINT ----------
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   runApp(MyApp(prefs: prefs));
 }
 
-/// ---------- ENUMS ----------
+/// ---------- CORE APP ----------
 
-/// How strict / generous tap hit detection should be.
-enum TapPrecisionMode {
-  skinDefault, // use whatever the skin says
-  precision,   // smaller hitbox, more skill
-  tapJunkie,   // default - generous, fun
-  overlord,    // huge hitbox, chaos mode
+class MyApp extends StatelessWidget {
+  final SharedPreferences prefs;
+
+  const MyApp({super.key, required this.prefs});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Balloon Burst',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF050817),
+        textTheme: ThemeData.dark().textTheme.apply(
+              fontFamily: 'Roboto',
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            ),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFFF4F9A),
+          secondary: Color(0xFF00E0FF),
+        ),
+      ),
+      home: MainMenu(prefs: prefs),
+    );
+  }
 }
-
-enum MissionType { score, combo, frenzy }
 
 /// ---------- DATA MODELS ----------
 
@@ -33,14 +48,14 @@ class PlayerProfile {
   int bestCombo;
   int lastScore;
   int totalCoins;
+
+  /// Daily reward / streak
   int dailyStreak;
+  DateTime? lastDailyClaimDate;
+
+  /// Skins
   String equippedSkinId;
   Set<String> ownedSkins;
-  DateTime? lastLoginDate;
-
-  /// Stored as index of TapPrecisionMode
-  int tapPrecisionIndex;
-  bool useSkinDefaultPrecision;
 
   PlayerProfile({
     required this.highScore,
@@ -48,11 +63,9 @@ class PlayerProfile {
     required this.lastScore,
     required this.totalCoins,
     required this.dailyStreak,
+    required this.lastDailyClaimDate,
     required this.equippedSkinId,
     required this.ownedSkins,
-    required this.lastLoginDate,
-    required this.tapPrecisionIndex,
-    required this.useSkinDefaultPrecision,
   });
 
   factory PlayerProfile.fromPrefs(SharedPreferences prefs) {
@@ -60,36 +73,16 @@ class PlayerProfile {
     final bestCombo = prefs.getInt('bestCombo') ?? 0;
     final lastScore = prefs.getInt('lastScore') ?? 0;
     final totalCoins = prefs.getInt('totalCoins') ?? 50;
+
     final equippedSkinId = prefs.getString('equippedSkinId') ?? 'classic';
     final ownedSkinsList = prefs.getStringList('ownedSkins') ?? ['classic'];
 
-    final lastLoginStr = prefs.getString('lastLoginDate');
-    DateTime? lastLogin;
-    if (lastLoginStr != null) {
-      lastLogin = DateTime.tryParse(lastLoginStr);
+    final lastClaimStr = prefs.getString('lastDailyClaimDate');
+    DateTime? lastClaim;
+    if (lastClaimStr != null) {
+      lastClaim = DateTime.tryParse(lastClaimStr);
     }
-
-    int dailyStreak = prefs.getInt('dailyStreak') ?? 0;
-    final today = DateTime.now();
-
-    if (lastLogin == null) {
-      dailyStreak = 1;
-    } else {
-      final diff = today
-          .difference(DateTime(lastLogin.year, lastLogin.month, lastLogin.day))
-          .inDays;
-      if (diff == 0) {
-        // same day, keep streak
-      } else if (diff == 1) {
-        dailyStreak += 1;
-      } else {
-        dailyStreak = 1;
-      }
-    }
-
-    final tapPrecisionIndex = prefs.getInt('tap_precision_mode') ?? 1; // TapJunkie
-    final useSkinDefaultPrecision =
-        prefs.getBool('use_skin_default_precision') ?? true;
+    final dailyStreak = prefs.getInt('dailyStreak') ?? 0;
 
     return PlayerProfile(
       highScore: highScore,
@@ -97,11 +90,9 @@ class PlayerProfile {
       lastScore: lastScore,
       totalCoins: totalCoins,
       dailyStreak: dailyStreak,
+      lastDailyClaimDate: lastClaim,
       equippedSkinId: equippedSkinId,
       ownedSkins: ownedSkinsList.toSet(),
-      lastLoginDate: today,
-      tapPrecisionIndex: tapPrecisionIndex,
-      useSkinDefaultPrecision: useSkinDefaultPrecision,
     );
   }
 
@@ -113,14 +104,16 @@ class PlayerProfile {
     await prefs.setString('equippedSkinId', equippedSkinId);
     await prefs.setStringList('ownedSkins', ownedSkins.toList());
     await prefs.setInt('dailyStreak', dailyStreak);
-    if (lastLoginDate != null) {
-      await prefs.setString('lastLoginDate', lastLoginDate!.toIso8601String());
+    if (lastDailyClaimDate != null) {
+      await prefs.setString(
+        'lastDailyClaimDate',
+        lastDailyClaimDate!.toIso8601String(),
+      );
     }
-
-    await prefs.setInt('tap_precision_mode', tapPrecisionIndex);
-    await prefs.setBool('use_skin_default_precision', useSkinDefaultPrecision);
   }
 }
+
+enum MissionType { score, combo, frenzy }
 
 class Mission {
   final String id;
@@ -169,7 +162,7 @@ class SkinDef {
   final String id;
   final String name;
   final String description;
-  final String rarity; // e.g. COMMON / LEGENDARY
+  final String rarity; // COMMON / RARE / EPIC / LEGENDARY
   final int price;
   final Color background;
   final List<Color> balloonColors;
@@ -310,7 +303,7 @@ Future<List<Mission>> loadMissions(SharedPreferences prefs) async {
     if (jsonStr != null) {
       final list = jsonDecode(jsonStr) as List<dynamic>;
       return list
-          .map((e) => Mission.fromMap(e as Map<String, dynamic>))
+          .map((e) => Mission.fromMap(Map<String, dynamic>.from(e)))
           .toList();
     }
   }
@@ -351,33 +344,44 @@ Future<void> saveMissions(
   await prefs.setString('missionsData', jsonStr);
 }
 
-/// ---------- CORE APP WIDGET ----------
+/// ---------- GAME RESULT & BALLOON MODEL ----------
 
-class MyApp extends StatelessWidget {
-  final SharedPreferences prefs;
+class Balloon {
+  Offset position;
+  double radius;
+  double speed;
+  Color color;
+  bool isGolden;
+  bool isBomb;
+  double glowIntensity; // 0–1 for subtle per-balloon variation
 
-  const MyApp({super.key, required this.prefs});
+  Balloon({
+    required this.position,
+    required this.radius,
+    required this.speed,
+    required this.color,
+    required this.isGolden,
+    required this.isBomb,
+    required this.glowIntensity,
+  });
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Balloon Burst',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF050817),
-        textTheme: ThemeData.dark().textTheme.apply(
-              fontFamily: 'Roboto',
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
-            ),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFFF4F9A),
-          secondary: Color(0xFF00E0FF),
-        ),
-      ),
-      home: MainMenu(prefs: prefs),
-    );
-  }
+class GameResult {
+  final int score;
+  final int bestCombo;
+  final int coinsEarned;
+  final int missionBonusCoins;
+  final List<String> completedMissionIds;
+  final int frenzyCount;
+
+  GameResult({
+    required this.score,
+    required this.bestCombo,
+    required this.coinsEarned,
+    required this.missionBonusCoins,
+    required this.completedMissionIds,
+    required this.frenzyCount,
+  });
 }
 
 /// ---------- MAIN MENU ----------
@@ -421,7 +425,22 @@ class _MainMenuState extends State<MainMenu> {
       ),
     );
     if (changed == true) {
-      // Reload from prefs for safety
+      profile = PlayerProfile.fromPrefs(widget.prefs);
+      setState(() {});
+    }
+  }
+
+  Future<void> _openDailyReward() async {
+    final claimed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DailyRewardScreen(
+          prefs: widget.prefs,
+          profile: profile,
+        ),
+      ),
+    );
+
+    if (claimed == true) {
       profile = PlayerProfile.fromPrefs(widget.prefs);
       setState(() {});
     }
@@ -431,11 +450,6 @@ class _MainMenuState extends State<MainMenu> {
     if (loading) return;
 
     final equipped = skinById(profile.equippedSkinId);
-
-    // convert stored index to enum safely
-    final mode = TapPrecisionMode.values[
-        profile.tapPrecisionIndex.clamp(0, TapPrecisionMode.values.length - 1)];
-
     final result = await Navigator.of(context).push<GameResult?>(
       MaterialPageRoute(
         builder: (_) => GameScreen(
@@ -450,22 +464,17 @@ class _MainMenuState extends State<MainMenu> {
                 ),
               )
               .toList(),
-          tapPrecisionMode: mode,
-          useSkinDefaultPrecision: profile.useSkinDefaultPrecision,
-          equippedSkinId: profile.equippedSkinId,
         ),
       ),
     );
 
     if (result == null) return;
 
-    // Update stats
     profile.lastScore = result.score;
     profile.highScore = max(profile.highScore, result.score);
     profile.bestCombo = max(profile.bestCombo, result.bestCombo);
     profile.totalCoins += result.coinsEarned + result.missionBonusCoins;
 
-    // Update missions completion flags
     for (final m in missions) {
       if (result.completedMissionIds.contains(m.id)) {
         m.completed = true;
@@ -642,6 +651,24 @@ class _MainMenuState extends State<MainMenu> {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _openDailyReward,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                side: const BorderSide(color: Color(0xFFFFD54F)),
+              ),
+              child: const Text(
+                'DAILY REWARD',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -704,7 +731,6 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
-
     final owned = profile.ownedSkins.contains(selectedSkin.id);
     final isEquipped = profile.equippedSkinId == selectedSkin.id;
 
@@ -961,155 +987,377 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 }
 
-/// ---------- GAME DATA STRUCTS ----------
+/// ---------- DAILY REWARD SCREEN (CHEST + STREAK + COUNTDOWN) ----------
 
-class Balloon {
-  Offset position;
-  double radius;
-  double speed;
-  Color color;
-  bool isGolden;
-  bool isBomb;
-  double glowIntensity; // 0–1 for subtle per-balloon variation
+class DailyRewardScreen extends StatefulWidget {
+  final SharedPreferences prefs;
+  final PlayerProfile profile;
 
-  Balloon({
-    required this.position,
-    required this.radius,
-    required this.speed,
-    required this.color,
-    required this.isGolden,
-    required this.isBomb,
-    required this.glowIntensity,
+  const DailyRewardScreen({
+    super.key,
+    required this.prefs,
+    required this.profile,
   });
+
+  @override
+  State<DailyRewardScreen> createState() => _DailyRewardScreenState();
 }
 
-class GameResult {
-  final int score;
-  final int bestCombo;
-  final int coinsEarned;
-  final int missionBonusCoins;
-  final List<String> completedMissionIds;
-  final int frenzyCount;
+class _DailyRewardScreenState extends State<DailyRewardScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _chestController;
+  Timer? _timer;
 
-  GameResult({
-    required this.score,
-    required this.bestCombo,
-    required this.coinsEarned,
-    required this.missionBonusCoins,
-    required this.completedMissionIds,
-    required this.frenzyCount,
-  });
-}
+  bool _canClaim = false;
+  Duration _timeRemaining = Duration.zero;
+  int _previewReward = 0;
+  bool _claimedThisVisit = false;
+  bool _showCoinBurst = false;
 
-/// ---------- TAP PRECISION ENGINE (Overlord Dynamic) ----------
+  @override
+  void initState() {
+    super.initState();
+    _chestController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
 
-double getTapPrecisionMultiplier({
-  required TapPrecisionMode tapPrecisionMode,
-  required bool useSkinDefault,
-  required String equippedSkinId,
-  required bool isGolden,
-  required bool isBomb,
-  required bool isFrenzy,
-  required double balloonSpeed,
-  required int combo,
-}) {
-  double base = 1.0;
+    _evaluateState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _tick();
+    });
+  }
 
-  // Skin defaults (subtle differences)
-  if (useSkinDefault || tapPrecisionMode == TapPrecisionMode.skinDefault) {
-    switch (equippedSkinId) {
-      case 'classic':
-        base = 1.15;
-        break;
-      case 'neon_city':
-        base = 1.2;
-        break;
-      case 'retro_arcade':
-        base = 1.22;
-        break;
-      case 'mystic_glow':
-        base = 1.25;
-        break;
-      case 'cosmic_burst':
-        base = 1.3;
-        break;
-      case 'junkie_juice':
-        base = 1.35;
-        break;
-      default:
-        base = 1.2;
-        break;
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _chestController.dispose();
+    super.dispose();
+  }
+
+  void _tick() {
+    if (!_canClaim) {
+      _evaluateState();
     }
   }
 
-  // Mode scaling
-  double modeFactor;
-  switch (tapPrecisionMode) {
-    case TapPrecisionMode.precision:
-      modeFactor = 0.7;
-      break;
-    case TapPrecisionMode.tapJunkie:
-      modeFactor = 1.0;
-      break;
-    case TapPrecisionMode.overlord:
-      modeFactor = 1.6;
-      break;
-    case TapPrecisionMode.skinDefault:
-      modeFactor = 1.0;
-      break;
+  void _evaluateState() {
+    final now = DateTime.now();
+    final last = widget.profile.lastDailyClaimDate;
+
+    if (last == null) {
+      setState(() {
+        _canClaim = true;
+        _timeRemaining = Duration.zero;
+        _previewReward = _calculateRewardPreview(1);
+      });
+      return;
+    }
+
+    final diff = now.difference(last);
+    if (diff >= const Duration(hours: 24)) {
+      final nextStreak =
+          _nextStreakValue(now, last, widget.profile.dailyStreak);
+      setState(() {
+        _canClaim = true;
+        _timeRemaining = Duration.zero;
+        _previewReward = _calculateRewardPreview(nextStreak);
+      });
+    } else {
+      final remaining = const Duration(hours: 24) - diff;
+      setState(() {
+        _canClaim = false;
+        _timeRemaining = remaining.isNegative ? Duration.zero : remaining;
+        _previewReward = _calculateRewardPreview(
+          widget.profile.dailyStreak == 0
+              ? 1
+              : widget.profile.dailyStreak,
+        );
+      });
+    }
   }
 
-  // Combo-based assistance (higher combo = slightly bigger hitbox)
-  final comboBoost = min(combo / 80.0, 0.3); // max +30%
-  final comboFactor = 1.0 + comboBoost;
+  int _nextStreakValue(DateTime now, DateTime last, int currentStreak) {
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDay = DateTime(last.year, last.month, last.day);
+    final dayDiff = today.difference(lastDay).inDays;
 
-  // Speed-based assistance (very fast balloons get slight bonus)
-  final speedFactor = balloonSpeed > 160.0 ? 1.12 : 1.0;
-
-  // Rarity & bomb logic
-  double rarityFactor = 1.0;
-  if (isGolden) {
-    rarityFactor = 1.1; // easier to hit golden
-  }
-  if (isBomb) {
-    rarityFactor *= 0.85; // slightly tighter hitbox on bombs
+    if (dayDiff == 1) {
+      return currentStreak + 1;
+    } else if (dayDiff > 1) {
+      return 1;
+    } else {
+      return currentStreak == 0 ? 1 : currentStreak;
+    }
   }
 
-  // Frenzy: small assist because chaos
-  final frenzyFactor = isFrenzy ? 1.12 : 1.0;
-
-  double total = base * modeFactor * comboFactor * speedFactor * rarityFactor * frenzyFactor;
-
-  // Overlord: ensure it's chunky but not insane
-  if (tapPrecisionMode == TapPrecisionMode.overlord) {
-    total = max(total, 1.8);
-    total = min(total, 2.6);
+  int _calculateRewardPreview(int streakValue) {
+    int base = 50;
+    int streakBonus = max(0, streakValue - 1) * 10;
+    int reward = base + streakBonus;
+    if (streakValue % 7 == 0) {
+      reward += 100; // Weekly bonus
+    }
+    return reward;
   }
 
-  // Precision: keep from getting too big
-  if (tapPrecisionMode == TapPrecisionMode.precision) {
-    total = min(total, 1.1);
+  Future<void> _claimReward() async {
+    if (!_canClaim) return;
+
+    final now = DateTime.now();
+    final last = widget.profile.lastDailyClaimDate;
+    final currentStreak = widget.profile.dailyStreak;
+
+    final nextStreak =
+        last == null ? 1 : _nextStreakValue(now, last, currentStreak);
+
+    final rewardCoins = _calculateRewardPreview(nextStreak);
+
+    widget.profile.dailyStreak = nextStreak;
+    widget.profile.lastDailyClaimDate = now;
+    widget.profile.totalCoins += rewardCoins;
+
+    await widget.profile.save(widget.prefs);
+
+    setState(() {
+      _canClaim = false;
+      _claimedThisVisit = true;
+      _showCoinBurst = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      setState(() {
+        _showCoinBurst = false;
+      });
+    });
+
+    _evaluateState();
   }
 
-  return total;
+  String _formatDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes % 60;
+    final s = d.inSeconds % 60;
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(h)}:${two(m)}:${two(s)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = widget.profile;
+
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pop(_claimedThisVisit);
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Daily Reward'),
+          backgroundColor: const Color(0xFF050817),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.of(context).pop(_claimedThisVisit);
+            },
+          ),
+        ),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'TapJunkie Treasure Chest',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _canClaim
+                        ? 'Your daily reward is ready!'
+                        : 'Come back after the countdown to claim again.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ScaleTransition(
+                    scale: Tween<double>(begin: 0.9, end: 1.05).animate(
+                      CurvedAnimation(
+                        parent: _chestController,
+                        curve: Curves.easeInOut,
+                      ),
+                    ),
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(32),
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFFFC400),
+                            Color(0xFFFF6F00),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amberAccent.withOpacity(0.7),
+                            blurRadius: 30,
+                            spreadRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const Text(
+                            '🧰',
+                            style: TextStyle(fontSize: 70),
+                          ),
+                          Positioned(
+                            bottom: 24,
+                            child: Row(
+                              children: const [
+                                Icon(Icons.star,
+                                    color: Colors.white, size: 18),
+                                SizedBox(width: 4),
+                                Icon(Icons.star,
+                                    color: Colors.white70, size: 14),
+                                SizedBox(width: 4),
+                                Icon(Icons.star,
+                                    color: Colors.white54, size: 12),
+                              ],
+                            ),
+                          ),
+                          if (_showCoinBurst)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: AnimatedOpacity(
+                                  opacity: _showCoinBurst ? 1 : 0,
+                                  duration:
+                                      const Duration(milliseconds: 900),
+                                  child: Stack(
+                                    children: [
+                                      _coinBurstOffset(-40, -40),
+                                      _coinBurstOffset(30, -30),
+                                      _coinBurstOffset(-10, 40),
+                                      _coinBurstOffset(40, 20),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Current streak: ${profile.dailyStreak} day(s)',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.lightGreenAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _canClaim
+                        ? 'Next reward value: $_previewReward coins'
+                        : 'Last claimed: ${profile.lastDailyClaimDate?.toLocal().toString().split(".").first ?? 'Never'}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (!_canClaim)
+                    Column(
+                      children: [
+                        const Text(
+                          'Next chest unlock in:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatDuration(_timeRemaining),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFFD54F),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _canClaim ? _claimReward : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF1E2338),
+                        disabledBackgroundColor: const Color(0xFF181C2A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        _canClaim
+                            ? 'Open Chest (+$_previewReward coins)'
+                            : 'Chest Locked',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _coinBurstOffset(double dx, double dy) {
+    return Align(
+      alignment: Alignment.center,
+      child: Transform.translate(
+        offset: Offset(dx, dy),
+        child: const Icon(
+          Icons.monetization_on,
+          size: 26,
+          color: Color(0xFFFFD54F),
+        ),
+      ),
+    );
+  }
 }
 
-/// ---------- GAME SCREEN (PURE FLUTTER) ----------
+/// ---------- GAME SCREEN (BALANCED EDITION) ----------
 
 class GameScreen extends StatefulWidget {
   final SkinDef skin;
   final List<Mission> missions;
-  final TapPrecisionMode tapPrecisionMode;
-  final bool useSkinDefaultPrecision;
-  final String equippedSkinId;
 
   const GameScreen({
     super.key,
     required this.skin,
     required this.missions,
-    required this.tapPrecisionMode,
-    required this.useSkinDefaultPrecision,
-    required this.equippedSkinId,
   });
 
   @override
@@ -1163,9 +1411,14 @@ class _GameScreenState extends State<GameScreen>
     setState(() {
       _spawnTimer += dt;
 
-      final spawnInterval = _frenzy ? 0.25 : 0.55;
+      // BALANCED EDITION: slower spawn + lower cap
+      final spawnInterval = _frenzy ? 0.32 : 0.7;
+      const int maxBalloonsNormal = 22;
+      const int maxBalloonsFrenzy = 34;
+      final int maxAllowed = _frenzy ? maxBalloonsFrenzy : maxBalloonsNormal;
 
-      while (_spawnTimer >= spawnInterval) {
+      while (_spawnTimer >= spawnInterval &&
+          _balloons.length < maxAllowed) {
         _spawnTimer -= spawnInterval;
         _spawnBalloon();
       }
@@ -1181,13 +1434,9 @@ class _GameScreenState extends State<GameScreen>
       // Remove off-screen balloons & handle missed
       _balloons.removeWhere((b) {
         if (b.position.dy + b.radius < 0) {
-          // Off-screen
           if (!b.isBomb) {
-            // miss normal balloon: lose life + break combo
             _lives -= 1;
             _combo = 0;
-          } else {
-            // Bombs only hurt when tapped
           }
           if (_lives <= 0) {
             _triggerGameOver();
@@ -1210,14 +1459,16 @@ class _GameScreenState extends State<GameScreen>
   void _spawnBalloon() {
     final size = MediaQuery.of(context).size;
     final x = 40 + _rand.nextDouble() * (size.width - 80);
-    final radius = 18 + _rand.nextDouble() * 26;
+    final radius = 20 + _rand.nextDouble() * 26;
 
-    final baseSpeed = 70.0;
-    final speedScale = 1.0 + (_score / 300.0); // gets faster over time
-    final speed = baseSpeed * speedScale * (0.8 + _rand.nextDouble() * 0.4);
+    // BALANCED EDITION: moderate base speed, gentle scaling
+    const baseSpeed = 60.0;
+    final speedScale = 1.0 + (_score / 450.0);
+    final speed =
+        baseSpeed * speedScale * (0.9 + _rand.nextDouble() * 0.3);
 
-    final isGoldenChance = _frenzy ? 0.25 : 0.06;
-    final isBombChance = _frenzy ? 0.08 : 0.12;
+    final isGoldenChance = _frenzy ? 0.22 : 0.06;
+    final isBombChance = _frenzy ? 0.06 : 0.08;
 
     final isGolden = _rand.nextDouble() < isGoldenChance;
     final isBomb = !isGolden && _rand.nextDouble() < isBombChance;
@@ -1247,25 +1498,35 @@ class _GameScreenState extends State<GameScreen>
     );
   }
 
-  void _handleTap(Offset pos) {
+  double _tapHitboxMultiplier() {
+    // Overlord V4 Balanced – very generous per skin
+    switch (widget.skin.id) {
+      case 'classic':
+        return 1.6;
+      case 'neon_city':
+        return 1.7;
+      case 'retro_arcade':
+        return 1.7;
+      case 'mystic_glow':
+        return 1.7;
+      case 'cosmic_burst':
+        return 1.8;
+      case 'junkie_juice':
+        return 2.0;
+      default:
+        return 1.7;
+    }
+  }
+
+  void _handleInput(Offset pos) {
     if (_gameOver) return;
+
+    final multiplier = _tapHitboxMultiplier();
 
     // Topmost balloon first (last drawn)
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
       final dist = (pos - b.position).distance;
-
-      final multiplier = getTapPrecisionMultiplier(
-        tapPrecisionMode: widget.tapPrecisionMode,
-        useSkinDefault: widget.useSkinDefaultPrecision,
-        equippedSkinId: widget.equippedSkinId,
-        isGolden: b.isGolden,
-        isBomb: b.isBomb,
-        isFrenzy: _frenzy,
-        balloonSpeed: b.speed,
-        combo: _combo,
-      );
-
       final effectiveRadius = b.radius * multiplier;
 
       if (dist <= effectiveRadius) {
@@ -1274,7 +1535,7 @@ class _GameScreenState extends State<GameScreen>
       }
     }
 
-    // Tap in empty space: reset combo softly
+    // Empty tap / swipe: soft combo reset
     setState(() {
       _combo = 0;
     });
@@ -1286,7 +1547,6 @@ class _GameScreenState extends State<GameScreen>
       _balloons.removeAt(index);
 
       if (b.isBomb) {
-        // Bomb tapped: lose life + combo reset, no score
         _lives -= 1;
         _combo = 0;
         if (_lives <= 0) {
@@ -1304,7 +1564,7 @@ class _GameScreenState extends State<GameScreen>
           baseCoins = 5;
         }
 
-        final comboBonus = (_combo ~/ 5); // small extra
+        final comboBonus = (_combo ~/ 5);
         int gainedScore = baseScore + comboBonus;
         int gainedCoins = baseCoins + (_frenzy ? 1 : 0);
 
@@ -1316,7 +1576,6 @@ class _GameScreenState extends State<GameScreen>
         _score += gainedScore;
         _coins += gainedCoins;
 
-        // Frenzy progress: depending on combo and golden pops
         if (b.isGolden || _combo % 10 == 0) {
           _maybeTriggerFrenzy();
         }
@@ -1336,7 +1595,6 @@ class _GameScreenState extends State<GameScreen>
     _running = false;
     _ticker.stop();
 
-    // Evaluate missions
     int bonusCoins = 0;
     final completedIds = <String>[];
     for (final m in widget.missions) {
@@ -1355,11 +1613,10 @@ class _GameScreenState extends State<GameScreen>
       if (done && !m.completed) {
         m.completed = true;
         completedIds.add(m.id);
-        bonusCoins += 100; // flat 100c per mission
+        bonusCoins += 100;
       }
     }
     _completedMissionIds = completedIds;
-    _coins += bonusCoins;
 
     Future.delayed(const Duration(milliseconds: 150), () {
       if (!mounted) return;
@@ -1388,7 +1645,10 @@ class _GameScreenState extends State<GameScreen>
           children: [
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTapDown: (details) => _handleTap(details.localPosition),
+              onTapDown: (details) => _handleInput(details.localPosition),
+              onPanDown: (details) => _handleInput(details.localPosition),
+              onPanUpdate: (details) =>
+                  _handleInput(details.localPosition),
               child: CustomPaint(
                 painter: BalloonPainter(
                   balloons: _balloons,
@@ -1458,9 +1718,7 @@ class _GameScreenState extends State<GameScreen>
           Text(
             '• Mission complete: ${m.description} (+100 coins)',
             style: const TextStyle(
-              fontSize: 14,
-              color: Colors.lightGreenAccent,
-            ),
+                fontSize: 14, color: Colors.lightGreenAccent),
           ),
         );
       }
@@ -1571,47 +1829,44 @@ class BalloonPainter extends CustomPainter {
       final glowPaint = Paint()
         ..color = (b.isGolden ? skin.goldGlowColor : skin.glowColor)
             .withOpacity(0.25 + 0.4 * b.glowIntensity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
+        ..maskFilter =
+            const MaskFilter.blur(BlurStyle.normal, 24);
 
       final corePaint = Paint()
         ..color = b.color
         ..style = PaintingStyle.fill;
 
-      // Glow halo
       final glowRadius = b.radius * (frenzy ? 2.4 : 1.9);
       canvas.drawCircle(b.position, glowRadius, glowPaint);
 
-      // Core balloon
       canvas.drawCircle(b.position, b.radius, corePaint);
 
-      // Small sparkle on golden balloons
       if (b.isGolden) {
         final sparklePaint = Paint()
           ..color = Colors.white.withOpacity(0.9)
           ..strokeWidth = 1.2
           ..style = PaintingStyle.stroke;
 
-        final center = b.position - Offset(b.radius * 0.3, b.radius * 0.3);
+        final center =
+            b.position - Offset(b.radius * 0.3, b.radius * 0.3);
         const len = 4.0;
         canvas.drawLine(
-          center.translate(-len, 0),
-          center.translate(len, 0),
-          sparklePaint,
-        );
+            center.translate(-len, 0),
+            center.translate(len, 0),
+            sparklePaint);
         canvas.drawLine(
-          center.translate(0, -len),
-          center.translate(0, len),
-          sparklePaint,
-        );
+            center.translate(0, -len),
+            center.translate(0, len),
+            sparklePaint);
       }
 
-      // Bomb pulse ring
       if (b.isBomb) {
         final ringPaint = Paint()
           ..color = Colors.redAccent.withOpacity(0.5)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2;
-        canvas.drawCircle(b.position, b.radius * 1.4, ringPaint);
+        canvas.drawCircle(
+            b.position, b.radius * 1.4, ringPaint);
       }
     }
   }
