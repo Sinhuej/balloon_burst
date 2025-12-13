@@ -1332,22 +1332,6 @@ void initState() {
 
   _config = kGameModeConfigs[widget.mode]!;
 
-  _momentum = MomentumManager(
-    config: MomentumConfig(
-      worldThresholds: [0, 100, 300, 700, 1500],
-      localGainRate: 1.0,
-      localDecayRate: 0.5,
-      universalShare: 0.2,
-    ),
-    storage: MomentumStoragePrefs(),
-  );
-
-  _initMomentum();
-
-  _ticker = Ticker(_onTick)..start();
-}
-
-Future<void> _initMomentum() async {
   await _momentum.init();
 }
   @override
@@ -1687,14 +1671,13 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin {
+
   late final MomentumManager _momentum;
+  late final GameModeConfig _config;
+
   late Ticker _ticker;
   Duration _lastTick = Duration.zero;
   final Random _rand = Random();
-
-  int _world() {
-  return _momentum.snapshot().worldLevel;
-  }
 
   final List<Balloon> _balloons = [];
 
@@ -1714,23 +1697,34 @@ class _GameScreenState extends State<GameScreen>
 
   List<String> _completedMissionIds = [];
 
-  late final GameModeConfig _config;
+  int _world() {
+    return _momentum.snapshot().worldLevel;
+  }
 
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  _config = kGameModeConfigs[widget.mode]!;
+    _config = kGameModeConfigs[widget.mode]!;
 
-  _momentum = MomentumManager(
-    config: MomentumConfig.defaultConfig(),
-    storage: MomentumStoragePrefs(),
-  );
+    _momentum = MomentumManager(
+      config: MomentumConfig(
+        worldThresholds: [0, 100, 300, 700, 1500],
+        localGainRate: 1.0,
+        localDecayRate: 0.5,
+        universalShare: 0.2,
+      ),
+      storage: MomentumStoragePrefs(),
+    );
 
-  await _momentum.init();
+    _initMomentum();
 
-  _ticker = Ticker(_onTick)..start();
-}
+    _ticker = Ticker(_onTick)..start();
+  }
+
+  Future<void> _initMomentum() async {
+    await _momentum.init();
+  }
 
   @override
   void dispose() {
@@ -1738,444 +1732,7 @@ void initState() {
     super.dispose();
   }
 
-  void _onTick(Duration elapsed) {
-    if (_lastTick == Duration.zero) {
-      _lastTick = elapsed;
-      return;
-    }
-    final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
-    _lastTick = elapsed;
-    if (!_running || _gameOver) return;
-    _update(dt);
-  }
-
-  void _update(double dt) {
-    setState(() {
-      _spawnTimer += dt;
-
-      final spawnInterval =
-          _frenzy ? _config.spawnIntervalFrenzy : _config.spawnIntervalNormal;
-      final maxAllowed =
-          _frenzy ? _config.maxBalloonsFrenzy : _config.maxBalloonsNormal;
-
-      while (_spawnTimer >= spawnInterval && _balloons.length < maxAllowed) {
-        _spawnTimer -= spawnInterval;
-        _spawnBalloon();
-      }
-
-      for (var b in _balloons) {
-        b.position = Offset(
-          b.position.dx,
-          b.position.dy - b.speed * dt,
-        );
-      }
-
-      _balloons.removeWhere((b) {
-        if (b.position.dy + b.radius < 0) {
-          if (!b.isBomb) {
-            _lives -= 1;
-            _combo = 0;
-          }
-          if (_lives <= 0) {
-            _triggerGameOver();
-          }
-          return true;
-        }
-        return false;
-      });
-
-      if (_frenzy) {
-        _frenzyTimer -= dt;
-        if (_frenzyTimer <= 0) {
-          _frenzy = false;
-        }
-      }
-    });
-  }
-
-  void _spawnBalloon() {
-    final size = MediaQuery.of(context).size;
-    final x = 40 + _rand.nextDouble() * (size.width - 80);
-    final radius = 18 + _rand.nextDouble() * 26;
-
-    final baseSpeed = 70.0;
-    final speedScale = _config.baseSpeedScale + (_score / 400.0);
-    final speed = baseSpeed * speedScale * (0.85 + _rand.nextDouble() * 0.35);
-
-    final isGoldenChance =
-        _frenzy ? _config.goldenChanceFrenzy : _config.goldenChance;
-    final isBombChance =
-        _frenzy ? _config.bombChanceFrenzy : _config.bombChance;
-
-    final isGolden = _rand.nextDouble() < isGoldenChance;
-    final isBomb = !isGolden && _rand.nextDouble() < isBombChance;
-
-    Color color;
-    if (isBomb) {
-      color = Colors.redAccent;
-    } else if (isGolden) {
-      color = const Color(0xFFFFD740);
-    } else {
-      final palette = widget.skin.balloonColors;
-      color = palette[_rand.nextInt(palette.length)];
-    }
-
-    final glowIntensity = 0.5 + _rand.nextDouble() * 0.5;
-
-    _balloons.add(
-      Balloon(
-        position: Offset(x, size.height + radius + 10),
-        radius: radius,
-        speed: speed,
-        color: color,
-        isGolden: isGolden,
-        isBomb: isBomb,
-        glowIntensity: glowIntensity,
-      ),
-    );
-  }
-
-  double _tapHitboxMultiplier() {
-    // Base generous detection per skin
-    double base;
-    switch (widget.skin.id) {
-      case 'classic':
-        base = 1.5;
-        break;
-      case 'neon_city':
-      case 'retro_arcade':
-      case 'mystic_glow':
-      case 'cosmic_burst':
-        base = 1.6;
-        break;
-      case 'junkie_juice':
-        base = 1.8;
-        break;
-      default:
-        base = 1.6;
-    }
-
-    // Slightly more generous in Arcade, slightly tighter in Frenzy
-    switch (widget.mode) {
-      case GameMode.arcade:
-        return base * 1.05;
-      case GameMode.chaos:
-        return base;
-      case GameMode.frenzy:
-        return base * 0.95;
-    }
-  }
-
-  void _handleTap(Offset pos) {
-    if (_gameOver) return;
-
-    final multiplier = _tapHitboxMultiplier();
-
-    for (int i = _balloons.length - 1; i >= 0; i--) {
-      final b = _balloons[i];
-      final dist = (pos - b.position).distance;
-      final effectiveRadius = b.radius * multiplier;
-
-      if (dist <= effectiveRadius) {
-        _popBalloon(i);
-        return;
-      }
-    }
-
-    setState(() {
-      _combo = 0;
-    });
-  }
-
-  void _popBalloon(int index) {
-    final b = _balloons[index];
-    setState(() {
-      _balloons.removeAt(index);
-
-      if (b.isBomb) {
-        _lives -= 1;
-        _combo = 0;
-        if (_lives <= 0) {
-          _triggerGameOver();
-        }
-      } else {
-        _combo += 1;
-        if (_combo > _bestCombo) _bestCombo = _combo;
-
-        int baseScore = 10;
-        int baseCoins = 1;
-
-        if (b.isGolden) {
-          baseScore = 40;
-          baseCoins = 5;
-        }
-
-        final comboBonus = (_combo ~/ 5);
-        int gainedScore = baseScore + comboBonus;
-        int gainedCoins = baseCoins + (_frenzy ? 1 : 0);
-
-        if (_frenzy) {
-          gainedScore = (gainedScore * 1.5).round();
-          gainedCoins += 1;
-        }
-
-        // Apply mode multipliers
-        gainedScore = (gainedScore * _config.scoreMultiplier).round();
-        gainedCoins = max(1, (gainedCoins * _config.coinMultiplier).round());
-
-        _score += gainedScore;
-        _coins += gainedCoins;
-
-        if (b.isGolden || _combo % 10 == 0) {
-          _maybeTriggerFrenzy();
-        }
-      }
-    });
-  }
-
-  void _maybeTriggerFrenzy() {
-    if (_frenzy) return;
-    _frenzy = true;
-    _frenzyTimer = 8.0;
-    _frenzyCount += 1;
-  }
-
-  void _triggerGameOver() {
-    _gameOver = true;
-    _running = false;
-    _ticker.stop();
-
-    int bonusCoins = 0;
-    final completedIds = <String>[];
-    for (final m in widget.missions) {
-      bool done = false;
-      switch (m.type) {
-        case MissionType.score:
-          done = _score >= m.target;
-          break;
-        case MissionType.combo:
-          done = _bestCombo >= m.target;
-          break;
-        case MissionType.frenzy:
-          done = _frenzyCount >= m.target;
-          break;
-      }
-      if (done && !m.completed) {
-        m.completed = true;
-        completedIds.add(m.id);
-        bonusCoins += 100;
-      }
-    }
-    _completedMissionIds = completedIds;
-
-    Future.delayed(const Duration(milliseconds: 150), () {
-      if (!mounted) return;
-      setState(() {});
-    });
-  }
-
-  void _exitToMenu() {
-    final result = GameResult(
-      score: _score,
-      bestCombo: _bestCombo,
-      coinsEarned: _coins,
-      missionBonusCoins: _completedMissionIds.length * 100,
-      completedMissionIds: _completedMissionIds,
-      frenzyCount: _frenzyCount,
-    );
-    Navigator.of(context).pop(result);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: widget.skin.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapDown: (details) => _handleTap(details.localPosition),
-              child: CustomPaint(
-                painter: BalloonPainter(
-                  balloons: _balloons,
-                  skin: widget.skin,
-                  frenzy: _frenzy,
-                ),
-                child: const SizedBox.expand(),
-              ),
-            ),
-            _buildHud(),
-            if (_gameOver) _buildGameOverOverlay(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHud() {
-    final modeName = _config.name.toUpperCase();
-
-    return Positioned(
-      top: 8,
-      left: 10,
-      right: 10,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _hudText('Score: $_score', Colors.white),
-              _hudText('Lives: $_lives', Colors.redAccent),
-              _hudText('Coins: $_coins', const Color(0xFFFFD54F)),
-              _hudText('Combo: $_combo', const Color(0xFF00E5FF)),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-             _worldHud(_world()),
-              Text(
-                modeName,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white70,
-                ),
-              ),
-              if (_frenzy || _frenzyTimer > 0)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'FRENZY!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                        color: Colors.pinkAccent.shade100,
-                      ),
-                    ),
-                    Text(
-                      _frenzyTimer.toStringAsFixed(1),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
-                      ),
-                    )
-                  ],
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGameOverOverlay() {
-    final missionLines = <Widget>[];
-    for (final m in widget.missions) {
-      if (m.completed && _completedMissionIds.contains(m.id)) {
-        missionLines.add(
-          Text(
-            '• Mission complete: ${m.description} (+100 coins)',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.lightGreenAccent,
-            ),
-          ),
-        );
-      }
-    }
-
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withOpacity(0.82),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'GAME OVER',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.pinkAccent.shade100,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Score: $_score',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                Text(
-                  'Best Combo (this run): $_bestCombo',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                Text(
-                  'Coins this run: $_coins',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                if (_frenzyCount > 0)
-                  Text(
-                    'Frenzy triggered: $_frenzyCount time(s)',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                if (missionLines.isNotEmpty) ...[
-                  const Text(
-                    'Missions Completed:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.lightGreenAccent,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  ...missionLines,
-                  const SizedBox(height: 12),
-                ],
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _exitToMenu,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E2338),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    child: const Text(
-                      'Back to Menu',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Text _hudText(String s, Color color) {
-    return Text(
-      s,
-      style: TextStyle(fontSize: 14, color: color),
-    );
-  }
 }
-
-/// ---------- BALLOON PAINTER ----------
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
