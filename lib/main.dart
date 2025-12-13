@@ -1669,72 +1669,6 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with SingleTickerProviderStateMixin {
-
-  late final MomentumManager _momentum;
-  late final GameModeConfig _config;
-
-  late Ticker _ticker;
-  Duration _lastTick = Duration.zero;
-  final Random _rand = Random();
-
-  final List<Balloon> _balloons = [];
-
-  bool _running = true;
-  bool _gameOver = false;
-
-  int _score = 0;
-  int _coins = 0;
-  int _lives = 3;
-  int _combo = 0;
-  int _bestCombo = 0;
-  int _frenzyCount = 0;
-
-  bool _frenzy = false;
-  double _frenzyTimer = 0;
-  double _spawnTimer = 0;
-
-  List<String> _completedMissionIds = [];
-
-  int _world() {
-    return _momentum.snapshot().worldLevel;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _config = kGameModeConfigs[widget.mode]!;
-
-    _momentum = MomentumManager(
-      config: MomentumConfig(
-        worldThresholds: [0, 100, 300, 700, 1500],
-        localGainRate: 1.0,
-        localDecayRate: 0.5,
-        universalShare: 0.2,
-      ),
-      storage: MomentumStoragePrefs(),
-    );
-
-    _initMomentum();
-
-    _ticker = Ticker(_onTick)..start();
-  }
-
-  Future<void> _initMomentum() async {
-    await _momentum.init();
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-}
-
-class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
   final SkinDef skin;
   final bool frenzy;
@@ -1828,4 +1762,279 @@ Widget _worldHud(int world) {
       ),
     ),
   );
+}
+class _GameScreenState extends State<GameScreen>
+    with SingleTickerProviderStateMixin {
+
+  late final MomentumManager _momentum;
+  late final GameModeConfig _config;
+
+  late Ticker _ticker;
+  Duration _lastTick = Duration.zero;
+  final Random _rand = Random();
+
+  final List<Balloon> _balloons = [];
+
+  bool _running = true;
+  bool _gameOver = false;
+
+  int _score = 0;
+  int _coins = 0;
+  int _lives = 3;
+  int _combo = 0;
+  int _bestCombo = 0;
+  int _frenzyCount = 0;
+
+  bool _frenzy = false;
+  double _frenzyTimer = 0;
+  double _spawnTimer = 0;
+
+  List<String> _completedMissionIds = [];
+
+  int _world() => _momentum.snapshot().worldLevel;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _config = kGameModeConfigs[widget.mode]!;
+
+    _momentum = MomentumManager(
+      config: MomentumConfig(
+        worldThresholds: [0, 100, 300, 700, 1500],
+        localGainRate: 1.0,
+        localDecayRate: 0.5,
+        universalShare: 0.2,
+      ),
+      storage: MomentumStoragePrefs(),
+    );
+
+    _momentum.init();
+
+    _ticker = Ticker(_onTick)..start();
+  }
+
+  void _onTick(Duration elapsed) {
+    if (_lastTick == Duration.zero) {
+      _lastTick = elapsed;
+      return;
+    }
+
+    final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
+    _lastTick = elapsed;
+
+    if (!_running || _gameOver) return;
+
+    _momentum.decayLocal(dt);
+    _update(dt);
+  }
+
+  void _update(double dt) {
+    _spawnTimer += dt;
+
+    final spawnInterval =
+        _frenzy ? _config.spawnIntervalFrenzy : _config.spawnIntervalNormal;
+    final maxAllowed =
+        _frenzy ? _config.maxBalloonsFrenzy : _config.maxBalloonsNormal;
+
+    while (_spawnTimer >= spawnInterval && _balloons.length < maxAllowed) {
+      _spawnTimer -= spawnInterval;
+      _spawnBalloon();
+    }
+
+    for (final b in _balloons) {
+      b.position = Offset(
+        b.position.dx,
+        b.position.dy - b.speed * dt,
+      );
+    }
+
+    _balloons.removeWhere((b) {
+      if (b.position.dy + b.radius < 0) {
+        if (!b.isBomb) {
+          _lives -= 1;
+          _combo = 0;
+        }
+        if (_lives <= 0) _triggerGameOver();
+        return true;
+      }
+      return false;
+    });
+
+    if (_frenzy) {
+      _frenzyTimer -= dt;
+      if (_frenzyTimer <= 0) _frenzy = false;
+    }
+
+    setState(() {});
+  }
+
+  void _spawnBalloon() {
+    final size = MediaQuery.of(context).size;
+    final x = 40 + _rand.nextDouble() * (size.width - 80);
+    final radius = 18 + _rand.nextDouble() * 26;
+
+    final speed = 70 *
+        (_config.baseSpeedScale + (_world() * 0.08)) *
+        (0.85 + _rand.nextDouble() * 0.35);
+
+    final isGolden = _rand.nextDouble() <
+        (_frenzy ? _config.goldenChanceFrenzy : _config.goldenChance);
+
+    final isBomb =
+        !isGolden &&
+        _rand.nextDouble() <
+            (_frenzy ? _config.bombChanceFrenzy : _config.bombChance);
+
+    final color = isBomb
+        ? Colors.redAccent
+        : isGolden
+            ? const Color(0xFFFFD740)
+            : widget.skin.balloonColors[
+                _rand.nextInt(widget.skin.balloonColors.length)];
+
+    _balloons.add(
+      Balloon(
+        position: Offset(x, size.height + radius + 10),
+        radius: radius,
+        speed: speed,
+        color: color,
+        isGolden: isGolden,
+        isBomb: isBomb,
+        glowIntensity: 0.5 + _rand.nextDouble() * 0.5,
+      ),
+    );
+  }
+
+  void _handleTap(Offset pos) {
+    for (int i = _balloons.length - 1; i >= 0; i--) {
+      final b = _balloons[i];
+      if ((pos - b.position).distance <= b.radius * 1.5) {
+        _popBalloon(i);
+        return;
+      }
+    }
+    _combo = 0;
+  }
+
+  void _popBalloon(int index) {
+    final b = _balloons.removeAt(index);
+
+    if (b.isBomb) {
+      _lives--;
+      _combo = 0;
+      if (_lives <= 0) _triggerGameOver();
+      return;
+    }
+
+    _combo++;
+    _bestCombo = max(_bestCombo, _combo);
+
+    int scoreGain = b.isGolden ? 40 : 10;
+    int coinGain = b.isGolden ? 5 : 1;
+
+    _score += (scoreGain * _config.scoreMultiplier).round();
+    _coins += max(1, (coinGain * _config.coinMultiplier).round());
+
+    _momentum.addLocal(1.0);
+
+    if (b.isGolden || _combo % 10 == 0) _triggerFrenzy();
+  }
+
+  void _triggerFrenzy() {
+    if (_frenzy) return;
+    _frenzy = true;
+    _frenzyTimer = 8;
+    _frenzyCount++;
+  }
+
+  void _triggerGameOver() {
+    _gameOver = true;
+    _running = false;
+    _ticker.stop();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: widget.skin.background,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (d) => _handleTap(d.localPosition),
+        child: CustomPaint(
+          painter: BalloonPainter(
+            balloons: _balloons,
+            skin: widget.skin,
+            frenzy: _frenzy,
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+}
+class BalloonPainter extends CustomPainter {
+  final List<Balloon> balloons;
+  final SkinDef skin;
+  final bool frenzy;
+
+  BalloonPainter({
+    required this.balloons,
+    required this.skin,
+    required this.frenzy,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bgPaint = Paint()..color = skin.background;
+    canvas.drawRect(Offset.zero & size, bgPaint);
+
+    for (final b in balloons) {
+      final glowPaint = Paint()
+        ..color = (b.isGolden ? skin.goldGlowColor : skin.glowColor)
+            .withOpacity(0.22 + 0.35 * b.glowIntensity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+
+      final corePaint = Paint()
+        ..color = b.color
+        ..style = PaintingStyle.fill;
+
+      final glowRadius = b.radius * (frenzy ? 2.2 : 1.7);
+      canvas.drawCircle(b.position, glowRadius, glowPaint);
+      canvas.drawCircle(b.position, b.radius, corePaint);
+
+      if (b.isGolden) {
+        final sparklePaint = Paint()
+          ..color = Colors.white.withOpacity(0.9)
+          ..strokeWidth = 1.2
+          ..style = PaintingStyle.stroke;
+
+        final center =
+            b.position - Offset(b.radius * 0.3, b.radius * 0.3);
+        const len = 4.0;
+        canvas.drawLine(
+            center.translate(-len, 0), center.translate(len, 0), sparklePaint);
+        canvas.drawLine(
+            center.translate(0, -len), center.translate(0, len), sparklePaint);
+      }
+
+      if (b.isBomb) {
+        final ringPaint = Paint()
+          ..color = Colors.redAccent.withOpacity(0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2;
+        canvas.drawCircle(b.position, b.radius * 1.4, ringPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
 }
