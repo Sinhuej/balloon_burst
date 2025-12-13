@@ -1332,7 +1332,6 @@ void initState() {
 
   _config = kGameModeConfigs[widget.mode]!;
 
-  await _momentum.init();
 }
   @override
   void dispose() {
@@ -1673,59 +1672,6 @@ class GameScreen extends StatefulWidget {
   final SkinDef skin;
   final bool frenzy;
 
-  BalloonPainter({
-    required this.balloons,
-    required this.skin,
-    required this.frenzy,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = skin.background;
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    for (final b in balloons) {
-      final glowPaint = Paint()
-        ..color = (b.isGolden ? skin.goldGlowColor : skin.glowColor)
-            .withOpacity(0.22 + 0.35 * b.glowIntensity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-
-      final corePaint = Paint()
-        ..color = b.color
-        ..style = PaintingStyle.fill;
-
-      final glowRadius = b.radius * (frenzy ? 2.2 : 1.7);
-      canvas.drawCircle(b.position, glowRadius, glowPaint);
-
-      canvas.drawCircle(b.position, b.radius, corePaint);
-
-      if (b.isGolden) {
-        final sparklePaint = Paint()
-          ..color = Colors.white.withOpacity(0.9)
-          ..strokeWidth = 1.2
-          ..style = PaintingStyle.stroke;
-
-        final center =
-            b.position - Offset(b.radius * 0.3, b.radius * 0.3);
-        const len = 4.0;
-        canvas.drawLine(center.translate(-len, 0),
-            center.translate(len, 0), sparklePaint);
-        canvas.drawLine(center.translate(0, -len),
-            center.translate(0, len), sparklePaint);
-      }
-
-      if (b.isBomb) {
-        final ringPaint = Paint()
-          ..color = Colors.redAccent.withOpacity(0.5)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2;
-        canvas.drawCircle(b.position, b.radius * 1.4, ringPaint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant BalloonPainter oldDelegate) {
     return true;
   }
 }
@@ -1767,6 +1713,10 @@ class _GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin {
 
   late final MomentumManager _momentum;
+
+  Future<void> _initMomentum() async {
+  }
+
   late final GameModeConfig _config;
 
   late Ticker _ticker;
@@ -1809,7 +1759,7 @@ class _GameScreenState extends State<GameScreen>
       storage: MomentumStoragePrefs(),
     );
 
-    _momentum.init();
+    _initMomentum();
 
     _ticker = Ticker(_onTick)..start();
   }
@@ -1963,23 +1913,8 @@ class _GameScreenState extends State<GameScreen>
         behavior: HitTestBehavior.opaque,
         onTapDown: (d) => _handleTap(d.localPosition),
         child: CustomPaint(
-          painter: BalloonPainter(
-            balloons: _balloons,
-            skin: widget.skin,
-            frenzy: _frenzy,
-          ),
-          child: const SizedBox.expand(),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
 }
+
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
   final SkinDef skin;
@@ -1999,42 +1934,19 @@ class BalloonPainter extends CustomPainter {
     for (final b in balloons) {
       final glowPaint = Paint()
         ..color = (b.isGolden ? skin.goldGlowColor : skin.glowColor)
-            .withOpacity(0.22 + 0.35 * b.glowIntensity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+            .withOpacity(0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
 
       final corePaint = Paint()
         ..color = b.color
         ..style = PaintingStyle.fill;
 
-      final glowRadius = b.radius * (frenzy ? 2.2 : 1.7);
-      canvas.drawCircle(b.position, glowRadius, glowPaint);
+      canvas.drawCircle(b.position, b.radius * 1.6, glowPaint);
       canvas.drawCircle(b.position, b.radius, corePaint);
-
-      if (b.isGolden) {
-        final sparklePaint = Paint()
-          ..color = Colors.white.withOpacity(0.9)
-          ..strokeWidth = 1.2
-          ..style = PaintingStyle.stroke;
-
-        final center =
-            b.position - Offset(b.radius * 0.3, b.radius * 0.3);
-        const len = 4.0;
-        canvas.drawLine(
-            center.translate(-len, 0), center.translate(len, 0), sparklePaint);
-        canvas.drawLine(
-            center.translate(0, -len), center.translate(0, len), sparklePaint);
-      }
-
-      if (b.isBomb) {
-        final ringPaint = Paint()
-          ..color = Colors.redAccent.withOpacity(0.5)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2;
-        canvas.drawCircle(b.position, b.radius * 1.4, ringPaint);
-      }
     }
   }
 
   @override
-  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
+  bool shouldRepaint(BalloonPainter oldDelegate) => true;
 }
+
