@@ -6,6 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// TapJunkie Engine (vendored)
+import 'tj_engine/engine/momentum/momentum_manager.dart';
+import 'tj_engine/engine/momentum/momentum_config.dart';
+import 'tj_engine/engine/momentum/momentum_storage.dart';
+
 /// ---------- ENTRY POINT ----------
 
 Future<void> main() async {
@@ -2245,3 +2250,6 @@ Widget _worldHud(int world) {
   );
 }
 
+import '../../tapjunkie_engine/lib/engine/momentum/momentum_manager.dart';
+import '../../tapjunkie_engine/lib/engine/momentum/momentum_config.dart';
+import '../../tapjunkie_engine/lib/engine/momentum/momentum_storage.dart';
