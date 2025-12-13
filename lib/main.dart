@@ -1668,6 +1668,7 @@ class GameScreen extends StatefulWidget {
 
   @override
   State<GameScreen> createState() => _GameScreenState();
+  int _world() => _momentum.snapshot().worldLevel;
 }
 
 class _GameScreenState extends State<GameScreen>
@@ -2006,6 +2007,7 @@ class _GameScreenState extends State<GameScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+             _worldHud(_world()),
               Text(
                 modeName,
                 style: const TextStyle(
@@ -2208,3 +2210,38 @@ class BalloonPainter extends CustomPainter {
     return true;
   }
 }
+
+// ---- TJ DEBUG: World Tracking ----
+void debugWorld(MomentumManager momentum) {
+  final snap = momentum.snapshot();
+  debugPrint(
+    '[TJ] World ${snap.worldLevel} | local=${snap.local.toStringAsFixed(1)} | universal=${snap.universal.toStringAsFixed(1)}',
+  );
+}
+
+
+// ---- TJ WORLD HUD HELPERS ----
+
+Widget _worldHud(int world) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: Colors.black.withOpacity(0.35),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: Colors.white24,
+        width: 1,
+      ),
+    ),
+    child: Text(
+      'WORLD $world',
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.1,
+        color: Colors.white,
+      ),
+    ),
+  );
+}
+
