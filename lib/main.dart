@@ -1709,211 +1709,12 @@ Widget _worldHud(int world) {
     ),
   );
 }
-class _GameScreenState extends State<GameScreen>
-    with SingleTickerProviderStateMixin {
+  final List<Balloon> balloons;
+  final SkinDef skin;
+  final bool frenzy;
 
-  late final MomentumManager _momentum;
-
-  Future<void> _initMomentum() async {
-  }
-
-  late final GameModeConfig _config;
-
-  late Ticker _ticker;
-  Duration _lastTick = Duration.zero;
-  final Random _rand = Random();
-
-  final List<Balloon> _balloons = [];
-
-  bool _running = true;
-  bool _gameOver = false;
-
-  int _score = 0;
-  int _coins = 0;
-  int _lives = 3;
-  int _combo = 0;
-  int _bestCombo = 0;
-  int _frenzyCount = 0;
-
-  bool _frenzy = false;
-  double _frenzyTimer = 0;
-  double _spawnTimer = 0;
-
-  List<String> _completedMissionIds = [];
-
-  int _world() => _momentum.snapshot().worldLevel;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _config = kGameModeConfigs[widget.mode]!;
-
-    _momentum = MomentumManager(
-      config: MomentumConfig(
-        worldThresholds: [0, 100, 300, 700, 1500],
-        localGainRate: 1.0,
-        localDecayRate: 0.5,
-        universalShare: 0.2,
-      ),
-      storage: MomentumStoragePrefs(),
-    );
-
-    _initMomentum();
-
-    _ticker = Ticker(_onTick)..start();
-  }
-
-  void _onTick(Duration elapsed) {
-    if (_lastTick == Duration.zero) {
-      _lastTick = elapsed;
-      return;
-    }
-
-    final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
-    _lastTick = elapsed;
-
-    if (!_running || _gameOver) return;
-
-    _momentum.decayLocal(dt);
-    _update(dt);
-  }
-
-  void _update(double dt) {
-    _spawnTimer += dt;
-
-    final spawnInterval =
-        _frenzy ? _config.spawnIntervalFrenzy : _config.spawnIntervalNormal;
-    final maxAllowed =
-        _frenzy ? _config.maxBalloonsFrenzy : _config.maxBalloonsNormal;
-
-    while (_spawnTimer >= spawnInterval && _balloons.length < maxAllowed) {
-      _spawnTimer -= spawnInterval;
-      _spawnBalloon();
-    }
-
-    for (final b in _balloons) {
-      b.position = Offset(
-        b.position.dx,
-        b.position.dy - b.speed * dt,
-      );
-    }
-
-    _balloons.removeWhere((b) {
-      if (b.position.dy + b.radius < 0) {
-        if (!b.isBomb) {
-          _lives -= 1;
-          _combo = 0;
-        }
-        if (_lives <= 0) _triggerGameOver();
-        return true;
-      }
-      return false;
-    });
-
-    if (_frenzy) {
-      _frenzyTimer -= dt;
-      if (_frenzyTimer <= 0) _frenzy = false;
-    }
-
-    setState(() {});
-  }
-
-  void _spawnBalloon() {
-    final size = MediaQuery.of(context).size;
-    final x = 40 + _rand.nextDouble() * (size.width - 80);
-    final radius = 18 + _rand.nextDouble() * 26;
-
-    final speed = 70 *
-        (_config.baseSpeedScale + (_world() * 0.08)) *
-        (0.85 + _rand.nextDouble() * 0.35);
-
-    final isGolden = _rand.nextDouble() <
-        (_frenzy ? _config.goldenChanceFrenzy : _config.goldenChance);
-
-    final isBomb =
-        !isGolden &&
-        _rand.nextDouble() <
-            (_frenzy ? _config.bombChanceFrenzy : _config.bombChance);
-
-    final color = isBomb
-        ? Colors.redAccent
-        : isGolden
-            ? const Color(0xFFFFD740)
-            : widget.skin.balloonColors[
-                _rand.nextInt(widget.skin.balloonColors.length)];
-
-    _balloons.add(
-      Balloon(
-        position: Offset(x, size.height + radius + 10),
-        radius: radius,
-        speed: speed,
-        color: color,
-        isGolden: isGolden,
-        isBomb: isBomb,
-        glowIntensity: 0.5 + _rand.nextDouble() * 0.5,
-      ),
-    );
-  }
-
-  void _handleTap(Offset pos) {
-    for (int i = _balloons.length - 1; i >= 0; i--) {
-      final b = _balloons[i];
-      if ((pos - b.position).distance <= b.radius * 1.5) {
-        _popBalloon(i);
-        return;
-      }
-    }
-    _combo = 0;
-  }
-
-  void _popBalloon(int index) {
-    final b = _balloons.removeAt(index);
-
-    if (b.isBomb) {
-      _lives--;
-      _combo = 0;
-      if (_lives <= 0) _triggerGameOver();
-      return;
-    }
-
-    _combo++;
-    _bestCombo = max(_bestCombo, _combo);
-
-    int scoreGain = b.isGolden ? 40 : 10;
-    int coinGain = b.isGolden ? 5 : 1;
-
-    _score += (scoreGain * _config.scoreMultiplier).round();
-    _coins += max(1, (coinGain * _config.coinMultiplier).round());
-
-    _momentum.addLocal(1.0);
-
-    if (b.isGolden || _combo % 10 == 0) _triggerFrenzy();
-  }
-
-  void _triggerFrenzy() {
-    if (_frenzy) return;
-    _frenzy = true;
-    _frenzyTimer = 8;
-    _frenzyCount++;
-  }
-
-  void _triggerGameOver() {
-    _gameOver = true;
-    _running = false;
-    _ticker.stop();
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: widget.skin.background,
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (d) => _handleTap(d.localPosition),
-        child: CustomPaint(
 }
+
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
@@ -1933,20 +1734,24 @@ class BalloonPainter extends CustomPainter {
 
     for (final b in balloons) {
       final glowPaint = Paint()
-        ..color = (b.isGolden ? skin.goldGlowColor : skin.glowColor)
-            .withOpacity(0.25)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
+        ..color = (b.isGolden
+            ? skin.goldGlowColor
+            : skin.glowColor)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
 
-      final corePaint = Paint()
-        ..color = b.color
-        ..style = PaintingStyle.fill;
+      final corePaint = Paint()..color = b.color;
 
-      canvas.drawCircle(b.position, b.radius * 1.6, glowPaint);
+      canvas.drawCircle(
+        b.position,
+        b.radius * (frenzy ? 2.0 : 1.5),
+        glowPaint,
+      );
+
       canvas.drawCircle(b.position, b.radius, corePaint);
     }
   }
 
   @override
-  bool shouldRepaint(BalloonPainter oldDelegate) => true;
+  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
 }
 
