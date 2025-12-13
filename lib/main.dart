@@ -1326,20 +1326,30 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
   bool _claimedThisVisit = false;
   bool _showCoinBurst = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _chestController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+@override
+void initState() {
+  super.initState();
 
-    _evaluateState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _tick();
-    });
-  }
+  _config = kGameModeConfigs[widget.mode]!;
 
+  _momentum = MomentumManager(
+    config: MomentumConfig(
+      worldThresholds: [0, 100, 300, 700, 1500],
+      localGainRate: 1.0,
+      localDecayRate: 0.5,
+      universalShare: 0.2,
+    ),
+    storage: MomentumStoragePrefs(),
+  );
+
+  _initMomentum();
+
+  _ticker = Ticker(_onTick)..start();
+}
+
+Future<void> _initMomentum() async {
+  await _momentum.init();
+}
   @override
   void dispose() {
     _timer?.cancel();
@@ -1717,7 +1727,7 @@ void initState() {
     storage: MomentumStoragePrefs(),
   );
 
-  _momentum.load();
+  await _momentum.init();
 
   _ticker = Ticker(_onTick)..start();
 }
