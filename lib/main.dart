@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// TapJunkie Engine (vendored)
+// TapJunkie Engine (vendored inside repo)
 import 'tj_engine/engine/momentum/momentum_manager.dart';
 import 'tj_engine/engine/momentum/momentum_config.dart';
 import 'tj_engine/engine/momentum/momentum_storage.dart';
@@ -1673,14 +1673,18 @@ class GameScreen extends StatefulWidget {
 
   @override
   State<GameScreen> createState() => _GameScreenState();
-  int _world() => _momentum.snapshot().worldLevel;
 }
 
 class _GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin {
+  late final MomentumManager _momentum;
   late Ticker _ticker;
   Duration _lastTick = Duration.zero;
   final Random _rand = Random();
+
+  int _world() {
+  return _momentum.snapshot().worldLevel;
+  }
 
   final List<Balloon> _balloons = [];
 
@@ -1703,11 +1707,20 @@ class _GameScreenState extends State<GameScreen>
   late final GameModeConfig _config;
 
   @override
-  void initState() {
-    super.initState();
-    _config = kGameModeConfigs[widget.mode]!;
-    _ticker = Ticker(_onTick)..start();
-  }
+void initState() {
+  super.initState();
+
+  _config = kGameModeConfigs[widget.mode]!;
+
+  _momentum = MomentumManager(
+    config: MomentumConfig.defaultConfig(),
+    storage: MomentumStoragePrefs(),
+  );
+
+  _momentum.load();
+
+  _ticker = Ticker(_onTick)..start();
+}
 
   @override
   void dispose() {
@@ -2249,7 +2262,3 @@ Widget _worldHud(int world) {
     ),
   );
 }
-
-import '../../tapjunkie_engine/lib/engine/momentum/momentum_manager.dart';
-import '../../tapjunkie_engine/lib/engine/momentum/momentum_config.dart';
-import '../../tapjunkie_engine/lib/engine/momentum/momentum_storage.dart';
