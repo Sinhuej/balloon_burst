@@ -1670,7 +1670,6 @@ class GameScreen extends StatefulWidget {
 
   final List<Balloon> balloons;
   final SkinDef skin;
-  final bool frenzy;
 
     return true;
   }
@@ -1711,7 +1710,6 @@ Widget _worldHud(int world) {
 }
   final List<Balloon> balloons;
   final SkinDef skin;
-  final bool frenzy;
 
 }
 
