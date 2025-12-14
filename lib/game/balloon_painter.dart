@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import 'balloon.dart';
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
