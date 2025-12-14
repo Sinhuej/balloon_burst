@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import '../engine_bridge/momentum_bridge.dart';
 
 // TEMP bridge — Momentum still lives in main.dart
 import '../main.dart';
