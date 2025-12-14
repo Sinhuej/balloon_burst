@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'game/balloon.dart';
+import 'screens/game_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -1644,23 +1645,6 @@ void initState() {
    GAME SCREEN
    ========================= */
 
-class GameScreen extends StatefulWidget {
-  final GameMode mode;
-  final List<Mission> missions;
-  final SkinDef skin;
-
-  const GameScreen({
-    super.key,
-    required this.mode,
-    required this.missions,
-    required this.skin,
-  });
-
-  @override
-  State<GameScreen> createState() => _GameScreenState();
-}
-
-class _GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin {
 
   late final MomentumManager _momentum;
