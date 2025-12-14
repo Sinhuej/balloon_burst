@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import '../engine_bridge/momentum_bridge.dart';
+import '../tj_engine/engine/momentum/momentum_storage.dart';
+import '../tj_engine/engine/momentum/momentum_config.dart';
+import '../tj_engine/engine/momentum/momentum_manager.dart';
 
-// TEMP bridge — Momentum still lives in main.dart
-import '../main.dart';
 
 import '../game/balloon.dart';
 import '../game/balloon_painter.dart';
