@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../ui/skins.dart';
+import '../main.dart';
 import 'balloon.dart';
 
 class BalloonPainter extends CustomPainter {
