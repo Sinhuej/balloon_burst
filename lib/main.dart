@@ -1652,15 +1652,22 @@ void initState() {
 
 /// ---------- GAME SCREEN (MODE-AWARE) ----------
 
-class GameScreen extends StatefulWidget {
-  final List<Mission> missions;
-  final GameMode mode;
+
+}
+
+
+class _GameScreenState extends State<GameScreen>
+    with SingleTickerProviderStateMixin {
+
+  late final MomentumManager _momentum;
+  late Ticker _ticker;
+  Duration _lastTick = Duration.zero;
+
+  bool _frenzy = false;
 
   @override
   void initState() {
     super.initState();
-
-    _config = kGameModeConfigs[widget.mode]!;
 
     _momentum = MomentumManager(
       config: MomentumConfig(
@@ -1673,7 +1680,6 @@ class GameScreen extends StatefulWidget {
     );
 
     _momentum.init();
-
     _ticker = Ticker(_onTick)..start();
   }
 
@@ -1683,52 +1689,17 @@ class GameScreen extends StatefulWidget {
       return;
     }
 
-    final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
+    final dt =
+        (elapsed - _lastTick).inMicroseconds / 1e6;
     _lastTick = elapsed;
 
     _momentum.decayLocal(dt);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomPaint(
-        painter: BalloonPainter(
-          balloons: _balloons,
-          skin: widget.skin,
-          frenzy: _frenzy,
-        ),
-        child: Container(),
-      ),
-    );
-  }
-
-  @override
   void dispose() {
     _ticker.dispose();
     super.dispose();
-  }
-}
-
-
-
-class _GameScreenState extends State<GameScreen> 
-    with SingleTickerProviderStateMixin {
-
-  late Ticker _ticker;
-  Duration _lastTick = Duration.zero;
-
-  final List<Balloon> _balloons = [];
-  bool _frenzy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = Ticker(_onTick)..start();
-  }
-
-  void _onTick(Duration elapsed) {
-    _lastTick = elapsed;
   }
 
   @override
@@ -1736,23 +1707,24 @@ class _GameScreenState extends State<GameScreen>
     return Scaffold(
       body: CustomPaint(
         painter: BalloonPainter(
-          balloons: _balloons,
+          balloons: const [],
           skin: widget.skin,
           frenzy: _frenzy,
         ),
-        child: Container(),
+        child: const SizedBox.expand(),
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
 }
+
+
+
+
+
 
 class BalloonPainter extends CustomPainter {
+  final List<Balloon> balloons;
+  final SkinDef skin;
   final bool frenzy;
 
   BalloonPainter({
@@ -1763,19 +1735,13 @@ class BalloonPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Background
     final bgPaint = Paint()..color = skin.background;
     canvas.drawRect(Offset.zero & size, bgPaint);
-
-    // Balloons
-    for (final b in balloons) {
-      // Simple draw (stable + compile-safe). We can re-add glow/sparkle later.
-      final paint = Paint()..color = b.color;
-      canvas.drawCircle(b.position, b.radius, paint);
-    }
   }
 
   @override
-  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
+  bool shouldRepaint(covariant BalloonPainter oldDelegate) {
+    return true;
+  }
 }
 
