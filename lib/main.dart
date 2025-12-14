@@ -1784,10 +1784,33 @@ class _GameScreenState extends State<GameScreen>
   }
 }
 
+
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
   final SkinDef skin;
   final bool frenzy;
 
+  BalloonPainter({
+    required this.balloons,
+    required this.skin,
+    required this.frenzy,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Background
+    final bgPaint = Paint()..color = skin.background;
+    canvas.drawRect(Offset.zero & size, bgPaint);
+
+    // Balloons
+    for (final b in balloons) {
+      // Simple draw (stable + compile-safe). We can re-add glow/sparkle later.
+      final paint = Paint()..color = b.color;
+      canvas.drawCircle(b.position, b.radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
 }
 
