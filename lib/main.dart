@@ -1699,7 +1699,7 @@ class _GameScreenState extends State<GameScreen>
         localDecayRate: 0.5,
         universalShare: 0.2,
       ),
-      storage: PrefsMomentumStorage(),
+      storage: InMemoryMomentumStorage(),
     );
 
     _momentum.init();
