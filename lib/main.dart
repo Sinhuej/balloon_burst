@@ -1645,35 +1645,6 @@ void initState() {
    GAME SCREEN
    ========================= */
 
-    with SingleTickerProviderStateMixin {
-
-  late final MomentumManager _momentum;
-  late final Ticker _ticker;
-
-  final List<Balloon> _balloons = [];
-  Duration _lastTick = Duration.zero;
-
-  bool _frenzy = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _momentum = MomentumManager(
-      config: MomentumConfig(
-        worldThresholds: [0, 100, 300, 700, 1500],
-        localGainRate: 1.0,
-        localDecayRate: 0.5,
-        universalShare: 0.2,
-      ),
-      storage: InMemoryMomentumStorage(),
-    );
-
-    _momentum.init();
-
-    _ticker = Ticker(_onTick)..start();
-  }
-
   void _onTick(Duration elapsed) {
     if (_lastTick == Duration.zero) {
       _lastTick = elapsed;
