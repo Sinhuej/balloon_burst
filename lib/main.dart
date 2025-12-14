@@ -1330,7 +1330,6 @@ class _DailyRewardScreenState extends State<DailyRewardScreen>
 void initState() {
   super.initState();
 
-  _config = kGameModeConfigs[widget.mode]!;
 
 }
   @override
@@ -1653,7 +1652,6 @@ void initState() {
 /// ---------- GAME SCREEN (MODE-AWARE) ----------
 
 
-}
 
 
 
@@ -1760,7 +1758,7 @@ class BalloonPainter extends CustomPainter {
 
     for (final b in balloons) {
       final paint = Paint()..color = skin.glowColor;
-      canvas.drawCircle(Offset(b.x, b.y), b.radius, paint);
+      canvas.drawCircle(b.position, b.radius, paint);
     }
   }
 
