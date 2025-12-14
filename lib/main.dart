@@ -1716,42 +1716,78 @@ Widget _worldHud(int world) {
 }
 
 
+
+class _GameScreenState extends State<GameScreen>
+    with SingleTickerProviderStateMixin {
+
+  late final GameModeConfig _config;
+  late final MomentumManager _momentum;
+
+  late Ticker _ticker;
+  Duration _lastTick = Duration.zero;
+
+  final List<Balloon> _balloons = [];
+
+  bool _frenzy = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _config = kGameModeConfigs[widget.mode]!;
+
+    _momentum = MomentumManager(
+      config: MomentumConfig(
+        worldThresholds: [0, 100, 300, 700, 1500],
+        localGainRate: 1.0,
+        localDecayRate: 0.5,
+        universalShare: 0.2,
+      ),
+      storage: MomentumStoragePrefs(),
+    );
+
+    _momentum.init();
+
+    _ticker = Ticker(_onTick)..start();
+  }
+
+  void _onTick(Duration elapsed) {
+    if (_lastTick == Duration.zero) {
+      _lastTick = elapsed;
+      return;
+    }
+
+    final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
+    _lastTick = elapsed;
+
+    _momentum.decayLocal(dt);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CustomPaint(
+        painter: BalloonPainter(
+          balloons: _balloons,
+          skin: widget.skin,
+          frenzy: _frenzy,
+        ),
+        child: Container(),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+}
+
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
   final SkinDef skin;
   final bool frenzy;
 
-  BalloonPainter({
-    required this.balloons,
-    required this.skin,
-    required this.frenzy,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = skin.background;
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    for (final b in balloons) {
-      final glowPaint = Paint()
-        ..color = (b.isGolden
-            ? skin.goldGlowColor
-            : skin.glowColor)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
-
-      final corePaint = Paint()..color = b.color;
-
-      canvas.drawCircle(
-        b.position,
-        b.radius * (frenzy ? 2.0 : 1.5),
-        glowPaint,
-      );
-
-      canvas.drawCircle(b.position, b.radius, corePaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
 }
 
