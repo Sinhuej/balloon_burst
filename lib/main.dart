@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'game/balloon_painter.dart';
 
 // TapJunkie Engine (vendored inside repo)
 import 'tj_engine/engine/momentum/momentum_manager.dart';
@@ -1738,31 +1739,5 @@ class _GameScreenState extends State<GameScreen>
       ),
     );
   }
-}
-
-class BalloonPainter extends CustomPainter {
-  final List<Balloon> balloons;
-  final SkinDef skin;
-  final bool frenzy;
-
-  BalloonPainter({
-    required this.balloons,
-    required this.skin,
-    required this.frenzy,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = skin.background;
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    for (final b in balloons) {
-      final paint = Paint()..color = skin.glowColor;
-      canvas.drawCircle(b.position, b.radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
 }
 
