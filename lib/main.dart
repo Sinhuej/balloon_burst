@@ -1653,80 +1653,8 @@ void initState() {
 /// ---------- GAME SCREEN (MODE-AWARE) ----------
 
 class GameScreen extends StatefulWidget {
-  final SkinDef skin;
   final List<Mission> missions;
   final GameMode mode;
-
-  const GameScreen({
-    super.key,
-    required this.skin,
-    required this.missions,
-    required this.mode,
-  });
-
-  @override
-  State<GameScreen> createState() => _GameScreenState();
-}
-
-  final List<Balloon> balloons;
-  final SkinDef skin;
-
-    return true;
-  }
-}
-
-// ---- TJ DEBUG: World Tracking ----
-void debugWorld(MomentumManager momentum) {
-  final snap = momentum.snapshot();
-  debugPrint(
-    '[TJ] World ${snap.worldLevel} | local=${snap.local.toStringAsFixed(1)} | universal=${snap.universal.toStringAsFixed(1)}',
-  );
-}
-
-
-// ---- TJ WORLD HUD HELPERS ----
-
-Widget _worldHud(int world) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: Colors.black.withOpacity(0.35),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-        color: Colors.white24,
-        width: 1,
-      ),
-    ),
-    child: Text(
-      'WORLD $world',
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.1,
-        color: Colors.white,
-      ),
-    ),
-  );
-}
-  final List<Balloon> balloons;
-  final SkinDef skin;
-
-}
-
-
-
-class _GameScreenState extends State<GameScreen>
-    with SingleTickerProviderStateMixin {
-
-  late final GameModeConfig _config;
-  late final MomentumManager _momentum;
-
-  late Ticker _ticker;
-  Duration _lastTick = Duration.zero;
-
-  final List<Balloon> _balloons = [];
-
-  bool _frenzy = false;
 
   @override
   void initState() {
@@ -1783,9 +1711,48 @@ class _GameScreenState extends State<GameScreen>
 }
 
 
+
+class _GameScreenState extends State<GameScreen> 
+    with SingleTickerProviderStateMixin {
+
+  late Ticker _ticker;
+  Duration _lastTick = Duration.zero;
+
+  final List<Balloon> _balloons = [];
+  bool _frenzy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker(_onTick)..start();
+  }
+
+  void _onTick(Duration elapsed) {
+    _lastTick = elapsed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CustomPaint(
+        painter: BalloonPainter(
+          balloons: _balloons,
+          skin: widget.skin,
+          frenzy: _frenzy,
+        ),
+        child: Container(),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+}
+
 class BalloonPainter extends CustomPainter {
-  final List<Balloon> balloons;
-  final SkinDef skin;
   final bool frenzy;
 
   BalloonPainter({
