@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
-// TEMP bridges — do NOT clean yet
+// TEMP bridges — to be cleaned later
 import '../main.dart';
 import '../game/balloon.dart';
 import '../game/balloon_painter.dart';
+import '../engine_bridge/momentum_bridge.dart';
 
 class GameScreen extends StatefulWidget {
   final GameMode mode;
