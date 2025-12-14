@@ -1656,11 +1656,36 @@ void initState() {
 }
 
 
+
+
+
+/* =========================
+   GAME SCREEN
+   ========================= */
+
+class GameScreen extends StatefulWidget {
+  final GameMode mode;
+  final List<Mission> missions;
+  final SkinDef skin;
+
+  const GameScreen({
+    super.key,
+    required this.mode,
+    required this.missions,
+    required this.skin,
+  });
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
 class _GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin {
 
   late final MomentumManager _momentum;
-  late Ticker _ticker;
+  late final Ticker _ticker;
+
+  final List<Balloon> _balloons = [];
   Duration _lastTick = Duration.zero;
 
   bool _frenzy = false;
@@ -1680,6 +1705,7 @@ class _GameScreenState extends State<GameScreen>
     );
 
     _momentum.init();
+
     _ticker = Ticker(_onTick)..start();
   }
 
@@ -1689,8 +1715,7 @@ class _GameScreenState extends State<GameScreen>
       return;
     }
 
-    final dt =
-        (elapsed - _lastTick).inMicroseconds / 1e6;
+    final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
     _lastTick = elapsed;
 
     _momentum.decayLocal(dt);
@@ -1707,20 +1732,15 @@ class _GameScreenState extends State<GameScreen>
     return Scaffold(
       body: CustomPaint(
         painter: BalloonPainter(
-          balloons: const [],
+          balloons: _balloons,
           skin: widget.skin,
           frenzy: _frenzy,
         ),
-        child: const SizedBox.expand(),
+        child: Container(),
       ),
     );
   }
 }
-
-
-
-
-
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
@@ -1737,11 +1757,14 @@ class BalloonPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final bgPaint = Paint()..color = skin.background;
     canvas.drawRect(Offset.zero & size, bgPaint);
+
+    for (final b in balloons) {
+      final paint = Paint()..color = skin.glowColor;
+      canvas.drawCircle(Offset(b.x, b.y), b.radius, paint);
+    }
   }
 
   @override
-  bool shouldRepaint(covariant BalloonPainter oldDelegate) {
-    return true;
-  }
+  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
 }
 
