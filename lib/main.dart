@@ -1633,31 +1633,3 @@ void initState() {
   }
 }
 
-/// ---------- GAME SCREEN (MODE-AWARE) ----------
-
-
-
-
-
-
-
-/* =========================
-   GAME SCREEN
-   ========================= */
-
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomPaint(
-        painter: BalloonPainter(
-          balloons: _balloons,
-          skin: widget.skin,
-          frenzy: _frenzy,
-        ),
-        child: Container(),
-      ),
-    );
-  }
-}
-
