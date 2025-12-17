@@ -125,7 +125,6 @@ class PlayerProfile {
   }
 }
 
-enum MissionType { score, combo, frenzy }
 
   final Color background;
   final List<Color> balloonColors;
