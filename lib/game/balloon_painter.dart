@@ -1,7 +1,6 @@
 import '../ui/skins.dart';
 import 'package:flutter/material.dart';
 import 'balloon.dart';
-import '../main.dart'; // TEMP bridge for SkinDef
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
