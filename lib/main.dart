@@ -318,36 +318,6 @@ class MainMenu extends StatefulWidget {
   State<MainMenu> createState() => _MainMenuState();
 }
 
-class _MainMenuState extends State<MainMenu> {
-  late PlayerProfile profile;
-  List<Mission> missions = [];
-  bool loading = true;
-
-  @override
-  void initState() {
-  @override
-
-  void initState() {
-
-    super.initState();
-
-  }
-
-
-
-  void _selectSkin(SkinDef skin) {
-
-    setState(() {
-
-      selectedSkin = skin;
-
-    });
-
-  }
-    });
-  }
-
-  Future<void> _buyOrEquip() async {
     final profile = widget.profile;
     final owned = profile.ownedSkins.contains(selectedSkin.id);
     if (owned) {
@@ -536,7 +506,7 @@ class _MainMenuState extends State<MainMenu> {
     final equipped = profile.equippedSkinId == skin.id;
 
     return GestureDetector(
-      onTap: () => _selectSkin(skin),
+      onTap: null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(12),
