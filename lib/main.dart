@@ -381,7 +381,6 @@ class _MainMenuState extends State<MainMenu> {
     if (chosenMode == null) return;
 
     // 2) Start game in that mode
-    final equipped = skinById(profile.equippedSkinId);
     final result = await Navigator.of(context).push<GameResult?>(
       MaterialPageRoute(
         builder: (_) => GameScreen(
@@ -430,7 +429,6 @@ class _MainMenuState extends State<MainMenu> {
       );
     }
 
-    final equippedSkin = skinById(profile.equippedSkinId);
 
     return Scaffold(
       body: SafeArea(
@@ -813,15 +811,12 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> {
-  late SkinDef selectedSkin;
 
   @override
   void initState() {
     super.initState();
-    selectedSkin = skinById(widget.profile.equippedSkinId);
   }
 
-  void _selectSkin(SkinDef skin) {
     setState(() {
       selectedSkin = skin;
     });
@@ -905,7 +900,6 @@ class _ShopScreenState extends State<ShopScreen> {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   children: [
-                    for (final skin in allSkins) _buildSkinCard(skin),
                   ],
                 ),
               ),
@@ -1012,7 +1006,6 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  Widget _buildSkinCard(SkinDef skin) {
     final profile = widget.profile;
     final owned = profile.ownedSkins.contains(skin.id);
     final equipped = profile.equippedSkinId == skin.id;
