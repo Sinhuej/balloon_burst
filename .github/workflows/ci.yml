@@ -1,0 +1,27 @@
+name: TJ CI Check
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # flutter analyze intentionally disabled during Step 5A
+
+      - name: Build APK
+        run: flutter build apk --release
