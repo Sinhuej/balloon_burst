@@ -13,7 +13,6 @@ Future<void> main() async {
 
   final store = ProfileStore();
 
-  // Load data safely (still unused by UI)
   PlayerProfile profile;
   PlayerStats stats;
 
@@ -21,7 +20,6 @@ Future<void> main() async {
     profile = await store.loadProfile();
     stats = await store.loadStats();
   } catch (_) {
-    // Absolute boot safety
     profile = PlayerProfile.fromJson(const {});
     stats = PlayerStats.fromJson(const {});
   }
@@ -78,20 +76,26 @@ class _BalloonBurstAppState extends State<BalloonBurstApp>
     try {
       await widget.store.saveProfile(widget.profile);
       await widget.store.saveStats(widget.stats);
-    } catch (_) {
-      // Never crash on save
-    }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: Center(
-          child: Text(
-            'Balloon Burst',
-            style: TextStyle(fontSize: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Balloon Burst',
+                style: TextStyle(fontSize: 24),
+              ),
+              const SizedBox(height: 16),
+              Text('Profile loaded: ${widget.profile.runtimeType}'),
+              Text('Stats loaded: ${widget.stats.runtimeType}'),
+            ],
           ),
         ),
       ),
