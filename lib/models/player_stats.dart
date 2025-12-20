@@ -22,7 +22,6 @@ class PlayerStats {
     required this.totalPlayTimeSeconds,
   });
 
-  /// Empty baseline stats
   factory PlayerStats.empty() {
     return const PlayerStats(
       balloonsPopped: 0,
@@ -32,7 +31,6 @@ class PlayerStats {
     );
   }
 
-  /// Deserialize from JSON
   factory PlayerStats.fromJson(Map<String, dynamic> json) {
     return PlayerStats(
       balloonsPopped: json['balloonsPopped'] as int? ?? 0,
@@ -42,7 +40,6 @@ class PlayerStats {
     );
   }
 
-  /// Serialize to JSON
   Map<String, dynamic> toJson() {
     return {
       'balloonsPopped': balloonsPopped,
@@ -52,7 +49,6 @@ class PlayerStats {
     };
   }
 
-  /// Copy helper (still data-only)
   PlayerStats copyWith({
     int? balloonsPopped,
     int? levelsCompleted,
