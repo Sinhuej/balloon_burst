@@ -1,40 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  runApp(MyApp(prefs: prefs));
+// Step 5B: Data-only model import (unused on purpose)
+import 'models/player_profile.dart';
+
+void main() {
+  runApp(const BalloonBurstApp());
 }
 
-class MyApp extends StatelessWidget {
-  final SharedPreferences prefs;
-
-  const MyApp({super.key, required this.prefs});
+class BalloonBurstApp extends StatelessWidget {
+  const BalloonBurstApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    // Step 5B: PlayerProfile wired but intentionally unused
+    final PlayerProfile _unusedProfile = PlayerProfile.empty();
+
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
-      home: MainMenu(prefs: prefs),
-    );
-  }
-}
-
-class MainMenu extends StatelessWidget {
-  final SharedPreferences prefs;
-
-  const MainMenu({super.key, required this.prefs});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF050817),
-      body: const Center(
-        child: Text(
-          'Main Menu (Step 5A Safe)',
-          style: TextStyle(color: Colors.white),
+      home: Scaffold(
+        body: Center(
+          child: Text(
+            'Balloon Burst',
+            style: TextStyle(fontSize: 24),
+          ),
         ),
       ),
     );
