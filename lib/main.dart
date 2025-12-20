@@ -5,6 +5,8 @@ import 'services/profile_store.dart';
 import 'models/player_profile.dart';
 import 'models/player_stats.dart';
 
+const bool _kDebug = !bool.fromEnvironment('dart.vm.product');
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([
@@ -92,9 +94,12 @@ class _BalloonBurstAppState extends State<BalloonBurstApp>
                 'Balloon Burst',
                 style: TextStyle(fontSize: 24),
               ),
-              const SizedBox(height: 16),
-              Text('Profile loaded: ${widget.profile.runtimeType}'),
-              Text('Stats loaded: ${widget.stats.runtimeType}'),
+
+              if (_kDebug) ...[
+                const SizedBox(height: 16),
+                Text('Profile loaded: ${widget.profile.runtimeType}'),
+                Text('Stats loaded: ${widget.stats.runtimeType}'),
+              ],
             ],
           ),
         ),
