@@ -11,30 +11,77 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  // Step 5C-2: controlled data activation (no UI usage)
   final store = ProfileStore();
 
-  // Load asynchronously but do not render or act on data yet
+  // Load data safely (still unused by UI)
   PlayerProfile profile;
   PlayerStats stats;
 
   try {
     profile = await store.loadProfile();
     stats = await store.loadStats();
-    // Intentionally unused for now
-    // ignore: unused_local_variable
-    profile = profile;
-    // ignore: unused_local_variable
-    stats = stats;
   } catch (_) {
-    // Absolute safety: swallow errors, preserve boot
+    // Absolute boot safety
+    profile = PlayerProfile.fromJson(const {});
+    stats = PlayerStats.fromJson(const {});
   }
 
-  runApp(const BalloonBurstApp());
+  runApp(
+    BalloonBurstApp(
+      store: store,
+      profile: profile,
+      stats: stats,
+    ),
+  );
 }
 
-class BalloonBurstApp extends StatelessWidget {
-  const BalloonBurstApp({super.key});
+class BalloonBurstApp extends StatefulWidget {
+  final ProfileStore store;
+  final PlayerProfile profile;
+  final PlayerStats stats;
+
+  const BalloonBurstApp({
+    super.key,
+    required this.store,
+    required this.profile,
+    required this.stats,
+  });
+
+  @override
+  State<BalloonBurstApp> createState() => _BalloonBurstAppState();
+}
+
+class _BalloonBurstAppState extends State<BalloonBurstApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _saveSafely();
+    }
+  }
+
+  Future<void> _saveSafely() async {
+    try {
+      await widget.store.saveProfile(widget.profile);
+      await widget.store.saveStats(widget.stats);
+    } catch (_) {
+      // Never crash on save
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
