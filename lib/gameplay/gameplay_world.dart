@@ -9,8 +9,12 @@ class GameplayWorld {
 
   const GameplayWorld({required this.balloons});
 
-  int get poppedCount =>
-      balloons.where((b) => b.isPopped).length;
+  int get poppedCount => balloons.where((b) => b.isPopped).length;
+
+  /// STEP 21
+  /// Derived scoring fact (pure, deterministic).
+  /// No side effects. No mutation.
+  int get score => poppedCount * 10;
 
   GameplayWorld popBalloonAt(int index) {
     if (index < 0 || index >= balloons.length) {
@@ -26,8 +30,7 @@ class GameplayWorld {
     return GameplayWorld(balloons: updated);
   }
 
-  /// STEP 19
-  /// Pure suggestion of possible commands.
+  /// STEP 19 (current behavior preserved for now; Step 23 will refine)
   List<PopBalloonCommand> get suggestedCommands {
     final commands = <PopBalloonCommand>[];
     for (var i = 0; i < balloons.length; i++) {
