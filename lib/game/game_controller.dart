@@ -4,6 +4,8 @@ import "commands/pop_balloon_command.dart";
 import "commands/pop_first_available_command.dart";
 import "commands/remove_popped_balloons_command.dart";
 import "commands/spawn_balloon_command.dart";
+import "commands/activate_powerup_command.dart";
+import "powerups/power_up.dart";
 
 class GameController {
   GameplayWorld? _world;
@@ -17,6 +19,22 @@ class GameController {
   void execute(Object command) {
     final world = _world;
     if (world == null) return;
+
+    if (command is ActivatePowerUpCommand &&
+        command.powerUp is DoublePopPowerUp) {
+      final indices = world.balloons
+          .asMap()
+          .entries
+          .where((e) => !e.value.isPopped)
+          .map((e) => e.key)
+          .take(2)
+          .toList();
+
+      for (final i in indices) {
+        _world = _world?.popBalloonAt(i);
+      }
+      return;
+    }
 
     if (command is PopBalloonCommand) {
       _world = world.popBalloonAt(command.index);
@@ -36,20 +54,9 @@ class GameController {
       return;
     }
 
-    /// STEP 28
     if (command is SpawnBalloonCommand) {
       _world = world.spawnBalloon(command.balloon);
       return;
     }
-  }
-
-  void autoExecuteSuggestions() {
-    final world = _world;
-    if (world == null) return;
-
-    final suggestions = world.suggestedCommands;
-    if (suggestions.isEmpty) return;
-
-    execute(suggestions.first);
   }
 }
