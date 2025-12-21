@@ -1,36 +1,46 @@
-import '../gameplay/gameplay_world.dart';
-import '../gameplay/balloon.dart';
+import 'gameplay_world.dart';
 
-enum GameState {
-  idle,
-  running,
-  stopped,
-}
-
+/// GameController
+///
+/// Responsibility:
+/// - Owns the current GameplayWorld reference
+/// - Initiates explicit intent requests
+/// - Never mutates the world directly
+///
+/// NOTE:
+/// - No automatic behavior
+/// - No ticking
+/// - No side effects
 class GameController {
-  GameState _state = GameState.idle;
+  GameplayWorld? _world;
 
-  GameplayWorld? gameplayWorld;
+  /// Read-only access to current world
+  GameplayWorld? get gameplayWorld => _world;
 
-  GameState get state => _state;
-
+  /// Starts a new game session
   void start() {
-    _state = GameState.running;
-
-    gameplayWorld = GameplayWorld(
-      balloons: <Balloon>[],
-    );
+    _world = GameplayWorld.initial();
   }
 
+  /// Stops the current game session
   void stop() {
-    _state = GameState.stopped;
-    gameplayWorld = null;
+    _world = null;
   }
 
-  /// Restores controller to a fresh running state.
-  /// UI contract method — no gameplay logic.
-  void reset() {
-    stop();
-    start();
+  /// STEP 14-1
+  ///
+  /// Explicit intent passthrough:
+  /// Requests that the world attempt to pop a balloon at [index].
+  ///
+  /// Rules:
+  /// - If no world exists, do nothing
+  /// - World decides validity
+  /// - World returns a new instance
+  /// - Controller replaces its reference
+  void requestPopAt(int index) {
+    final world = _world;
+    if (world == null) return;
+
+    _world = world.applyPopAt(index);
   }
 }
