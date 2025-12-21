@@ -55,6 +55,25 @@ class GameController {
 
     _world = world.popBalloonAt(index);
   }
+
+  /// STEP 15-1
+  ///
+  /// First automated intent trigger (deterministic):
+  /// Pop the first unpopped balloon, if any.
+  ///
+  /// Rules:
+  /// - If no world exists, do nothing
+  /// - If all balloons are already popped (or none exist), do nothing
+  /// - This method does NOT pop directly; it calls the intent boundary
+  void autoPopFirstAvailable() {
+    final world = _world;
+    if (world == null) return;
+
+    final index = world.balloons.indexWhere((b) => !b.isPopped);
+    if (index < 0) return;
+
+    requestPopAt(index);
+  }
 }
 
 /// LEGACY ENUM (UI ONLY)
