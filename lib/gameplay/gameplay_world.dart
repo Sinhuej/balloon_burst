@@ -3,11 +3,15 @@ import 'balloon.dart';
 /// GameplayWorld
 ///
 /// Domain container for gameplay state.
-/// Owns exactly one Balloon for Step 9.
+/// Owns a collection of Balloons.
+/// Step 10: structural expansion only.
 ///
-/// No logic. No systems. No loops.
+/// No logic. No systems. No spawning rules.
 class GameplayWorld {
-  final Balloon balloon;
+  final List<Balloon> balloons;
 
-  GameplayWorld() : balloon = Balloon(id: 'balloon-1');
+  GameplayWorld()
+      : balloons = [
+          Balloon(id: 'balloon-1'),
+        ];
 }
