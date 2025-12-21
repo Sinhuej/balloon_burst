@@ -10,7 +10,14 @@ class GameplayWorld {
 
   int get poppedCount => balloons.where((b) => b.isPopped).length;
 
-  int get score => poppedCount * 10;
+  /// STEP 26
+  /// Combo scoring:
+  /// +10 per balloon
+  /// +5 bonus per additional popped balloon beyond the first
+  int get score {
+    if (poppedCount == 0) return 0;
+    return (poppedCount * 10) + ((poppedCount - 1) * 5);
+  }
 
   GameplayWorld popBalloonAt(int index) {
     if (index < 0 || index >= balloons.length) return this;
@@ -22,18 +29,12 @@ class GameplayWorld {
     return GameplayWorld(balloons: updated);
   }
 
-  /// STEP 25
-  /// Remove all popped balloons.
   GameplayWorld removePoppedBalloons() {
     final remaining = balloons.where((b) => !b.isPopped).toList();
     if (remaining.length == balloons.length) return this;
     return GameplayWorld(balloons: remaining);
   }
 
-  /// STEP 23 (extended)
-  /// Prioritized suggestions:
-  /// 1) Cleanup if popped balloons exist
-  /// 2) Otherwise pop first available
   List<Object> get suggestedCommands {
     if (balloons.any((b) => b.isPopped)) {
       return const <Object>[RemovePoppedBalloonsCommand()];
