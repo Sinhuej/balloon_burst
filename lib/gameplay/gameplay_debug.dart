@@ -1,22 +1,23 @@
-import '../game/game_controller.dart';
-import 'gameplay_world.dart';
+import "../game/game_controller.dart";
 
-/// Domain-only debug helpers.
-/// Read-only. No Flutter. No Flame.
+/// GameplayDebug
+///
+/// Read-only debug helpers.
+/// No mutation. No side effects.
 class GameplayDebug {
   static String status(GameController controller) {
     final world = controller.gameplayWorld;
     if (world == null) {
-      return 'GameplayWorld: none';
+      return "GameplayWorld: none";
     }
 
     final total = world.balloons.length;
     final popped = world.poppedCount;
-    final types = world.balloons
-        .map((b) => b.type.name)
-        .toSet()
-        .join(', ');
+    final hasAutoTarget =
+        world.balloons.any((b) => !b.isPopped);
 
-    return 'GameplayWorld: $total balloon(s), $popped popped [$types] | actions: popBalloonAt(index)';
+    return "GameplayWorld: $total balloon(s), "
+        "$popped popped, "
+        "autoPopAvailable=$hasAutoTarget";
   }
 }
