@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'services/profile_store.dart';
 import 'models/player_profile.dart';
 import 'models/player_stats.dart';
+import 'screens/game_screen.dart';
 
 const bool _kDebug = !bool.fromEnvironment('dart.vm.product');
 
@@ -83,27 +84,9 @@ class _BalloonBurstAppState extends State<BalloonBurstApp>
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Balloon Burst',
-                style: TextStyle(fontSize: 24),
-              ),
-
-              if (_kDebug) ...[
-                const SizedBox(height: 16),
-                Text('Profile loaded: ${widget.profile.runtimeType}'),
-                Text('Stats loaded: ${widget.stats.runtimeType}'),
-              ],
-            ],
-          ),
-        ),
-      ),
+      home: GameScreen(),
     );
   }
 }
