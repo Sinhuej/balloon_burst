@@ -11,11 +11,15 @@ class GameplayDebug {
     }
 
     final count = world.balloons.length;
+    final poppedCount =
+        world.balloons.where((b) => b.isPopped).length;
+
     final types = world.balloons
         .map((b) => b.type.name)
         .toSet()
         .join(', ');
 
-    return 'GameplayWorld: $count balloon(s) [$types]';
+    return 'GameplayWorld: $count balloon(s), '
+        '$poppedCount popped [$types]';
   }
 }
