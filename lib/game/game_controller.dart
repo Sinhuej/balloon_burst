@@ -19,13 +19,12 @@ class GameController {
 
   /// LEGACY UI COMPATIBILITY (read-only)
   /// Exists only to keep CI green.
-  /// Do NOT use for logic.
   GameControllerState get state =>
       _world == null ? GameControllerState.stopped : GameControllerState.running;
 
   /// Starts a new game session
   void start() {
-    _world = GameplayWorld.initial();
+    _world = GameplayWorld();
   }
 
   /// Stops the current game session
@@ -34,7 +33,7 @@ class GameController {
   }
 
   /// LEGACY UI COMPATIBILITY
-  /// Alias for stop() — no new behavior.
+  /// Alias for stop()
   void reset() {
     stop();
   }
@@ -53,7 +52,7 @@ class GameController {
     final world = _world;
     if (world == null) return;
 
-    _world = world.applyPopAt(index);
+    _world = world.popBalloonAt(index);
   }
 }
 
