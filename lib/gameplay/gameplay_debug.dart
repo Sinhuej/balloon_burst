@@ -1,5 +1,5 @@
 import '../game/game_controller.dart';
-import 'balloon.dart';
+import 'gameplay_world.dart';
 
 /// Domain-only debug helpers.
 /// Read-only. No Flutter. No Flame.
@@ -10,16 +10,13 @@ class GameplayDebug {
       return 'GameplayWorld: none';
     }
 
-    final count = world.balloons.length;
-    final poppedCount =
-        world.balloons.where((b) => b.isPopped).length;
-
+    final total = world.balloons.length;
+    final popped = world.poppedCount;
     final types = world.balloons
         .map((b) => b.type.name)
         .toSet()
         .join(', ');
 
-    return 'GameplayWorld: $count balloon(s), '
-        '$poppedCount popped [$types]';
+    return 'GameplayWorld: $total balloon(s), $popped popped [$types]';
   }
 }
