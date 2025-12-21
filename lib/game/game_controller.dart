@@ -3,6 +3,7 @@ import "../gameplay/balloon.dart";
 import "commands/pop_balloon_command.dart";
 import "commands/pop_first_available_command.dart";
 import "commands/remove_popped_balloons_command.dart";
+import "commands/spawn_balloon_command.dart";
 
 class GameController {
   GameplayWorld? _world;
@@ -11,16 +12,6 @@ class GameController {
 
   void start() {
     _world = const GameplayWorld(balloons: <Balloon>[]);
-  }
-
-  void stop() {
-    _world = null;
-  }
-
-  void requestPopAt(int index) {
-    final world = _world;
-    if (world == null) return;
-    _world = world.popBalloonAt(index);
   }
 
   void execute(Object command) {
@@ -40,9 +31,14 @@ class GameController {
       return;
     }
 
-    /// STEP 25
     if (command is RemovePoppedBalloonsCommand) {
       _world = world.removePoppedBalloons();
+      return;
+    }
+
+    /// STEP 28
+    if (command is SpawnBalloonCommand) {
+      _world = world.spawnBalloon(command.balloon);
       return;
     }
   }
