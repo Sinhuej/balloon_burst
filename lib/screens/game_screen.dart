@@ -36,10 +36,10 @@ class _GameScreenState extends State<GameScreen> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  _controller.stop();
+                  _controller.autoExecuteSuggestions();
                 });
               },
-              child: const Text('Stop Game'),
+              child: const Text('Auto Action'),
             ),
           ],
         ),
