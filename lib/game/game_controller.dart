@@ -1,6 +1,7 @@
 import "../gameplay/gameplay_world.dart";
 import "../gameplay/balloon.dart";
 import "commands/pop_balloon_command.dart";
+import "commands/pop_first_available_command.dart";
 
 /// GameController
 ///
@@ -27,10 +28,23 @@ class GameController {
   void execute(Object command) {
     if (command is PopBalloonCommand) {
       requestPopAt(command.index);
+      return;
+    }
+
+    /// STEP 22
+    /// New command type: pop first available.
+    if (command is PopFirstAvailableCommand) {
+      final world = _world;
+      if (world == null) return;
+
+      final index = world.balloons.indexWhere((b) => !b.isPopped);
+      if (index < 0) return;
+
+      requestPopAt(index);
+      return;
     }
   }
 
-  /// STEP 20
   /// Execute first suggested command only.
   void autoExecuteSuggestions() {
     final world = _world;
