@@ -16,6 +16,9 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     _controller = GameController();
+
+    // Step 7B: first behavior — auto-start game
+    _controller.start();
   }
 
   @override
