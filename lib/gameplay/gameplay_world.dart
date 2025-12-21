@@ -1,20 +1,23 @@
 import 'balloon.dart';
 
-/// GameplayWorld
-///
-/// Domain container for gameplay state.
-/// Owns a collection of Balloons.
-/// Step 10: structural expansion only.
-///
-/// No logic. No systems. No spawning rules.
+/// Domain-only world state.
+/// Exists only while gameplay is running.
+/// Owns the balloon list.
+/// No Flutter. No Flame.
 class GameplayWorld {
   final List<Balloon> balloons;
 
-  GameplayWorld()
-      : balloons = [
-          Balloon(
-            id: 'balloon-1',
-            type: BalloonType.basic,
-          ),
-        ];
+  const GameplayWorld({
+    required this.balloons,
+  });
+
+  /// Step 12-1: derived popped state
+  /// Read-only, explicit, no caching, no side effects.
+  int get poppedCount {
+    var count = 0;
+    for (final b in balloons) {
+      if (b.isPopped) count++;
+    }
+    return count;
+  }
 }
