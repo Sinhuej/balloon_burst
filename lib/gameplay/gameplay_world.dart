@@ -12,6 +12,9 @@ class GameplayWorld {
 
   GameplayWorld()
       : balloons = [
-          Balloon(id: 'balloon-1'),
+          Balloon(
+            id: 'balloon-1',
+            type: BalloonType.basic,
+          ),
         ];
 }

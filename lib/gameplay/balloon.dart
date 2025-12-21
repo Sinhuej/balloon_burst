@@ -1,12 +1,19 @@
 /// Balloon
 ///
-/// First gameplay entity placeholder.
-/// Contains identity only.
-/// No behavior by design.
+/// Gameplay entity placeholder.
+/// Contains identity and classification only.
 ///
-/// Step 9: First gameplay entity
+/// Step 10: classification added (no behavior)
+enum BalloonType {
+  basic,
+}
+
 class Balloon {
   final String id;
+  final BalloonType type;
 
-  Balloon({required this.id});
+  Balloon({
+    required this.id,
+    required this.type,
+  });
 }
