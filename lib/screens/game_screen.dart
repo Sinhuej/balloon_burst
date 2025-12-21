@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../game/game_controller.dart';
+import '../gameplay/gameplay_debug.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -15,47 +16,30 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     _controller = GameController();
+    _controller.start();
   }
 
   @override
   Widget build(BuildContext context) {
+    final world = _controller.gameplayWorld;
+    final stateLabel = world == null ? 'stopped' : 'running';
+
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Game State: ${_controller.state.name}'),
-
-            if (_controller.gameplayWorld != null)
-              const Text('GameplayWorld: initialized'),
-
+            Text('Game State: $stateLabel'),
+            const SizedBox(height: 8),
+            Text(GameplayDebug.status(_controller)),
             const SizedBox(height: 16),
-
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _controller.start();
-                });
-              },
-              child: const Text('Start'),
-            ),
-
             ElevatedButton(
               onPressed: () {
                 setState(() {
                   _controller.stop();
                 });
               },
-              child: const Text('Stop'),
-            ),
-
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _controller.reset();
-                });
-              },
-              child: const Text('Reset'),
+              child: const Text('Stop Game'),
             ),
           ],
         ),
