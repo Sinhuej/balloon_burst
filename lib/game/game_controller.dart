@@ -5,7 +5,6 @@ import "commands/pop_balloon_command.dart";
 /// GameController
 ///
 /// Owns GameplayWorld and executes intents.
-/// Sole execution choke point.
 class GameController {
   GameplayWorld? _world;
 
@@ -19,30 +18,27 @@ class GameController {
     _world = null;
   }
 
-  /// Step 14
   void requestPopAt(int index) {
     final world = _world;
     if (world == null) return;
     _world = world.popBalloonAt(index);
   }
 
-  /// Step 15
-  void autoPopFirstAvailable() {
-    final world = _world;
-    if (world == null) return;
-
-    final index =
-        world.balloons.indexWhere((b) => !b.isPopped);
-    if (index < 0) return;
-
-    requestPopAt(index);
-  }
-
-  /// STEP 18
-  /// Execute a command object.
   void execute(Object command) {
     if (command is PopBalloonCommand) {
       requestPopAt(command.index);
     }
+  }
+
+  /// STEP 20
+  /// Execute first suggested command only.
+  void autoExecuteSuggestions() {
+    final world = _world;
+    if (world == null) return;
+
+    final suggestions = world.suggestedCommands;
+    if (suggestions.isEmpty) return;
+
+    execute(suggestions.first);
   }
 }
