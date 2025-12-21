@@ -17,6 +17,6 @@ class GameplayDebug {
         .toSet()
         .join(', ');
 
-    return 'GameplayWorld: $total balloon(s), $popped popped [$types]';
+    return 'GameplayWorld: $total balloon(s), $popped popped [$types] | actions: popBalloonAt(index)';
   }
 }
