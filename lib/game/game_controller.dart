@@ -1,6 +1,4 @@
-/// Minimal gameplay controller scaffold.
-/// Owns high-level game lifecycle state only.
-/// No gameplay logic is implemented in Step 7A.
+import '../gameplay/gameplay_world.dart';
 
 enum GameState {
   idle,
@@ -10,23 +8,22 @@ enum GameState {
 
 class GameController {
   GameState _state = GameState.idle;
-
   GameState get state => _state;
 
-  /// Start the game.
-  /// No timers, no scoring, no side effects yet.
+  GameplayWorld? gameplayWorld;
+
   void start() {
     _state = GameState.running;
+    gameplayWorld = GameplayWorld();
   }
 
-  /// End the game.
-  /// No cleanup logic yet.
   void stop() {
     _state = GameState.ended;
+    gameplayWorld = null;
   }
 
-  /// Reset back to idle state.
   void reset() {
     _state = GameState.idle;
+    gameplayWorld = null;
   }
 }

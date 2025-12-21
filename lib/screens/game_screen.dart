@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../game/game_controller.dart';
 
 class GameScreen extends StatefulWidget {
@@ -16,45 +15,47 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     _controller = GameController();
-
-    // Step 7B behavior: auto-start game
-    _controller.start();
-  }
-
-  void _endGame() {
-    setState(() {
-      _controller.stop();
-    });
-  }
-
-  void _resetGame() {
-    setState(() {
-      _controller.reset();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = _controller.state;
-
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Game State: ${state.name}',
-              style: const TextStyle(fontSize: 20),
-            ),
+            Text('Game State: ${_controller.state.name}'),
+
+            if (_controller.gameplayWorld != null)
+              const Text('GameplayWorld: initialized'),
+
             const SizedBox(height: 16),
+
             ElevatedButton(
-              onPressed: state == GameState.running ? _endGame : null,
-              child: const Text('End Game (Debug)'),
+              onPressed: () {
+                setState(() {
+                  _controller.start();
+                });
+              },
+              child: const Text('Start'),
             ),
-            const SizedBox(height: 8),
+
             ElevatedButton(
-              onPressed: state == GameState.ended ? _resetGame : null,
-              child: const Text('Reset Game (Debug)'),
+              onPressed: () {
+                setState(() {
+                  _controller.stop();
+                });
+              },
+              child: const Text('Stop'),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _controller.reset();
+                });
+              },
+              child: const Text('Reset'),
             ),
           ],
         ),
