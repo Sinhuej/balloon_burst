@@ -1,4 +1,5 @@
 import '../gameplay/gameplay_world.dart';
+import '../gameplay/balloon.dart';
 
 /// GameController
 ///
@@ -18,13 +19,14 @@ class GameController {
   GameplayWorld? get gameplayWorld => _world;
 
   /// LEGACY UI COMPATIBILITY (read-only)
-  /// Exists only to keep CI green.
   GameControllerState get state =>
       _world == null ? GameControllerState.stopped : GameControllerState.running;
 
   /// Starts a new game session
+  ///
+  /// Explicit, non-magical world creation.
   void start() {
-    _world = GameplayWorld();
+    _world = const GameplayWorld(balloons: <Balloon>[]);
   }
 
   /// Stops the current game session
@@ -33,7 +35,6 @@ class GameController {
   }
 
   /// LEGACY UI COMPATIBILITY
-  /// Alias for stop()
   void reset() {
     stop();
   }
