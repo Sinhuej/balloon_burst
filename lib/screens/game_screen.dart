@@ -27,23 +27,34 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  void _resetGame() {
+    setState(() {
+      _controller.reset();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = _controller.state;
+
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Game State: ${_controller.state.name}',
+              'Game State: ${state.name}',
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _controller.state == GameState.running
-                  ? _endGame
-                  : null,
+              onPressed: state == GameState.running ? _endGame : null,
               child: const Text('End Game (Debug)'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: state == GameState.ended ? _resetGame : null,
+              child: const Text('Reset Game (Debug)'),
             ),
           ],
         ),
