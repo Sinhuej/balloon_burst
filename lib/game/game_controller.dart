@@ -2,10 +2,8 @@ import "../gameplay/gameplay_world.dart";
 import "../gameplay/balloon.dart";
 import "commands/pop_balloon_command.dart";
 import "commands/pop_first_available_command.dart";
+import "commands/remove_popped_balloons_command.dart";
 
-/// GameController
-///
-/// Owns GameplayWorld and executes intents.
 class GameController {
   GameplayWorld? _world;
 
@@ -26,26 +24,29 @@ class GameController {
   }
 
   void execute(Object command) {
+    final world = _world;
+    if (world == null) return;
+
     if (command is PopBalloonCommand) {
-      requestPopAt(command.index);
+      _world = world.popBalloonAt(command.index);
       return;
     }
 
-    /// STEP 22
-    /// New command type: pop first available.
     if (command is PopFirstAvailableCommand) {
-      final world = _world;
-      if (world == null) return;
-
-      final index = world.balloons.indexWhere((b) => !b.isPopped);
+      final index =
+          world.balloons.indexWhere((b) => !b.isPopped);
       if (index < 0) return;
+      _world = world.popBalloonAt(index);
+      return;
+    }
 
-      requestPopAt(index);
+    /// STEP 25
+    if (command is RemovePoppedBalloonsCommand) {
+      _world = world.removePoppedBalloons();
       return;
     }
   }
 
-  /// Execute first suggested command only.
   void autoExecuteSuggestions() {
     final world = _world;
     if (world == null) return;
