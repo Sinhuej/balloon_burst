@@ -1,9 +1,13 @@
+import 'balloon.dart';
+
 /// GameplayWorld
 ///
-/// Placeholder shell for future gameplay systems.
-/// Intentionally contains no logic.
+/// Domain container for gameplay state.
+/// Owns exactly one Balloon for Step 9.
 ///
-/// Step 8: First gameplay wiring
+/// No logic. No systems. No loops.
 class GameplayWorld {
-  GameplayWorld();
+  final Balloon balloon;
+
+  GameplayWorld() : balloon = Balloon(id: 'balloon-1');
 }
