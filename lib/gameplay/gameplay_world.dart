@@ -1,5 +1,6 @@
 import "balloon.dart";
 import "../game/commands/pop_balloon_command.dart";
+import "../game/commands/pop_first_available_command.dart";
 
 /// GameplayWorld
 ///
@@ -11,9 +12,6 @@ class GameplayWorld {
 
   int get poppedCount => balloons.where((b) => b.isPopped).length;
 
-  /// STEP 21
-  /// Derived scoring fact (pure, deterministic).
-  /// No side effects. No mutation.
   int get score => poppedCount * 10;
 
   GameplayWorld popBalloonAt(int index) {
@@ -30,14 +28,21 @@ class GameplayWorld {
     return GameplayWorld(balloons: updated);
   }
 
-  /// STEP 19 (current behavior preserved for now; Step 23 will refine)
-  List<PopBalloonCommand> get suggestedCommands {
-    final commands = <PopBalloonCommand>[];
-    for (var i = 0; i < balloons.length; i++) {
-      if (!balloons[i].isPopped) {
-        commands.add(PopBalloonCommand(i));
-      }
-    }
-    return commands;
+  /// STEP 23
+  /// Prioritized suggestion list (bounded):
+  /// - If any unpopped balloons exist, suggest ONLY the prioritized command
+  ///   (pop first available).
+  /// - Otherwise, suggest nothing.
+  ///
+  /// This keeps suggestions deterministic and prevents command floods.
+  List<Object> get suggestedCommands {
+    final hasAny = balloons.any((b) => !b.isPopped);
+    if (!hasAny) return const <Object>[];
+
+    return const <Object>[PopFirstAvailableCommand()];
   }
+
+  /// (Optional) Still available for direct indexed pop by external intent.
+  /// Kept for compatibility and explicit actions.
+  PopBalloonCommand commandForIndex(int index) => PopBalloonCommand(index);
 }
