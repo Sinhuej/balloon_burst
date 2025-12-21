@@ -26,4 +26,11 @@ class GameController {
     _state = GameState.stopped;
     gameplayWorld = null;
   }
+
+  /// Restores controller to a fresh running state.
+  /// UI contract method — no gameplay logic.
+  void reset() {
+    stop();
+    start();
+  }
 }
