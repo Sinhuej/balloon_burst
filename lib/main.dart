@@ -5,6 +5,7 @@ import 'services/profile_store.dart';
 import 'models/player_profile.dart';
 import 'models/player_stats.dart';
 import 'screens/game_screen.dart';
+import 'routes.dart';
 
 const bool _kDebug = !bool.fromEnvironment('dart.vm.product');
 
@@ -84,9 +85,12 @@ class _BalloonBurstAppState extends State<BalloonBurstApp>
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: GameScreen(),
+      home: const GameScreen(),
+      routes: {
+        AppRoutes.game: (_) => const GameScreen(),
+      },
     );
   }
 }
