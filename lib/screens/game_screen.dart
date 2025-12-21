@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'game_screen_args.dart';
 
 class GameScreen extends StatelessWidget {
-  const GameScreen({super.key});
+  final GameScreenArgs? args;
+
+  const GameScreen({
+    super.key,
+    this.args,
+  });
 
   @override
   Widget build(BuildContext context) {

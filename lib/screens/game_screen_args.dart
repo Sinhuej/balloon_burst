@@ -1,0 +1,3 @@
+class GameScreenArgs {
+  const GameScreenArgs();
+}
