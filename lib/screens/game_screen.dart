@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../game/game_controller.dart';
 import '../gameplay/gameplay_debug.dart';
+import '../game/commands/activate_powerup_command.dart';
+import '../game/commands/spawn_balloon_command.dart';
+import '../game/powerups/power_up.dart';
+import '../gameplay/balloon.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -21,24 +25,41 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final world = _controller.gameplayWorld;
-    final stateLabel = world == null ? 'stopped' : 'running';
-
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Game State: $stateLabel'),
-            const SizedBox(height: 8),
             Text(GameplayDebug.status(_controller)),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _controller.autoExecuteSuggestions();
-                });
-              },
+              onPressed: () => setState(() {
+                _controller.execute(
+                  const ActivatePowerUpCommand(DoublePopPowerUp()),
+                );
+              }),
+              child: const Text('Double Pop'),
+            ),
+            ElevatedButton(
+              onPressed: () => setState(() {
+                _controller.execute(
+                  const ActivatePowerUpCommand(BombPopPowerUp()),
+                );
+              }),
+              child: const Text('Bomb Pop'),
+            ),
+            ElevatedButton(
+              onPressed: () => setState(() {
+                _controller.execute(
+                  SpawnBalloonCommand(const Balloon()),
+                );
+              }),
+              child: const Text('Spawn Balloon'),
+            ),
+            ElevatedButton(
+              onPressed: () => setState(() {
+                _controller.autoExecuteSuggestions();
+              }),
               child: const Text('Auto Action'),
             ),
           ],
