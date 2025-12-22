@@ -7,8 +7,8 @@ import 'models/player_stats.dart';
 import 'screens/game_screen.dart';
 import 'routes.dart';
 
-/// Build fingerprint to confirm CI picked up this commit
-const String kBuildFingerprint = 'BB_V1_SWIFT_CI_REBUILD_001';
+/// Diagnostic build fingerprint
+const String kBuildFingerprint = 'BB_DIAG_001';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,23 +17,47 @@ void main() {
     DeviceOrientation.portraitUp,
   ]);
 
-  debugPrint('BUILD_FINGERPRINT: $kBuildFingerprint');
+  /// 🔴 CRITICAL: catch framework errors and render them
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    runApp(_ErrorApp(details));
+  };
 
   runApp(const BalloonBurstBootstrap());
 }
 
 ///
-/// Bootstrap widget
-/// Ensures first frame renders immediately (RELEASE SAFE)
+/// Shows Flutter errors directly on screen (release-safe)
 ///
+class _ErrorApp extends StatelessWidget {
+  final FlutterErrorDetails details;
+  const _ErrorApp(this.details);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            details.exceptionAsString(),
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class BalloonBurstBootstrap extends StatelessWidget {
   const BalloonBurstBootstrap({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const _Loader(),
+      home: _Loader(),
     );
   }
 }
@@ -65,7 +89,7 @@ class _LoaderState extends State<_Loader> {
         _profile = profile;
         _stats = stats;
       });
-    } catch (_) {
+    } catch (e) {
       setState(() {
         _profile = PlayerProfile.fromJson(const {});
         _stats = PlayerStats.fromJson(const {});
