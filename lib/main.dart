@@ -7,34 +7,81 @@ import 'models/player_stats.dart';
 import 'screens/game_screen.dart';
 import 'routes.dart';
 
-const bool _kDebug = !bool.fromEnvironment('dart.vm.product');
-
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([
+
+  SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  final store = ProfileStore();
+  runApp(const BalloonBurstBootstrap());
+}
 
-  PlayerProfile profile;
-  PlayerStats stats;
+///
+/// Bootstrap widget
+/// Ensures first frame renders immediately (RELEASE SAFE)
+///
+class BalloonBurstBootstrap extends StatelessWidget {
+  const BalloonBurstBootstrap({super.key});
 
-  try {
-    profile = await store.loadProfile();
-    stats = await store.loadStats();
-  } catch (_) {
-    profile = PlayerProfile.fromJson(const {});
-    stats = PlayerStats.fromJson(const {});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: const _Loader(),
+    );
+  }
+}
+
+class _Loader extends StatefulWidget {
+  const _Loader();
+
+  @override
+  State<_Loader> createState() => _LoaderState();
+}
+
+class _LoaderState extends State<_Loader> {
+  late final ProfileStore _store;
+  PlayerProfile? _profile;
+  PlayerStats? _stats;
+
+  @override
+  void initState() {
+    super.initState();
+    _store = ProfileStore();
+    _load();
   }
 
-  runApp(
-    BalloonBurstApp(
-      store: store,
-      profile: profile,
-      stats: stats,
-    ),
-  );
+  Future<void> _load() async {
+    try {
+      final profile = await _store.loadProfile();
+      final stats = await _store.loadStats();
+      setState(() {
+        _profile = profile;
+        _stats = stats;
+      });
+    } catch (_) {
+      setState(() {
+        _profile = PlayerProfile.fromJson(const {});
+        _stats = PlayerStats.fromJson(const {});
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_profile == null || _stats == null) {
+      return const Scaffold(
+        body: Center(child: Text('Loading Balloon Burst…')),
+      );
+    }
+
+    return BalloonBurstApp(
+      store: _store,
+      profile: _profile!,
+      stats: _stats!,
+    );
+  }
 }
 
 class BalloonBurstApp extends StatefulWidget {
