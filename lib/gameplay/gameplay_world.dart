@@ -38,27 +38,30 @@ class GameplayWorld {
     if (index < 0 || index >= balloons.length) return this;
     final b = balloons[index];
     if (b.isPopped) return this;
-    final updated = List<Balloon>.from(balloons);
-    updated[index] = b.pop();
-    return copyWith(balloons: updated, lastActionWasPowerUp: false);
+    final u = List<Balloon>.from(balloons);
+    u[index] = b.pop();
+    return copyWith(balloons: u, lastActionWasPowerUp: false);
   }
 
   GameplayWorld removePoppedBalloons() {
-    final remaining = balloons.where((b) => !b.isPopped).toList();
-    if (remaining.length == balloons.length) return this;
-    return copyWith(balloons: remaining, lastActionWasPowerUp: false);
+    final r = balloons.where((b) => !b.isPopped).toList();
+    if (r.length == balloons.length) return this;
+    return copyWith(balloons: r, lastActionWasPowerUp: false);
   }
 
   GameplayWorld spawnBalloon(Balloon balloon) =>
       copyWith(balloons: [...balloons, balloon], lastActionWasPowerUp: false);
 
-  /// STEP 32 — base curve
+  /// STEP 36 — rarity tiers (deterministic)
   List<Object> get suggestedCommands {
     if (balloons.any((b) => b.isPopped)) {
       return const <Object>[RemovePoppedBalloonsCommand()];
     }
     if (balloons.length < 3) {
-      return const <Object>[SpawnBalloonCommand(Balloon())];
+      return const <Object>[SpawnBalloonCommand(Balloon())]; // common
+    }
+    if (score >= 50 && balloons.length < 5) {
+      return const <Object>[SpawnBalloonCommand(Balloon())]; // rare tier gate
     }
     if (balloons.any((b) => !b.isPopped)) {
       return const <Object>[PopFirstAvailableCommand()];
