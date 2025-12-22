@@ -1,23 +1,17 @@
 import "../game/game_controller.dart";
 
-/// GameplayDebug
-///
-/// Read-only debug helpers.
-/// No mutation. No side effects.
 class GameplayDebug {
-  static String status(GameController controller) {
-    final world = controller.gameplayWorld;
-    if (world == null) {
-      return "GameplayWorld: none";
-    }
+  static String status(GameController c) {
+    final w = c.gameplayWorld;
+    if (w == null) return "GameplayWorld: none";
 
-    final total = world.balloons.length;
-    final popped = world.poppedCount;
-    final hasAutoTarget =
-        world.balloons.any((b) => !b.isPopped);
+    final next =
+        w.suggestedCommands.isEmpty ? "none" : w.suggestedCommands.first.runtimeType.toString();
 
-    return "GameplayWorld: $total balloon(s), "
-        "$popped popped, "
-        "autoPopAvailable=$hasAutoTarget";
+    return "balloons=${w.balloons.length}, "
+        "popped=${w.poppedCount}, "
+        "score=${w.score}, "
+        "cooldown=${w.powerUpOnCooldown}, "
+        "next=$next";
   }
 }
