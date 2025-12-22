@@ -7,14 +7,11 @@ import '../game/commands/activate_powerup_command.dart';
 
 class GameController {
   GameplayWorld? _world;
-  bool _autoIntentConsumed = false;
 
   GameplayWorld? get gameplayWorld => _world;
 
   void start() {
     _world = const GameplayWorld(balloons: []);
-    _autoIntentConsumed = false;
-    _applyOneAutoIntent();
   }
 
   void execute(Object command) {
@@ -33,22 +30,5 @@ class GameController {
     } else if (command is ActivatePowerUpCommand) {
       _world = w.copyWith(lastActionWasPowerUp: true);
     }
-
-    // reset auto-intent after explicit action
-    _autoIntentConsumed = false;
-    _applyOneAutoIntent();
-  }
-
-  void _applyOneAutoIntent() {
-    if (_autoIntentConsumed) return;
-
-    final w = _world;
-    if (w == null) return;
-
-    final suggestions = w.suggestedCommands;
-    if (suggestions.isEmpty) return;
-
-    _autoIntentConsumed = true;
-    execute(suggestions.first);
   }
 }
