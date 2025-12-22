@@ -20,16 +20,14 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final count = _controller.gameplayWorld?.balloons.length ?? 0;
+
     return Scaffold(
-      body: Column(
-        children: const [
-          SizedBox(height: 40),
-          Expanded(
-            child: Center(
-              child: Text('Gameplay Area'),
-            ),
-          ),
-        ],
+      body: Center(
+        child: Text(
+          'Balloons in world: $count',
+          style: const TextStyle(fontSize: 20),
+        ),
       ),
     );
   }
