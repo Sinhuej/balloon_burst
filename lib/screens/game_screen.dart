@@ -15,17 +15,16 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     _controller = GameController();
-    _controller.start(); // <-- THIS is what was missing
+    _controller.start();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
-        children: [
-          const SizedBox(height: 40),
-          Text('Score: ${_controller.score}'),
-          const Expanded(
+        children: const [
+          SizedBox(height: 40),
+          Expanded(
             child: Center(
               child: Text('Gameplay Area'),
             ),
