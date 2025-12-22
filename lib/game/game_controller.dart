@@ -59,4 +59,16 @@ class GameController {
       return;
     }
   }
+
+  /// RESTORED (Step 33)
+  /// Auto-execute exactly one suggested command.
+  void autoExecuteSuggestions() {
+    final world = _world;
+    if (world == null) return;
+
+    final suggestions = world.suggestedCommands;
+    if (suggestions.isEmpty) return;
+
+    execute(suggestions.first);
+  }
 }
