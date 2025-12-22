@@ -1,0 +1,4 @@
+enum AppView {
+  start,
+  game,
+}
