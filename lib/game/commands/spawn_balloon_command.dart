@@ -1,10 +1,6 @@
-import "../../gameplay/balloon.dart";
-
 /// SpawnBalloonCommand
 ///
-/// Intent to add a new balloon to the world.
+/// Intent to spawn the next deterministic balloon.
 class SpawnBalloonCommand {
-  final Balloon balloon;
-
-  const SpawnBalloonCommand(this.balloon);
+  const SpawnBalloonCommand();
 }

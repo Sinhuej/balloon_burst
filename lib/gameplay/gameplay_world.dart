@@ -3,8 +3,6 @@ import "../game/commands/pop_balloon_command.dart";
 import "../game/commands/pop_first_available_command.dart";
 import "../game/commands/remove_popped_balloons_command.dart";
 import "../game/commands/spawn_balloon_command.dart";
-import "../game/commands/activate_powerup_command.dart";
-import "../game/powerups/power_up.dart";
 
 class GameplayWorld {
   final List<Balloon> balloons;
@@ -38,37 +36,42 @@ class GameplayWorld {
     if (index < 0 || index >= balloons.length) return this;
     final b = balloons[index];
     if (b.isPopped) return this;
-    final u = List<Balloon>.from(balloons);
-    u[index] = b.pop();
-    return copyWith(balloons: u, lastActionWasPowerUp: false);
+
+    final updated = List<Balloon>.from(balloons);
+    updated[index] = b.pop();
+    return copyWith(balloons: updated, lastActionWasPowerUp: false);
   }
 
   GameplayWorld removePoppedBalloons() {
-    final r = balloons.where((b) => !b.isPopped).toList();
-    if (r.length == balloons.length) return this;
-    return copyWith(balloons: r, lastActionWasPowerUp: false);
+    final remaining = balloons.where((b) => !b.isPopped).toList();
+    if (remaining.length == balloons.length) return this;
+    return copyWith(balloons: remaining, lastActionWasPowerUp: false);
   }
 
-  GameplayWorld spawnBalloon(Balloon balloon) =>
-      copyWith(balloons: [...balloons, balloon], lastActionWasPowerUp: false);
+  GameplayWorld spawnNextBalloon() {
+    return copyWith(
+      balloons: [
+        ...balloons,
+        Balloon.spawnAt(balloons.length),
+      ],
+      lastActionWasPowerUp: false,
+    );
+  }
 
-  /// STEP 36 — rarity tiers (deterministic)
+  /// Deterministic spawn + action suggestions
   List<Object> get suggestedCommands {
     if (balloons.any((b) => b.isPopped)) {
       return const <Object>[RemovePoppedBalloonsCommand()];
     }
+
     if (balloons.length < 3) {
-      return const <Object>[SpawnBalloonCommand(Balloon())]; // common
+      return const <Object>[SpawnBalloonCommand()];
     }
-    if (score >= 50 && balloons.length < 5) {
-      return const <Object>[SpawnBalloonCommand(Balloon())]; // rare tier gate
-    }
+
     if (balloons.any((b) => !b.isPopped)) {
       return const <Object>[PopFirstAvailableCommand()];
     }
+
     return const <Object>[];
   }
-
-  PopBalloonCommand commandForIndex(int index) =>
-      PopBalloonCommand(index);
 }
