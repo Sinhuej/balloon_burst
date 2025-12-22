@@ -1,8 +1,7 @@
-import "balloon.dart";
-import "../game/commands/pop_balloon_command.dart";
-import "../game/commands/pop_first_available_command.dart";
-import "../game/commands/remove_popped_balloons_command.dart";
-import "../game/commands/spawn_balloon_command.dart";
+import 'balloon.dart';
+import '../game/commands/pop_first_available_command.dart';
+import '../game/commands/remove_popped_balloons_command.dart';
+import '../game/commands/spawn_balloon_command.dart';
 
 class GameplayWorld {
   final List<Balloon> balloons;
@@ -20,17 +19,19 @@ class GameplayWorld {
     return (poppedCount * 10) + ((poppedCount - 1) * 5);
   }
 
-  bool get powerUpOnCooldown => lastActionWasPowerUp;
+  bool get isGameOver => balloons.length >= 6;
+  bool get isWin => score >= 100;
 
   GameplayWorld copyWith({
     List<Balloon>? balloons,
     bool? lastActionWasPowerUp,
-  }) =>
-      GameplayWorld(
-        balloons: balloons ?? this.balloons,
-        lastActionWasPowerUp:
-            lastActionWasPowerUp ?? this.lastActionWasPowerUp,
-      );
+  }) {
+    return GameplayWorld(
+      balloons: balloons ?? this.balloons,
+      lastActionWasPowerUp:
+          lastActionWasPowerUp ?? this.lastActionWasPowerUp,
+    );
+  }
 
   GameplayWorld popBalloonAt(int index) {
     if (index < 0 || index >= balloons.length) return this;
@@ -58,7 +59,6 @@ class GameplayWorld {
     );
   }
 
-  /// Deterministic spawn + action suggestions
   List<Object> get suggestedCommands {
     if (balloons.any((b) => b.isPopped)) {
       return const <Object>[RemovePoppedBalloonsCommand()];

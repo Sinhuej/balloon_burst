@@ -1,8 +1,9 @@
-import "../gameplay/gameplay_world.dart";
-import "../game/commands/pop_balloon_command.dart";
-import "../game/commands/pop_first_available_command.dart";
-import "../game/commands/remove_popped_balloons_command.dart";
-import "../game/commands/spawn_balloon_command.dart";
+import '../gameplay/gameplay_world.dart';
+import '../game/commands/pop_balloon_command.dart';
+import '../game/commands/pop_first_available_command.dart';
+import '../game/commands/remove_popped_balloons_command.dart';
+import '../game/commands/spawn_balloon_command.dart';
+import '../game/commands/activate_powerup_command.dart';
 
 class GameController {
   GameplayWorld? _world;
@@ -11,6 +12,7 @@ class GameController {
 
   void start() {
     _world = const GameplayWorld(balloons: []);
+    autoExecuteSuggestions();
   }
 
   void execute(Object command) {
@@ -19,30 +21,26 @@ class GameController {
 
     if (command is SpawnBalloonCommand) {
       _world = w.spawnNextBalloon();
-      return;
-    }
-
-    if (command is PopBalloonCommand) {
+    } else if (command is PopBalloonCommand) {
       _world = w.popBalloonAt(command.index);
-      return;
-    }
-
-    if (command is PopFirstAvailableCommand) {
+    } else if (command is PopFirstAvailableCommand) {
       final i = w.balloons.indexWhere((b) => !b.isPopped);
       if (i >= 0) _world = w.popBalloonAt(i);
-      return;
+    } else if (command is RemovePoppedBalloonsCommand) {
+      _world = w.removePoppedBalloons();
+    } else if (command is ActivatePowerUpCommand) {
+      _world = w.copyWith(lastActionWasPowerUp: true);
     }
 
-    if (command is RemovePoppedBalloonsCommand) {
-      _world = w.removePoppedBalloons();
-      return;
-    }
+    autoExecuteSuggestions();
   }
 
   void autoExecuteSuggestions() {
     final w = _world;
     if (w == null) return;
-    final s = w.suggestedCommands;
-    if (s.isNotEmpty) execute(s.first);
+    final suggestions = w.suggestedCommands;
+    if (suggestions.isNotEmpty) {
+      execute(suggestions.first);
+    }
   }
 }
