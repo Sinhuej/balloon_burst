@@ -4,7 +4,6 @@ import '../gameplay/gameplay_debug.dart';
 import '../game/commands/activate_powerup_command.dart';
 import '../game/commands/spawn_balloon_command.dart';
 import '../game/powerups/power_up.dart';
-import '../gameplay/balloon.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -32,6 +31,7 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             Text(GameplayDebug.status(_controller)),
             const SizedBox(height: 12),
+
             ElevatedButton(
               onPressed: () => setState(() {
                 _controller.execute(
@@ -40,6 +40,7 @@ class _GameScreenState extends State<GameScreen> {
               }),
               child: const Text('Double Pop'),
             ),
+
             ElevatedButton(
               onPressed: () => setState(() {
                 _controller.execute(
@@ -48,14 +49,14 @@ class _GameScreenState extends State<GameScreen> {
               }),
               child: const Text('Bomb Pop'),
             ),
+
             ElevatedButton(
               onPressed: () => setState(() {
-                _controller.execute(
-                  SpawnBalloonCommand(const Balloon()),
-                );
+                _controller.execute(const SpawnBalloonCommand());
               }),
               child: const Text('Spawn Balloon'),
             ),
+
             ElevatedButton(
               onPressed: () => setState(() {
                 _controller.autoExecuteSuggestions();
