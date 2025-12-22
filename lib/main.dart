@@ -7,12 +7,17 @@ import 'models/player_stats.dart';
 import 'screens/game_screen.dart';
 import 'routes.dart';
 
+/// Build fingerprint to confirm CI picked up this commit
+const String kBuildFingerprint = 'BB_V1_SWIFT_CI_REBUILD_001';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
+
+  debugPrint('BUILD_FINGERPRINT: $kBuildFingerprint');
 
   runApp(const BalloonBurstBootstrap());
 }
