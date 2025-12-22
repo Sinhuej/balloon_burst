@@ -1,27 +1,35 @@
-name: TJ CI Check
+name: Build Balloon Burst APK
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-apk:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.3'
-          cache: true
+          channel: 'stable'
+
+      - name: Flutter doctor
+        run: flutter doctor -v
 
       - name: Install dependencies
         run: flutter pub get
 
-      # Analyzer intentionally disabled during Step 5A
-
-      - name: Build APK
+      - name: Build release APK
         run: flutter build apk --release
+
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: balloon-burst-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
