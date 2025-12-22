@@ -9,7 +9,6 @@ import "powerups/power_up.dart";
 
 class GameController {
   GameplayWorld? _world;
-
   GameplayWorld? get gameplayWorld => _world;
 
   void start() {
@@ -17,58 +16,71 @@ class GameController {
   }
 
   void execute(Object command) {
-    final world = _world;
-    if (world == null) return;
+    final w = _world;
+    if (w == null) return;
+
+    if (command is ActivatePowerUpCommand &&
+        w.powerUpOnCooldown) return;
 
     if (command is ActivatePowerUpCommand &&
         command.powerUp is DoublePopPowerUp) {
-      final indices = world.balloons
+      var u = w;
+      final idx = u.balloons
           .asMap()
           .entries
           .where((e) => !e.value.isPopped)
           .map((e) => e.key)
-          .take(2)
-          .toList();
-
-      for (final i in indices) {
-        _world = _world?.popBalloonAt(i);
+          .take(2);
+      for (final i in idx) {
+        u = u.popBalloonAt(i);
       }
+      _world = u.copyWith(lastActionWasPowerUp: true);
+      return;
+    }
+
+    if (command is ActivatePowerUpCommand &&
+        command.powerUp is BombPopPowerUp) {
+      var u = w;
+      final idx = u.balloons
+          .asMap()
+          .entries
+          .where((e) => !e.value.isPopped)
+          .map((e) => e.key)
+          .toList();
+      for (final i in idx) {
+        u = u.popBalloonAt(i);
+      }
+      _world = u.copyWith(lastActionWasPowerUp: true);
       return;
     }
 
     if (command is PopBalloonCommand) {
-      _world = world.popBalloonAt(command.index);
+      _world = w.popBalloonAt(command.index);
       return;
     }
 
     if (command is PopFirstAvailableCommand) {
-      final index =
-          world.balloons.indexWhere((b) => !b.isPopped);
-      if (index < 0) return;
-      _world = world.popBalloonAt(index);
+      final i = w.balloons.indexWhere((b) => !b.isPopped);
+      if (i >= 0) _world = w.popBalloonAt(i);
       return;
     }
 
     if (command is RemovePoppedBalloonsCommand) {
-      _world = world.removePoppedBalloons();
+      _world = w.removePoppedBalloons();
       return;
     }
 
     if (command is SpawnBalloonCommand) {
-      _world = world.spawnBalloon(command.balloon);
+      _world = w.spawnBalloon(command.balloon);
       return;
     }
   }
 
-  /// RESTORED (Step 33)
-  /// Auto-execute exactly one suggested command.
+  /// STEP 33
   void autoExecuteSuggestions() {
-    final world = _world;
-    if (world == null) return;
-
-    final suggestions = world.suggestedCommands;
-    if (suggestions.isEmpty) return;
-
-    execute(suggestions.first);
+    final w = _world;
+    if (w == null) return;
+    final s = w.suggestedCommands;
+    if (s.isNotEmpty) execute(s.first);
   }
 }
