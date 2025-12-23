@@ -55,7 +55,7 @@ class _GameScreenState extends State<GameScreen> {
               top: 100,
               child: GestureDetector(
                onTap: () {
-               debugPrint('Balloon tapped: ${balloons[i].id}');
+               Print('Balloon tapped: ${balloons[i].id}');
                 },
                child: Container(
                 width: 30,
