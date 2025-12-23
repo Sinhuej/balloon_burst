@@ -20,14 +20,25 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final count = _controller.gameplayWorld?.balloons.length ?? 0;
+    final balloons = _controller.gameplayWorld?.balloons ?? [];
 
     return Scaffold(
-      body: Center(
-        child: Text(
-          'Balloons in world: $count',
-          style: const TextStyle(fontSize: 20),
-        ),
+      body: Stack(
+        children: [
+          for (int i = 0; i < balloons.length; i++)
+            Positioned(
+              left: 40.0 + (i * 50),
+              top: 200,
+              child: Container(
+                width: 30,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
