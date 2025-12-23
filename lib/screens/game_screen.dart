@@ -53,7 +53,11 @@ class _GameScreenState extends State<GameScreen> {
             Positioned(
               left: 40.0 + (i * 50),
               top: 100,
-              child: Container(
+              child: GestureDetector(
+               onTap: () {
+               debugPrint('Balloon tapped: ${balloons[i].id}');
+                },
+               child: Container(
                 width: 30,
                 height: 40,
                 decoration: BoxDecoration(
