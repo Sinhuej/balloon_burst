@@ -5,12 +5,10 @@ class GameController {
   GameplayWorld? gameplayWorld;
 
   void start() {
-    // Force-create balloons for verification
-    final balloons = List.generate(
+    final List<Balloon> balloons = List.generate(
       5,
       (i) => Balloon(
         id: 'balloon_$i',
-        type: BalloonType.normal,
       ),
     );
 
