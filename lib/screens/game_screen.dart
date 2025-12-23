@@ -63,6 +63,7 @@ class _GameScreenState extends State<GameScreen> {
                 decoration: BoxDecoration(
                   color: Colors.redAccent,
                   borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
             ),
