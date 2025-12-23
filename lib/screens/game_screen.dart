@@ -1,3 +1,27 @@
+// =======================================================
+// 🚨 SPARKLES SAFE ZONE 🚨
+//
+// You MAY change:
+//  - Numeric values (sizes, spacing, positions)
+//  - Colors
+//  - Visual appearance ONLY
+//
+// You MUST NOT change:
+//  - Widget structure (Stack, Positioned, for-loops)
+//  - Data sources (_controller, gameplayWorld)
+//  - Method names or signatures
+//  - Any logic outside marked sections
+//
+// Rule of thumb:
+//  - If it changes HOW it looks → probably safe
+//  - If it changes WHAT it does → stop and ask
+//
+// If you break the build:
+//  - Revert
+//  - Identify what changed
+//  - Try again
+//
+// =======================================================
 import 'package:flutter/material.dart';
 import '../game/game_controller.dart';
 
@@ -28,7 +52,7 @@ class _GameScreenState extends State<GameScreen> {
           for (int i = 0; i < balloons.length; i++)
             Positioned(
               left: 40.0 + (i * 50),
-              top: 200,
+              top: 100,
               child: Container(
                 width: 30,
                 height: 40,
