@@ -15,24 +15,15 @@ class _GameScreenState extends State<GameScreen> {
   // Rising Worlds (UI-only)
   int _currentWorld = 1;
 
-  // World config: world -> balloon count
   final List<int> _worldBalloonCounts = [
-    5,  // World 1
-    6,  // World 2
-    7,  // World 3
-    8,  // World 4
-    9,  // World 5
-    10, // World 6
-    11, // World 7
-    12, // World 8
-    13, // World 9
-    14, // World 10
-    15, // World 11
-    16, // World 12
+    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
   ];
 
   late List<bool> _popped;
   late List<bool> _pressed;
+
+  // World intro overlay
+  bool _showWorldIntro = true;
 
   @override
   void initState() {
@@ -46,9 +37,18 @@ class _GameScreenState extends State<GameScreen> {
     final balloonCount = _worldBalloonCounts[_currentWorld - 1];
     _popped = List<bool>.filled(balloonCount, false);
     _pressed = List<bool>.filled(balloonCount, false);
+    _showWorldIntro = true;
+
+    // Auto-hide world intro
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      setState(() {
+        _showWorldIntro = false;
+      });
+    });
   }
 
-  // -------- Layout Pressure (Secondary Axis) --------
+  // ---------- Layout Pressure ----------
 
   double _spacingForWorld(int world) {
     if (world <= 3) return 20;
@@ -58,22 +58,20 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   double _maxWidthForWorld(int world, double screenWidth) {
-    if (world <= 6) return screenWidth;          // no constraint
-    if (world <= 9) return screenWidth * 0.85;   // mild constraint
-    return screenWidth * 0.7;                    // stronger constraint
+    if (world <= 6) return screenWidth;
+    if (world <= 9) return screenWidth * 0.85;
+    return screenWidth * 0.7;
   }
 
-  // -------- Interaction --------
+  // ---------- Interaction ----------
 
   void _onBalloonTap(int index) {
-    if (_popped[index]) return;
+    if (_popped[index] || _showWorldIntro) return;
 
-    // Phase 1: feedback
     setState(() {
       _pressed[index] = true;
     });
 
-    // Phase 2: pop + resolve
     Future.delayed(const Duration(milliseconds: 120), () {
       if (!mounted) return;
 
@@ -96,7 +94,7 @@ class _GameScreenState extends State<GameScreen> {
         if (_currentWorld < _worldBalloonCounts.length) {
           _currentWorld++;
         } else {
-          _currentWorld = 1; // Restart after World 12
+          _currentWorld = 1;
         }
         _startWorld();
       });
@@ -129,6 +127,44 @@ class _GameScreenState extends State<GameScreen> {
     return balloons;
   }
 
+  Widget _buildWorldIntro() {
+    if (!_showWorldIntro) return const SizedBox.shrink();
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.4),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'World $_currentWorld',
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _currentWorld <= 3
+                  ? 'Warm up'
+                  : _currentWorld <= 6
+                      ? 'Getting tighter'
+                      : _currentWorld <= 9
+                          ? 'Watch your taps'
+                          : 'Maximum pressure',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -136,26 +172,27 @@ class _GameScreenState extends State<GameScreen> {
     final maxWidth = _maxWidthForWorld(_currentWorld, screenWidth);
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'World $_currentWorld',
-              style: const TextStyle(fontSize: 20),
+      body: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 24),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    alignment: WrapAlignment.center,
+                    children: _buildBalloons(),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxWidth),
-              child: Wrap(
-                spacing: spacing,
-                runSpacing: spacing,
-                alignment: WrapAlignment.center,
-                children: _buildBalloons(),
-              ),
-            ),
-          ],
-        ),
+          ),
+          _buildWorldIntro(),
+        ],
       ),
     );
   }
