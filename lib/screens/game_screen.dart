@@ -34,7 +34,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
-
+  int? tappedIndex;
   @override
   void initState() {
     super.initState();
