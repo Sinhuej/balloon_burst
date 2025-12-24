@@ -1,5 +1,5 @@
 name: balloon_burst
-description: A Flame-based Balloon Burst game for TapJunkie
+description: A Balloon Burst game for TapJunkie
 publish_to: "none"
 
 version: 1.0.0+1
@@ -10,8 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flame: ^1.15.0
-  shared_preferences: ^2.3.0
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -21,5 +20,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/
-
+    - assets/sfx/pop.wav
