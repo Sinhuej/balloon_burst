@@ -12,7 +12,6 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
 
-  // Rising Worlds
   int _currentWorld = 1;
 
   final List<int> _worldBalloonCounts = [
@@ -22,11 +21,8 @@ class _GameScreenState extends State<GameScreen> {
   late List<bool> _popped;
   late List<bool> _pressed;
 
-  // Failure v1
   int _tapsLeft = 0;
   bool _showFailure = false;
-
-  // World intro
   bool _showWorldIntro = true;
 
   @override
@@ -38,10 +34,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _startWorld() {
-    final balloonCount = _worldBalloonCounts[_currentWorld - 1];
-    _popped = List<bool>.filled(balloonCount, false);
-    _pressed = List<bool>.filled(balloonCount, false);
-    _tapsLeft = balloonCount + 2;
+    final count = _worldBalloonCounts[_currentWorld - 1];
+    _popped = List<bool>.filled(count, false);
+    _pressed = List<bool>.filled(count, false);
+    _tapsLeft = count + 2;
     _showFailure = false;
     _showWorldIntro = true;
 
@@ -51,34 +47,29 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  // ---------- Layout Pressure ----------
-
-  double _spacingForWorld(int world) {
-    if (world <= 3) return 20;
-    if (world <= 6) return 16;
-    if (world <= 9) return 12;
+  double _spacingForWorld(int w) {
+    if (w <= 3) return 20;
+    if (w <= 6) return 16;
+    if (w <= 9) return 12;
     return 8;
   }
 
-  double _maxWidthForWorld(int world, double screenWidth) {
-    if (world <= 6) return screenWidth;
-    if (world <= 9) return screenWidth * 0.85;
+  double _maxWidthForWorld(int w, double screenWidth) {
+    if (w <= 6) return screenWidth;
+    if (w <= 9) return screenWidth * 0.85;
     return screenWidth * 0.7;
   }
 
-  // ---------- Interaction ----------
-
   void _onBalloonTap(int index) {
     if (_showWorldIntro || _showFailure) return;
-    if (_popped[index]) return;
-    if (_tapsLeft <= 0) return;
+    if (_popped[index] || _tapsLeft <= 0) return;
 
     setState(() {
       _pressed[index] = true;
       _tapsLeft--;
     });
 
-    Future.delayed(const Duration(milliseconds: 120), () {
+    Future.delayed(const Duration(milliseconds: 90), () {
       if (!mounted) return;
 
       setState(() {
@@ -92,15 +83,11 @@ class _GameScreenState extends State<GameScreen> {
 
   void _checkWorldCompleteOrFail() {
     if (_popped.every((b) => b)) {
-      Future.delayed(const Duration(milliseconds: 200), () {
+      Future.delayed(const Duration(milliseconds: 180), () {
         if (!mounted) return;
-
         setState(() {
-          if (_currentWorld < _worldBalloonCounts.length) {
-            _currentWorld++;
-          } else {
-            _currentWorld = 1;
-          }
+          _currentWorld =
+              _currentWorld < _worldBalloonCounts.length ? _currentWorld + 1 : 1;
           _startWorld();
         });
       });
@@ -108,13 +95,9 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     if (_tapsLeft <= 0) {
-      setState(() {
-        _showFailure = true;
-      });
+      setState(() => _showFailure = true);
     }
   }
-
-  // ---------- UI Builders ----------
 
   List<Widget> _buildBalloons() {
     final balloons = <Widget>[];
@@ -122,17 +105,27 @@ class _GameScreenState extends State<GameScreen> {
     for (var i = 0; i < _popped.length; i++) {
       if (_popped[i]) continue;
 
-      final color = _pressed[i] ? Colors.blue : Colors.red;
+      final isPressed = _pressed[i];
+      final color = isPressed ? Colors.blue : Colors.red;
 
       balloons.add(
         GestureDetector(
           onTap: () => _onBalloonTap(i),
-          child: Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
+          child: AnimatedScale(
+            scale: isPressed ? 0.92 : 1.0,
+            duration: const Duration(milliseconds: 90),
+            curve: Curves.easeOut,
+            child: AnimatedOpacity(
+              opacity: isPressed ? 0.85 : 1.0,
+              duration: const Duration(milliseconds: 90),
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color,
+                ),
+              ),
             ),
           ),
         ),
@@ -140,53 +133,6 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     return balloons;
-  }
-
-  Widget _buildWorldIntro() {
-    if (!_showWorldIntro) return const SizedBox.shrink();
-
-    return _overlay(
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'World $_currentWorld',
-            style: _titleStyle,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _currentWorld <= 3
-                ? 'Warm up'
-                : _currentWorld <= 6
-                    ? 'Getting tighter'
-                    : _currentWorld <= 9
-                        ? 'Watch your taps'
-                        : 'Maximum pressure',
-            style: _subtitleStyle,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFailure() {
-    if (!_showFailure) return const SizedBox.shrink();
-
-    return _overlay(
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Out of taps', style: _titleStyle),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () {
-              setState(_startWorld);
-            },
-            child: const Text('Retry World'),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _overlay(Widget child) {
@@ -198,17 +144,6 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
-
-  static const _titleStyle = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-  );
-
-  static const _subtitleStyle = TextStyle(
-    fontSize: 16,
-    color: Colors.white70,
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -224,10 +159,7 @@ class _GameScreenState extends State<GameScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 16),
-                Text(
-                  'Taps Left: $_tapsLeft',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                Text('Taps Left: $_tapsLeft'),
                 const SizedBox(height: 12),
                 ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
@@ -241,8 +173,38 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ),
-          _buildWorldIntro(),
-          _buildFailure(),
+          if (_showWorldIntro)
+            _overlay(
+              Text(
+                'World $_currentWorld',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          if (_showFailure)
+            _overlay(
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Out of taps',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => setState(_startWorld),
+                    child: const Text('Retry World'),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
