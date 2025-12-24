@@ -55,13 +55,18 @@ class _GameScreenState extends State<GameScreen> {
               top: 100,
               child: GestureDetector(
                onTap: () {
-               print('Balloon tapped: ${balloons[i].id}');
+                setState(() {
+                 tappedIndex = i;
+                });
+                print('Balloon tapped: ${balloons[i].id}');
                 },
                child: Container(
                 width: 30,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.blueAccent,
+                  color: tappedIndex == i
+                   ? Colors.blueAccent
+                   : Colors.redAccent,
                   borderRadius: BorderRadius.circular(20),
                   ),
                 ),
