@@ -12,8 +12,9 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
 
-  // UI-only state: whether each balloon is popped
+  // UI-only state
   late final List<bool> _popped;
+  late final List<bool> _pressed;
 
   @override
   void initState() {
@@ -22,13 +23,25 @@ class _GameScreenState extends State<GameScreen> {
     _controller.start();
 
     _popped = List<bool>.filled(5, false);
+    _pressed = List<bool>.filled(5, false);
   }
 
-  void _popBalloon(int index) {
+  void _onBalloonTap(int index) {
     if (_popped[index]) return;
 
+    // Phase 1: visual feedback
     setState(() {
-      _popped[index] = true;
+      _pressed[index] = true;
+    });
+
+    // Phase 2: remove after brief delay
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+
+      setState(() {
+        _pressed[index] = false;
+        _popped[index] = true;
+      });
     });
   }
 
@@ -38,15 +51,17 @@ class _GameScreenState extends State<GameScreen> {
     for (var i = 0; i < _popped.length; i++) {
       if (_popped[i]) continue;
 
+      final color = _pressed[i] ? Colors.blue : Colors.red;
+
       balloons.add(
         GestureDetector(
-          onTap: () => _popBalloon(i),
+          onTap: () => _onBalloonTap(i),
           child: Container(
             width: 72,
             height: 72,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.red,
+              color: color,
             ),
           ),
         ),
