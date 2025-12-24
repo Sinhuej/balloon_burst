@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 import '../game/game_controller.dart';
 
@@ -11,6 +12,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
+  late final AudioPlayer _audioPlayer;
 
   int _currentWorld = 1;
 
@@ -30,6 +32,10 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     _controller = GameController();
     _controller.start();
+
+    _audioPlayer = AudioPlayer();
+    _audioPlayer.setVolume(1.0);
+
     _startWorld();
   }
 
@@ -60,6 +66,10 @@ class _GameScreenState extends State<GameScreen> {
     return screenWidth * 0.7;
   }
 
+  void _playPopSound() {
+    _audioPlayer.play(AssetSource('sfx/pop.wav'));
+  }
+
   void _onBalloonTap(int index) {
     if (_showWorldIntro || _showFailure) return;
     if (_popped[index] || _tapsLeft <= 0) return;
@@ -71,6 +81,8 @@ class _GameScreenState extends State<GameScreen> {
 
     Future.delayed(const Duration(milliseconds: 90), () {
       if (!mounted) return;
+
+      _playPopSound();
 
       setState(() {
         _pressed[index] = false;
