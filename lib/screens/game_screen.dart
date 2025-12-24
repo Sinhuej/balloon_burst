@@ -39,16 +39,31 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     _controller = GameController();
     _controller.start();
-
     _startWorld();
   }
 
   void _startWorld() {
     final balloonCount = _worldBalloonCounts[_currentWorld - 1];
-
     _popped = List<bool>.filled(balloonCount, false);
     _pressed = List<bool>.filled(balloonCount, false);
   }
+
+  // -------- Layout Pressure (Secondary Axis) --------
+
+  double _spacingForWorld(int world) {
+    if (world <= 3) return 20;
+    if (world <= 6) return 16;
+    if (world <= 9) return 12;
+    return 8;
+  }
+
+  double _maxWidthForWorld(int world, double screenWidth) {
+    if (world <= 6) return screenWidth;          // no constraint
+    if (world <= 9) return screenWidth * 0.85;   // mild constraint
+    return screenWidth * 0.7;                    // stronger constraint
+  }
+
+  // -------- Interaction --------
 
   void _onBalloonTap(int index) {
     if (_popped[index]) return;
@@ -83,7 +98,6 @@ class _GameScreenState extends State<GameScreen> {
         } else {
           _currentWorld = 1; // Restart after World 12
         }
-
         _startWorld();
       });
     });
@@ -117,6 +131,10 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final spacing = _spacingForWorld(_currentWorld);
+    final maxWidth = _maxWidthForWorld(_currentWorld, screenWidth);
+
     return Scaffold(
       body: Center(
         child: Column(
@@ -127,11 +145,14 @@ class _GameScreenState extends State<GameScreen> {
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              alignment: WrapAlignment.center,
-              children: _buildBalloons(),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                alignment: WrapAlignment.center,
+                children: _buildBalloons(),
+              ),
             ),
           ],
         ),
