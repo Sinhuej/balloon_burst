@@ -12,7 +12,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
 
-  // Rising Worlds (UI-only)
+  // Rising Worlds
   int _currentWorld = 1;
 
   final List<int> _worldBalloonCounts = [
@@ -22,7 +22,11 @@ class _GameScreenState extends State<GameScreen> {
   late List<bool> _popped;
   late List<bool> _pressed;
 
-  // World intro overlay
+  // Failure v1
+  int _tapsLeft = 0;
+  bool _showFailure = false;
+
+  // World intro
   bool _showWorldIntro = true;
 
   @override
@@ -37,14 +41,13 @@ class _GameScreenState extends State<GameScreen> {
     final balloonCount = _worldBalloonCounts[_currentWorld - 1];
     _popped = List<bool>.filled(balloonCount, false);
     _pressed = List<bool>.filled(balloonCount, false);
+    _tapsLeft = balloonCount + 2;
+    _showFailure = false;
     _showWorldIntro = true;
 
-    // Auto-hide world intro
     Future.delayed(const Duration(milliseconds: 600), () {
       if (!mounted) return;
-      setState(() {
-        _showWorldIntro = false;
-      });
+      setState(() => _showWorldIntro = false);
     });
   }
 
@@ -66,10 +69,13 @@ class _GameScreenState extends State<GameScreen> {
   // ---------- Interaction ----------
 
   void _onBalloonTap(int index) {
-    if (_popped[index] || _showWorldIntro) return;
+    if (_showWorldIntro || _showFailure) return;
+    if (_popped[index]) return;
+    if (_tapsLeft <= 0) return;
 
     setState(() {
       _pressed[index] = true;
+      _tapsLeft--;
     });
 
     Future.delayed(const Duration(milliseconds: 120), () {
@@ -80,26 +86,35 @@ class _GameScreenState extends State<GameScreen> {
         _popped[index] = true;
       });
 
-      _checkWorldComplete();
+      _checkWorldCompleteOrFail();
     });
   }
 
-  void _checkWorldComplete() {
-    if (!_popped.every((b) => b)) return;
+  void _checkWorldCompleteOrFail() {
+    if (_popped.every((b) => b)) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
 
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (!mounted) return;
-
-      setState(() {
-        if (_currentWorld < _worldBalloonCounts.length) {
-          _currentWorld++;
-        } else {
-          _currentWorld = 1;
-        }
-        _startWorld();
+        setState(() {
+          if (_currentWorld < _worldBalloonCounts.length) {
+            _currentWorld++;
+          } else {
+            _currentWorld = 1;
+          }
+          _startWorld();
+        });
       });
-    });
+      return;
+    }
+
+    if (_tapsLeft <= 0) {
+      setState(() {
+        _showFailure = true;
+      });
+    }
   }
+
+  // ---------- UI Builders ----------
 
   List<Widget> _buildBalloons() {
     final balloons = <Widget>[];
@@ -130,40 +145,70 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildWorldIntro() {
     if (!_showWorldIntro) return const SizedBox.shrink();
 
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withOpacity(0.4),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'World $_currentWorld',
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _currentWorld <= 3
-                  ? 'Warm up'
-                  : _currentWorld <= 6
-                      ? 'Getting tighter'
-                      : _currentWorld <= 9
-                          ? 'Watch your taps'
-                          : 'Maximum pressure',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
-            ),
-          ],
-        ),
+    return _overlay(
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'World $_currentWorld',
+            style: _titleStyle,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _currentWorld <= 3
+                ? 'Warm up'
+                : _currentWorld <= 6
+                    ? 'Getting tighter'
+                    : _currentWorld <= 9
+                        ? 'Watch your taps'
+                        : 'Maximum pressure',
+            style: _subtitleStyle,
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildFailure() {
+    if (!_showFailure) return const SizedBox.shrink();
+
+    return _overlay(
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Out of taps', style: _titleStyle),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: () {
+              setState(_startWorld);
+            },
+            child: const Text('Retry World'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _overlay(Widget child) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.5),
+        alignment: Alignment.center,
+        child: child,
+      ),
+    );
+  }
+
+  static const _titleStyle = TextStyle(
+    fontSize: 32,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  );
+
+  static const _subtitleStyle = TextStyle(
+    fontSize: 16,
+    color: Colors.white70,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +223,12 @@ class _GameScreenState extends State<GameScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                Text(
+                  'Taps Left: $_tapsLeft',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 12),
                 ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
                   child: Wrap(
@@ -192,6 +242,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           _buildWorldIntro(),
+          _buildFailure(),
         ],
       ),
     );
