@@ -12,7 +12,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
 
-  // UI-only state: whether each of the 5 balloons is popped (hidden).
+  // UI-only state: whether each balloon is popped
   late final List<bool> _popped;
 
   @override
@@ -24,14 +24,7 @@ class _GameScreenState extends State<GameScreen> {
     _popped = List<bool>.filled(5, false);
   }
 
-  @override
-  void dispose() {
-    _controller.stop();
-    super.dispose();
-  }
-
   void _popBalloon(int index) {
-    // UI-only removal. No domain calls.
     if (_popped[index]) return;
 
     setState(() {
