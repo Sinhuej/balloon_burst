@@ -1,28 +1,5 @@
-// =======================================================
-// 🚨 SPARKLES SAFE ZONE 🚨
-//
-// You MAY change:
-//  - Numeric values (sizes, spacing, positions)
-//  - Colors
-//  - Visual appearance ONLY
-//
-// You MUST NOT change:
-//  - Widget structure (Stack, Positioned, for-loops)
-//  - Data sources (_controller, gameplayWorld)
-//  - Method names or signatures
-//  - Any logic outside marked sections
-//
-// Rule of thumb:
-//  - If it changes HOW it looks → probably safe
-//  - If it changes WHAT it does → stop and ask
-//
-// If you break the build:
-//  - Revert
-//  - Identify what changed
-//  - Try again
-//
-// =======================================================
 import 'package:flutter/material.dart';
+
 import '../game/game_controller.dart';
 
 class GameScreen extends StatefulWidget {
@@ -34,45 +11,77 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
-  int? tappedIndex;
+
+  // UI-only state: whether each of the 5 balloons is popped (hidden).
+  late final List<bool> _popped;
+
   @override
   void initState() {
     super.initState();
     _controller = GameController();
     _controller.start();
+
+    _popped = List<bool>.filled(5, false);
+  }
+
+  @override
+  void dispose() {
+    _controller.stop();
+    super.dispose();
+  }
+
+  void _popBalloon(int index) {
+    // UI-only removal. No domain calls.
+    if (_popped[index]) return;
+
+    setState(() {
+      _popped[index] = true;
+    });
+  }
+
+  List<Widget> _buildBalloons() {
+    final balloons = <Widget>[];
+
+    for (var i = 0; i < _popped.length; i++) {
+      if (_popped[i]) continue;
+
+      balloons.add(
+        GestureDetector(
+          onTap: () => _popBalloon(i),
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.red,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (balloons.isEmpty) {
+      return const [
+        Text(
+          'All popped!',
+          style: TextStyle(fontSize: 18),
+        ),
+      ];
+    }
+
+    return balloons;
   }
 
   @override
   Widget build(BuildContext context) {
-    final balloons = _controller.gameplayWorld?.balloons ?? [];
-
     return Scaffold(
-      body: Stack(
-        children: [
-          for (int i = 0; i < balloons.length; i++)
-            Positioned(
-              left: 40.0 + (i * 50),
-              top: 100,
-              child: GestureDetector(
-               onTap: () {
-                setState(() {
-                 tappedIndex = i;
-                });
-                print('Balloon tapped: ${balloons[i].id}');
-                },
-               child: Container(
-                width: 30,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: tappedIndex == i
-                   ? Colors.blueAccent
-                   : Colors.redAccent,
-                  borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-            ),
-        ],
+      body: Center(
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
+          children: _buildBalloons(),
+        ),
       ),
     );
   }
