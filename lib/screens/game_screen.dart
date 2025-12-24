@@ -12,9 +12,27 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
 
-  // UI-only state
-  late final List<bool> _popped;
-  late final List<bool> _pressed;
+  // Rising Worlds (UI-only)
+  int _currentWorld = 1;
+
+  // World config: world -> balloon count
+  final List<int> _worldBalloonCounts = [
+    5,  // World 1
+    6,  // World 2
+    7,  // World 3
+    8,  // World 4
+    9,  // World 5
+    10, // World 6
+    11, // World 7
+    12, // World 8
+    13, // World 9
+    14, // World 10
+    15, // World 11
+    16, // World 12
+  ];
+
+  late List<bool> _popped;
+  late List<bool> _pressed;
 
   @override
   void initState() {
@@ -22,19 +40,23 @@ class _GameScreenState extends State<GameScreen> {
     _controller = GameController();
     _controller.start();
 
-    _popped = List<bool>.filled(5, false);
-    _pressed = List<bool>.filled(5, false);
+    _startWorld();
+  }
+
+  void _startWorld() {
+    final balloonCount = _worldBalloonCounts[_currentWorld - 1];
+
+    _popped = List<bool>.filled(balloonCount, false);
+    _pressed = List<bool>.filled(balloonCount, false);
   }
 
   void _onBalloonTap(int index) {
     if (_popped[index]) return;
 
-    // Phase 1: visual feedback
     setState(() {
       _pressed[index] = true;
     });
 
-    // Phase 2: remove after brief delay
     Future.delayed(const Duration(milliseconds: 120), () {
       if (!mounted) return;
 
@@ -43,6 +65,24 @@ class _GameScreenState extends State<GameScreen> {
         _popped[index] = true;
       });
     });
+  }
+
+  void _checkWorldComplete() {
+    if (_popped.every((b) => b)) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
+
+        setState(() {
+          if (_currentWorld < _worldBalloonCounts.length) {
+            _currentWorld++;
+          } else {
+            _currentWorld = 1; // Restart after World 12
+          }
+
+          _startWorld();
+        });
+      });
+    }
   }
 
   List<Widget> _buildBalloons() {
@@ -55,7 +95,10 @@ class _GameScreenState extends State<GameScreen> {
 
       balloons.add(
         GestureDetector(
-          onTap: () => _onBalloonTap(i),
+          onTap: () {
+            _onBalloonTap(i);
+            _checkWorldComplete();
+          },
           child: Container(
             width: 72,
             height: 72,
@@ -68,15 +111,6 @@ class _GameScreenState extends State<GameScreen> {
       );
     }
 
-    if (balloons.isEmpty) {
-      return const [
-        Text(
-          'All popped!',
-          style: TextStyle(fontSize: 18),
-        ),
-      ];
-    }
-
     return balloons;
   }
 
@@ -84,11 +118,21 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          alignment: WrapAlignment.center,
-          children: _buildBalloons(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'World $_currentWorld',
+              style: const TextStyle(fontSize: 20),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              alignment: WrapAlignment.center,
+              children: _buildBalloons(),
+            ),
+          ],
         ),
       ),
     );
