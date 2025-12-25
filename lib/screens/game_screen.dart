@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../game/game_controller.dart';
 
@@ -13,6 +14,8 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
   late final AudioPlayer _audioPlayer;
+
+  bool _soundEnabled = true;
 
   int _currentWorld = 1;
 
@@ -34,12 +37,33 @@ class _GameScreenState extends State<GameScreen> {
     _controller.start();
 
     _audioPlayer = AudioPlayer();
-     _audioPlayer.setVolume(1.0);
-     _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    _audioPlayer.setVolume(1.0);
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    _audioPlayer.setSource(AssetSource('sfx/pop.wav'));
 
-// Preload the sound ONCE (critical)
-_audioPlayer.setSource(AssetSource('sfx/pop.wav'));
+    _loadSoundPreference();
     _startWorld();
+  }
+
+  Future<void> _loadSoundPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _soundEnabled = prefs.getBool('sound_enabled') ?? true;
+    });
+  }
+
+  Future<void> _toggleSound() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _soundEnabled = !_soundEnabled;
+    });
+    await prefs.setBool('sound_enabled', _soundEnabled);
+  }
+
+  void _playPopSound() {
+    if (!_soundEnabled) return;
+    _audioPlayer.seek(Duration.zero);
+    _audioPlayer.resume();
   }
 
   void _startWorld() {
@@ -55,24 +79,6 @@ _audioPlayer.setSource(AssetSource('sfx/pop.wav'));
       setState(() => _showWorldIntro = false);
     });
   }
-
-  double _spacingForWorld(int w) {
-    if (w <= 3) return 20;
-    if (w <= 6) return 16;
-    if (w <= 9) return 12;
-    return 8;
-  }
-
-  double _maxWidthForWorld(int w, double screenWidth) {
-    if (w <= 6) return screenWidth;
-    if (w <= 9) return screenWidth * 0.85;
-    return screenWidth * 0.7;
-  }
-
-  void _playPopSound() {
-  _audioPlayer.seek(Duration.zero);
-  _audioPlayer.resume();
-}
 
   void _onBalloonTap(int index) {
     if (_showWorldIntro || _showFailure) return;
@@ -130,7 +136,6 @@ _audioPlayer.setSource(AssetSource('sfx/pop.wav'));
           child: AnimatedScale(
             scale: isPressed ? 0.92 : 1.0,
             duration: const Duration(milliseconds: 90),
-            curve: Curves.easeOut,
             child: AnimatedOpacity(
               opacity: isPressed ? 0.85 : 1.0,
               duration: const Duration(milliseconds: 90),
@@ -164,27 +169,32 @@ _audioPlayer.setSource(AssetSource('sfx/pop.wav'));
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final spacing = _spacingForWorld(_currentWorld);
-    final maxWidth = _maxWidthForWorld(_currentWorld, screenWidth);
 
     return Scaffold(
       body: Stack(
         children: [
+          Positioned(
+            top: 40,
+            right: 20,
+            child: IconButton(
+              icon: Icon(
+                _soundEnabled ? Icons.volume_up : Icons.volume_off,
+                color: Colors.black,
+              ),
+              onPressed: _toggleSound,
+            ),
+          ),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 16),
                 Text('Taps Left: $_tapsLeft'),
                 const SizedBox(height: 12),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxWidth),
-                  child: Wrap(
-                    spacing: spacing,
-                    runSpacing: spacing,
-                    alignment: WrapAlignment.center,
-                    children: _buildBalloons(),
-                  ),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  alignment: WrapAlignment.center,
+                  children: _buildBalloons(),
                 ),
               ],
             ),
