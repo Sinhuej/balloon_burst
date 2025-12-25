@@ -33,7 +33,7 @@ class _GameScreenState extends State<GameScreen> {
     _controller = GameController();
     _controller.start();
 
-    _audioPlayer = AudioPlayer(playerMode: PlayerMode.lowLatency);
+    _audioPlayer = AudioPlayer();
      _audioPlayer.setVolume(1.0);
      _audioPlayer.setReleaseMode(ReleaseMode.stop);
 
