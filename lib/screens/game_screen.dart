@@ -33,9 +33,12 @@ class _GameScreenState extends State<GameScreen> {
     _controller = GameController();
     _controller.start();
 
-    _audioPlayer = AudioPlayer();
-    _audioPlayer.setVolume(1.0);
+    _audioPlayer = AudioPlayer(playerMode: PlayerMode.lowLatency);
+     _audioPlayer.setVolume(1.0);
+     _audioPlayer.setReleaseMode(ReleaseMode.stop);
 
+// Preload the sound ONCE (critical)
+_audioPlayer.setSource(AssetSource('sfx/pop.wav'));
     _startWorld();
   }
 
@@ -67,8 +70,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _playPopSound() {
-    _audioPlayer.play(AssetSource('sfx/pop.wav'));
-  }
+  _audioPlayer.seek(Duration.zero);
+  _audioPlayer.resume();
+}
 
   void _onBalloonTap(int index) {
     if (_showWorldIntro || _showFailure) return;
