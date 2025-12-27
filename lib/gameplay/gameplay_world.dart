@@ -33,6 +33,14 @@ class GameplayWorld {
     );
   }
 
+  /// Apply vertical scroll delta to all balloons.
+  GameplayWorld applyScroll(double dy) {
+    if (dy == 0) return this;
+    return copyWith(
+      balloons: balloons.map((b) => b.movedBy(dy)).toList(),
+    );
+  }
+
   GameplayWorld popBalloonAt(int index) {
     if (index < 0 || index >= balloons.length) return this;
     final b = balloons[index];
