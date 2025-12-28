@@ -22,6 +22,9 @@ class GameController {
   static const int baseBalloonCount = 5;
   static const int maxBalloonCount = 10;
 
+  // Screen-relative escape threshold (tuned later)
+  static const double escapeY = 800.0;
+
   void start() {
     momentum.reset();
     tier.reset();
@@ -44,10 +47,31 @@ class GameController {
     final dy = scroller.scrollY - _lastScrollY;
     _lastScrollY = scroller.scrollY;
 
-    final nextWorld = w.applyScroll(dy);
+    // Apply scroll
+    var nextWorld = w.applyScroll(dy);
 
-    // Respawn when all balloons are popped
-    if (nextWorld.balloons.every((b) => b.isPopped)) {
+    // 🔑 STEP 27-2c: Off-screen pressure
+    final remaining = <Balloon>[];
+    bool escaped = false;
+
+    for (final b in nextWorld.balloons) {
+      if (b.isPopped) continue;
+
+      if (b.y > escapeY) {
+        // Balloon escaped
+        escaped = true;
+        momentum.registerTap(hit: false);
+      } else {
+        remaining.add(b);
+      }
+    }
+
+    if (escaped) {
+      nextWorld = GameplayWorld(balloons: remaining);
+    }
+
+    // Respawn when all balloons are gone
+    if (nextWorld.balloons.isEmpty) {
       final count = _balloonCountForTier(tier.currentTier);
       _spawnFreshWorld(count);
       return;
@@ -57,7 +81,7 @@ class GameController {
   }
 
   int _balloonCountForTier(int tier) {
-    final extra = ((tier - 1) ~/ 2); // +1 every 2 tiers
+    final extra = ((tier - 1) ~/ 2);
     final count = baseBalloonCount + extra;
     return count.clamp(baseBalloonCount, maxBalloonCount);
   }
