@@ -46,7 +46,6 @@ class GameController {
 
     var nextWorld = w.applyScroll(dy);
 
-    // 🔑 Density scaling by tier
     if (nextWorld.balloons.every((b) => b.isPopped)) {
       final count = _balloonCountForTier(tier.currentTier);
       _spawnFreshWorld(count);
@@ -57,7 +56,7 @@ class GameController {
   }
 
   int _balloonCountForTier(int tier) {
-    final extra = ((tier - 1) ~/ 2); // +1 balloon every 2 tiers
+    final extra = ((tier - 1) ~/ 2);
     final count = baseBalloonCount + extra;
     return count.clamp(baseBalloonCount, maxBalloonCount);
   }
@@ -65,7 +64,7 @@ class GameController {
   void _spawnFreshWorld(int count) {
     final balloons = List<Balloon>.generate(
       count,
-      (i) => Balloon.spawnAt(i),
+      (i) => Balloon.spawnAt(i, total: count),
     );
     world.value = GameplayWorld(balloons: balloons);
     scroller.reset();
