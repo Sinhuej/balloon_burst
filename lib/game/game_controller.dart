@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../gameplay/gameplay_world.dart';
@@ -18,10 +19,12 @@ class GameController {
   final GameScroller scroller = GameScroller();
 
   double _lastScrollY = 0.0;
+  double _time = 0.0;
 
   static const int baseBalloonCount = 5;
   static const int maxBalloonCount = 10;
 
+  // Placeholder world-space escape threshold (viewport binding comes in Step 28)
   static const double escapeY = 800.0;
   static const int maxEscapesBeforeFail = 3;
 
@@ -32,6 +35,7 @@ class GameController {
     tier.reset();
     scroller.reset();
     _lastScrollY = 0.0;
+    _time = 0.0;
     _escapeCount = 0;
 
     _spawnFreshWorld(_balloonCountForTier(1));
@@ -40,6 +44,8 @@ class GameController {
   void update(double dt) {
     final w = world.value;
     if (w == null) return;
+
+    _time += dt;
 
     momentum.update(dt);
     tier.update(momentum.momentum);
@@ -72,11 +78,38 @@ class GameController {
       nextWorld = GameplayWorld(balloons: remaining);
     }
 
-    // 🔑 FAILURE CONDITION
+    // FAILURE CONDITION
     if (_escapeCount >= maxEscapesBeforeFail) {
       _handleFail();
       return;
     }
+
+    // ✅ STEP 27-3: Apply deterministic sway to active balloons
+    final t = tier.currentTier;
+
+    // Amplitude in "offset units" (renderer scales xOffset to pixels).
+    // Starts gentle, ramps to noticeable.
+    final amp = (0.06 + t * 0.01).clamp(0.06, 0.18);
+
+    // Frequency in radians/sec-ish. Higher tiers sway faster.
+    final freq = (0.9 + t * 0.08).clamp(0.9, 1.9);
+
+    final updated = <Balloon>[];
+    for (final b in nextWorld.balloons) {
+      if (b.isPopped) {
+        updated.add(b);
+        continue;
+      }
+
+      // Sway around baseXOffset, unique per balloon via phase.
+      var x = b.baseXOffset + sin((_time * freq) + b.phase) * amp;
+
+      // Clamp to a safe range so balloons stay tappable & on-screen-ish.
+      x = x.clamp(-1.2, 1.2);
+
+      updated.add(b.withXOffset(x));
+    }
+    nextWorld = GameplayWorld(balloons: updated);
 
     // Respawn when no active balloons remain
     final hasActiveBalloons =
@@ -92,11 +125,11 @@ class GameController {
   }
 
   void _handleFail() {
-    // Hard reset (engine truth; UX comes later)
     momentum.reset();
     tier.reset();
     scroller.reset();
     _lastScrollY = 0.0;
+    _time = 0.0;
     _escapeCount = 0;
 
     _spawnFreshWorld(_balloonCountForTier(1));
