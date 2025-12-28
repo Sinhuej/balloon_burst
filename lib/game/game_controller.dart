@@ -23,12 +23,12 @@ class GameController {
   static const int maxBalloonCount = 10;
 
   void start() {
-    _spawnFreshWorld(_balloonCountForTier(1));
-
     momentum.reset();
     tier.reset();
     scroller.reset();
     _lastScrollY = 0.0;
+
+    _spawnFreshWorld(_balloonCountForTier(1));
   }
 
   void update(double dt) {
@@ -44,8 +44,9 @@ class GameController {
     final dy = scroller.scrollY - _lastScrollY;
     _lastScrollY = scroller.scrollY;
 
-    var nextWorld = w.applyScroll(dy);
+    final nextWorld = w.applyScroll(dy);
 
+    // Respawn when all balloons are popped
     if (nextWorld.balloons.every((b) => b.isPopped)) {
       final count = _balloonCountForTier(tier.currentTier);
       _spawnFreshWorld(count);
@@ -56,16 +57,23 @@ class GameController {
   }
 
   int _balloonCountForTier(int tier) {
-    final extra = ((tier - 1) ~/ 2);
+    final extra = ((tier - 1) ~/ 2); // +1 every 2 tiers
     final count = baseBalloonCount + extra;
     return count.clamp(baseBalloonCount, maxBalloonCount);
   }
 
   void _spawnFreshWorld(int count) {
+    final currentTier = tier.currentTier;
+
     final balloons = List<Balloon>.generate(
       count,
-      (i) => Balloon.spawnAt(i, total: count),
+      (i) => Balloon.spawnAt(
+        i,
+        total: count,
+        tier: currentTier,
+      ),
     );
+
     world.value = GameplayWorld(balloons: balloons);
     scroller.reset();
     _lastScrollY = 0.0;
