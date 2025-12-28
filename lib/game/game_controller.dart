@@ -22,7 +22,6 @@ class GameController {
   static const int baseBalloonCount = 5;
   static const int maxBalloonCount = 10;
 
-  // Screen-relative escape threshold (tuned later)
   static const double escapeY = 800.0;
 
   void start() {
@@ -47,10 +46,9 @@ class GameController {
     final dy = scroller.scrollY - _lastScrollY;
     _lastScrollY = scroller.scrollY;
 
-    // Apply scroll
     var nextWorld = w.applyScroll(dy);
 
-    // 🔑 STEP 27-2c: Off-screen pressure
+    // Off-screen pressure
     final remaining = <Balloon>[];
     bool escaped = false;
 
@@ -58,7 +56,6 @@ class GameController {
       if (b.isPopped) continue;
 
       if (b.y > escapeY) {
-        // Balloon escaped
         escaped = true;
         momentum.registerTap(hit: false);
       } else {
@@ -70,8 +67,11 @@ class GameController {
       nextWorld = GameplayWorld(balloons: remaining);
     }
 
-    // Respawn when all balloons are gone
-    if (nextWorld.balloons.isEmpty) {
+    // 🔑 FIX: respawn when no active balloons remain
+    final hasActiveBalloons =
+        nextWorld.balloons.any((b) => !b.isPopped);
+
+    if (!hasActiveBalloons) {
       final count = _balloonCountForTier(tier.currentTier);
       _spawnFreshWorld(count);
       return;
