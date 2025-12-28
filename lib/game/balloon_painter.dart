@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
-import '../ui/skins.dart';
 import '../gameplay/balloon.dart';
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
-  final SkinDef skin;
   final bool frenzy;
 
   BalloonPainter({
     required this.balloons,
-    required this.skin,
     required this.frenzy,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Background
-    final bgPaint = Paint()..color = skin.background;
+    final bgPaint = Paint()..color = Colors.white;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     final centerX = size.width / 2;
@@ -26,13 +22,10 @@ class BalloonPainter extends CustomPainter {
       if (b.isPopped) continue;
 
       final paint = Paint()
-        ..color = skin.glowColor
+        ..color = Colors.red
         ..style = PaintingStyle.fill;
 
-      // 🔑 THIS IS THE KEY CHANGE:
-      // Balloon vertical position now comes from simulation (b.y)
       final position = Offset(centerX, b.y);
-
       canvas.drawCircle(position, radius, paint);
     }
   }

@@ -1,10 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../game/game_controller.dart';
 import '../game/balloon_painter.dart';
-import '../ui/skins.dart';
+import '../gameplay/gameplay_world.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -13,13 +12,9 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with SingleTickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> {
   late final GameController _controller;
-  late final AudioPlayer _audioPlayer;
-  late final Ticker _ticker;
-
-  bool _soundEnabled = true;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -28,35 +23,23 @@ class _GameScreenState extends State<GameScreen>
     _controller = GameController();
     _controller.start();
 
-    _audioPlayer = AudioPlayer();
-    _audioPlayer.setSource(AssetSource('sfx/pop.wav'));
-
-    _loadSoundPreference();
-
-    // 🔑 Drive the engine every frame
-    _ticker = createTicker((elapsed) {
-      _controller.update(1 / 60);
-    })..start();
+    // Drive engine at ~60 FPS
+    _timer = Timer.periodic(
+      const Duration(milliseconds: 16),
+      (_) => _controller.update(1 / 60),
+    );
   }
 
   @override
   void dispose() {
-    _ticker.dispose();
-    _audioPlayer.dispose();
+    _timer?.cancel();
     super.dispose();
-  }
-
-  Future<void> _loadSoundPreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _soundEnabled = prefs.getBool('sound_enabled') ?? true;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ValueListenableBuilder(
+      body: ValueListenableBuilder<GameplayWorld?>(
         valueListenable: _controller.world,
         builder: (context, world, _) {
           if (world == null) {
@@ -66,7 +49,6 @@ class _GameScreenState extends State<GameScreen>
           return CustomPaint(
             painter: BalloonPainter(
               balloons: world.balloons,
-              skin: Skins.defaultSkin,
               frenzy: false,
             ),
             child: const SizedBox.expand(),
