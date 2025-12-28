@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
@@ -39,15 +40,16 @@ class _GameScreenState extends State<GameScreen> {
   void _handleTap(TapDownDetails details, GameplayWorld world, Size size) {
     final tap = details.localPosition;
 
-    // Find first balloon within radius
     const radius = 24.0;
+    final centerX = size.width / 2;
+
     for (var i = 0; i < world.balloons.length; i++) {
       final b = world.balloons[i];
       if (b.isPopped) continue;
 
-      final dx = (size.width / 2) - tap.dx;
+      final dx = centerX - tap.dx;
       final dy = b.y - tap.dy;
-      final dist = (dx * dx + dy * dy).sqrt();
+      final dist = sqrt(dx * dx + dy * dy);
 
       if (dist <= radius) {
         _controller.onBalloonHit();
@@ -56,7 +58,6 @@ class _GameScreenState extends State<GameScreen> {
       }
     }
 
-    // Miss
     _controller.onMiss();
   }
 
