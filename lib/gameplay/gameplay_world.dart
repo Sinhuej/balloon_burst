@@ -1,7 +1,6 @@
 import 'balloon.dart';
 import '../game/commands/pop_first_available_command.dart';
 import '../game/commands/remove_popped_balloons_command.dart';
-import '../game/commands/spawn_balloon_command.dart';
 
 class GameplayWorld {
   final List<Balloon> balloons;
@@ -19,8 +18,8 @@ class GameplayWorld {
     return (poppedCount * 10) + ((poppedCount - 1) * 5);
   }
 
-  bool get isGameOver => balloons.length >= 6;
-  bool get isWin => score >= 100;
+  bool get isGameOver => false;
+  bool get isWin => false;
 
   GameplayWorld copyWith({
     List<Balloon>? balloons,
@@ -33,7 +32,6 @@ class GameplayWorld {
     );
   }
 
-  /// Apply vertical scroll delta to all balloons.
   GameplayWorld applyScroll(double dy) {
     if (dy == 0) return this;
     return copyWith(
@@ -57,29 +55,10 @@ class GameplayWorld {
     return copyWith(balloons: remaining, lastActionWasPowerUp: false);
   }
 
-  GameplayWorld spawnNextBalloon() {
-    return copyWith(
-      balloons: [
-        ...balloons,
-        Balloon.spawnAt(balloons.length),
-      ],
-      lastActionWasPowerUp: false,
-    );
-  }
-
   List<Object> get suggestedCommands {
     if (balloons.any((b) => b.isPopped)) {
       return const <Object>[RemovePoppedBalloonsCommand()];
     }
-
-    if (balloons.length < 3) {
-      return const <Object>[SpawnBalloonCommand()];
-    }
-
-    if (balloons.any((b) => !b.isPopped)) {
-      return const <Object>[PopFirstAvailableCommand()];
-    }
-
     return const <Object>[];
   }
 }
