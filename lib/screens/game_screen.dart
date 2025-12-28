@@ -47,7 +47,9 @@ class _GameScreenState extends State<GameScreen> {
       final b = world.balloons[i];
       if (b.isPopped) continue;
 
-      final dx = centerX - tap.dx;
+      final spreadPx = size.width * 0.35;
+      final balloonX = centerX + (b.xOffset * spreadPx);
+      final dx = balloonX - tap.dx;
       final dy = b.y - tap.dy;
       final dist = sqrt(dx * dx + dy * dy);
 
