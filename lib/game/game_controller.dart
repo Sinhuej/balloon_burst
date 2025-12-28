@@ -9,7 +9,6 @@ import '../engine/speed/speed_curve.dart';
 import '../engine/scroll/game_scroller.dart';
 
 class GameController {
-  /// Reactive world for UI
   final ValueNotifier<GameplayWorld?> world =
       ValueNotifier<GameplayWorld?>(null);
 
@@ -20,13 +19,10 @@ class GameController {
 
   double _lastScrollY = 0.0;
 
-  void start() {
-    final balloons = List<Balloon>.generate(
-      5,
-      (i) => Balloon.spawnAt(i),
-    );
+  static const int baseBalloonCount = 5;
 
-    world.value = GameplayWorld(balloons: balloons);
+  void start() {
+    _spawnFreshWorld(baseBalloonCount);
 
     momentum.reset();
     tier.reset();
@@ -47,7 +43,25 @@ class GameController {
     final dy = scroller.scrollY - _lastScrollY;
     _lastScrollY = scroller.scrollY;
 
-    world.value = w.applyScroll(dy);
+    var nextWorld = w.applyScroll(dy);
+
+    // 🔑 STEP 27-2: recovery rule
+    if (nextWorld.balloons.every((b) => b.isPopped)) {
+      _spawnFreshWorld(baseBalloonCount);
+      return;
+    }
+
+    world.value = nextWorld;
+  }
+
+  void _spawnFreshWorld(int count) {
+    final balloons = List<Balloon>.generate(
+      count,
+      (i) => Balloon.spawnAt(i),
+    );
+    world.value = GameplayWorld(balloons: balloons);
+    scroller.reset();
+    _lastScrollY = 0.0;
   }
 
   void onBalloonHit() {
