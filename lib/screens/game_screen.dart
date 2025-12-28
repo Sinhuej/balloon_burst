@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../game/game_controller.dart';
 import '../game/balloon_painter.dart';
 import '../gameplay/gameplay_world.dart';
+import '../gameplay/balloon.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -23,7 +24,6 @@ class _GameScreenState extends State<GameScreen> {
     _controller = GameController();
     _controller.start();
 
-    // Drive engine at ~60 FPS
     _timer = Timer.periodic(
       const Duration(milliseconds: 16),
       (_) => _controller.update(1 / 60),
@@ -36,22 +36,55 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
+  void _handleTap(TapDownDetails details, GameplayWorld world, Size size) {
+    final tap = details.localPosition;
+
+    // Find first balloon within radius
+    const radius = 24.0;
+    for (var i = 0; i < world.balloons.length; i++) {
+      final b = world.balloons[i];
+      if (b.isPopped) continue;
+
+      final dx = (size.width / 2) - tap.dx;
+      final dy = b.y - tap.dy;
+      final dist = (dx * dx + dy * dy).sqrt();
+
+      if (dist <= radius) {
+        _controller.onBalloonHit();
+        _controller.world.value = world.popBalloonAt(i);
+        return;
+      }
+    }
+
+    // Miss
+    _controller.onMiss();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ValueListenableBuilder<GameplayWorld?>(
-        valueListenable: _controller.world,
-        builder: (context, world, _) {
-          if (world == null) {
-            return const SizedBox.shrink();
-          }
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return ValueListenableBuilder<GameplayWorld?>(
+            valueListenable: _controller.world,
+            builder: (context, world, _) {
+              if (world == null) {
+                return const SizedBox.shrink();
+              }
 
-          return CustomPaint(
-            painter: BalloonPainter(
-              balloons: world.balloons,
-              frenzy: false,
-            ),
-            child: const SizedBox.expand(),
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (details) =>
+                    _handleTap(details, world, constraints.biggest),
+                child: CustomPaint(
+                  painter: BalloonPainter(
+                    balloons: world.balloons,
+                    frenzy: false,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              );
+            },
           );
         },
       ),
