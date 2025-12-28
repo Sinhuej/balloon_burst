@@ -12,11 +12,15 @@ class BalloonPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Background
     final bgPaint = Paint()..color = Colors.white;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     final centerX = size.width / 2;
     const radius = 24.0;
+
+    // Horizontal spread scale (screen-relative)
+    final spreadPx = size.width * 0.35;
 
     for (final b in balloons) {
       if (b.isPopped) continue;
@@ -25,8 +29,12 @@ class BalloonPainter extends CustomPainter {
         ..color = Colors.red
         ..style = PaintingStyle.fill;
 
-      final position = Offset(centerX, b.y);
-      canvas.drawCircle(position, radius, paint);
+      // 🔑 THIS IS THE FIX:
+      // Apply xOffset to center position
+      final x = centerX + (b.xOffset * spreadPx);
+      final y = b.y;
+
+      canvas.drawCircle(Offset(x, y), radius, paint);
     }
   }
 
