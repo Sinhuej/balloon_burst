@@ -23,12 +23,16 @@ class GameController {
   static const int maxBalloonCount = 10;
 
   static const double escapeY = 800.0;
+  static const int maxEscapesBeforeFail = 3;
+
+  int _escapeCount = 0;
 
   void start() {
     momentum.reset();
     tier.reset();
     scroller.reset();
     _lastScrollY = 0.0;
+    _escapeCount = 0;
 
     _spawnFreshWorld(_balloonCountForTier(1));
   }
@@ -48,26 +52,33 @@ class GameController {
 
     var nextWorld = w.applyScroll(dy);
 
-    // Off-screen pressure
+    // Off-screen pressure + escape tracking
     final remaining = <Balloon>[];
-    bool escaped = false;
+    bool escapedThisFrame = false;
 
     for (final b in nextWorld.balloons) {
       if (b.isPopped) continue;
 
       if (b.y > escapeY) {
-        escaped = true;
+        escapedThisFrame = true;
+        _escapeCount += 1;
         momentum.registerTap(hit: false);
       } else {
         remaining.add(b);
       }
     }
 
-    if (escaped) {
+    if (escapedThisFrame) {
       nextWorld = GameplayWorld(balloons: remaining);
     }
 
-    // 🔑 FIX: respawn when no active balloons remain
+    // 🔑 FAILURE CONDITION
+    if (_escapeCount >= maxEscapesBeforeFail) {
+      _handleFail();
+      return;
+    }
+
+    // Respawn when no active balloons remain
     final hasActiveBalloons =
         nextWorld.balloons.any((b) => !b.isPopped);
 
@@ -78,6 +89,17 @@ class GameController {
     }
 
     world.value = nextWorld;
+  }
+
+  void _handleFail() {
+    // Hard reset (engine truth; UX comes later)
+    momentum.reset();
+    tier.reset();
+    scroller.reset();
+    _lastScrollY = 0.0;
+    _escapeCount = 0;
+
+    _spawnFreshWorld(_balloonCountForTier(1));
   }
 
   int _balloonCountForTier(int tier) {
