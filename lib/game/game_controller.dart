@@ -20,9 +20,10 @@ class GameController {
   double _lastScrollY = 0.0;
 
   static const int baseBalloonCount = 5;
+  static const int maxBalloonCount = 10;
 
   void start() {
-    _spawnFreshWorld(baseBalloonCount);
+    _spawnFreshWorld(_balloonCountForTier(1));
 
     momentum.reset();
     tier.reset();
@@ -45,13 +46,20 @@ class GameController {
 
     var nextWorld = w.applyScroll(dy);
 
-    // 🔑 STEP 27-2: recovery rule
+    // 🔑 Density scaling by tier
     if (nextWorld.balloons.every((b) => b.isPopped)) {
-      _spawnFreshWorld(baseBalloonCount);
+      final count = _balloonCountForTier(tier.currentTier);
+      _spawnFreshWorld(count);
       return;
     }
 
     world.value = nextWorld;
+  }
+
+  int _balloonCountForTier(int tier) {
+    final extra = ((tier - 1) ~/ 2); // +1 balloon every 2 tiers
+    final count = baseBalloonCount + extra;
+    return count.clamp(baseBalloonCount, maxBalloonCount);
   }
 
   void _spawnFreshWorld(int count) {
