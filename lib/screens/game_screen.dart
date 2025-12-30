@@ -1,11 +1,7 @@
-import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
-
-import '../game/game_controller.dart';
-import '../game/balloon_painter.dart';
-import '../gameplay/gameplay_world.dart';
-import '../gameplay/balloon.dart';
+import 'package:balloon_burst/tj_engine/engine/core/tj_game.dart';
+import 'package:balloon_burst/game/game_controller.dart';
+import 'package:balloon_burst/tj_engine/engine/audio/sound_manager.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -15,82 +11,96 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late final GameController _controller;
-  Timer? _timer;
+  bool _showIntro = true;
+  Offset? _tapPoint;
 
   @override
   void initState() {
     super.initState();
-
-    _controller = GameController();
-    _controller.start();
-
-    _timer = Timer.periodic(
-      const Duration(milliseconds: 16),
-      (_) => _controller.update(1 / 60),
-    );
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+    SoundManager.warmUp();
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) setState(() => _showIntro = false);
+    });
   }
 
   void _handleTap(TapDownDetails details, GameplayWorld world, Size size) {
-    final tap = details.localPosition;
-
-    const radius = 24.0;
-    final centerX = size.width / 2;
-
-    for (var i = 0; i < world.balloons.length; i++) {
-      final b = world.balloons[i];
-      if (b.isPopped) continue;
-
-      final spreadPx = size.width * 0.35;
-      final balloonX = centerX + (b.xOffset * spreadPx);
-      final dx = balloonX - tap.dx;
-      final dy = b.y - tap.dy;
-      final dist = sqrt(dx * dx + dy * dy);
-
-      if (dist <= radius) {
-        _controller.onBalloonHit();
-        _controller.world.value = world.popBalloonAt(i);
-        return;
-      }
-    }
-
-    _controller.onMiss();
+    setState(() => _tapPoint = details.localPosition);
+    SoundManager.ensureReady();
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) setState(() => _tapPoint = null);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return ValueListenableBuilder<GameplayWorld?>(
-            valueListenable: _controller.world,
-            builder: (context, world, _) {
-              if (world == null) {
-                return const SizedBox.shrink();
-              }
+    return LayoutBuilder(builder: (context, constraints) {
+      return GestureDetector(
+        onTapDown: (details) =>
+            _handleTap(details, world, constraints.biggest),
+        child: Stack(
+          children: [
+            GameWidget(game: world.game),
 
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapDown: (details) =>
-                    _handleTap(details, world, constraints.biggest),
-                child: CustomPaint(
-                  painter: BalloonPainter(
-                    balloons: world.balloons,
-                    frenzy: false,
+            // Bottom danger zone affordance
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 48,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.red.withOpacity(0.12),
+                      ],
+                    ),
                   ),
-                  child: const SizedBox.expand(),
                 ),
-              );
-            },
-          );
-        },
-      ),
-    );
+              ),
+            ),
+
+            // Blue tap feedback
+            if (_tapPoint != null)
+              Positioned(
+                left: _tapPoint!.dx - 16,
+                top: _tapPoint!.dy - 16,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue.withOpacity(0.25),
+                  ),
+                ),
+              ),
+
+            // Minimal intro banner
+            if (_showIntro)
+              Center(
+                child: AnimatedOpacity(
+                  opacity: _showIntro ? 1 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Tap to burst',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
   }
 }
