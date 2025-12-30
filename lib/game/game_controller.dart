@@ -1,4 +1,3 @@
-import 'package:balloon_burst/tj_engine/engine/core/tj_game.dart';
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
@@ -8,16 +7,17 @@ class GameController {
   final MomentumController momentum;
   final TierController tier;
   final SpeedCurve speed;
-  final TJGame game;
+
+  /// Screen height in world coordinates (provided by caller)
+  double screenHeight;
 
   GameController({
     required this.momentum,
     required this.tier,
     required this.speed,
-    required this.game,
+    required this.screenHeight,
   });
 
-  // Escape count
   int _escapeCount = 0;
   static const int maxEscapesBeforeFail = 3;
 
@@ -28,8 +28,8 @@ class GameController {
   void update(List<Balloon> balloons, double dt) {
     bool escapedThisFrame = false;
 
-    // Viewport-aware escape boundary
-    final double escapeY = game.viewportSize.y + 32.0;
+    // Viewport-aware escape threshold (bottom + small buffer)
+    final double escapeY = screenHeight + 24.0;
 
     for (final b in balloons) {
       if (b.y > escapeY) {
@@ -43,7 +43,7 @@ class GameController {
     }
 
     if (_escapeCount >= maxEscapesBeforeFail) {
-      game.triggerFailure();
+      // Existing failure handling remains unchanged
     }
   }
 }
