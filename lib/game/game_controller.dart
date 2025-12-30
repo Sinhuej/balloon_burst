@@ -40,6 +40,11 @@ class GameController {
       momentum.registerTap(hit: false);
     }
 
+    // Successful tap feedback (engine truth)
+    if (momentum.lastTapWasHit) {
+      gameState.tapPulse = true;
+    }
+
     if (_escapeCount >= maxEscapesBeforeFail) {
       // existing failure handling
     }

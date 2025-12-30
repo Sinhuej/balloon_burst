@@ -17,7 +17,7 @@ class BalloonPainter extends CustomPainter {
     final bgPaint = Paint()..color = Colors.black;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
-    // Subtle bottom danger affordance (visual only)
+    // Subtle bottom danger affordance
     final dangerHeight = 40.0;
     final dangerRect = Rect.fromLTWH(
       0,
@@ -32,11 +32,21 @@ class BalloonPainter extends CustomPainter {
         end: Alignment.bottomCenter,
         colors: [
           Colors.transparent,
-          Color.fromARGB(20, 255, 0, 0), // very subtle red
+          Color.fromARGB(20, 255, 0, 0),
         ],
       ).createShader(dangerRect);
 
     canvas.drawRect(dangerRect, dangerPaint);
+
+    // Tap feedback pulse (very subtle, one frame)
+    if (gameState.tapPulse) {
+      final pulsePaint = Paint()
+        ..color = const Color.fromARGB(18, 80, 160, 255);
+      canvas.drawRect(Offset.zero & size, pulsePaint);
+
+      // Clear immediately (one-frame pulse)
+      gameState.tapPulse = false;
+    }
 
     // Balloons
     for (final balloon in balloons) {
