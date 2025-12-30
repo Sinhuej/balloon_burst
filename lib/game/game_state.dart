@@ -3,4 +3,7 @@ class GameState {
 
   // One-frame tap feedback pulse
   bool tapPulse = false;
+
+  // Intro banner timing (frame-based)
+  int framesSinceStart = 0;
 }

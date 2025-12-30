@@ -10,8 +10,9 @@ class BalloonPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Viewport truth captured here
+    // Viewport truth
     gameState.viewportHeight = size.height;
+    gameState.framesSinceStart++;
 
     // Background
     final bgPaint = Paint()..color = Colors.black;
@@ -38,13 +39,33 @@ class BalloonPainter extends CustomPainter {
 
     canvas.drawRect(dangerRect, dangerPaint);
 
-    // Tap feedback pulse (very subtle, one frame)
+    // Intro banner (first ~1.5s)
+    if (gameState.framesSinceStart < 90) {
+      final textPainter = TextPainter(
+        text: const TextSpan(
+          text: 'Tap to Burst',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final offset = Offset(
+        (size.width - textPainter.width) / 2,
+        size.height * 0.25,
+      );
+
+      textPainter.paint(canvas, offset);
+    }
+
+    // Tap feedback pulse
     if (gameState.tapPulse) {
       final pulsePaint = Paint()
         ..color = const Color.fromARGB(18, 80, 160, 255);
       canvas.drawRect(Offset.zero & size, pulsePaint);
-
-      // Clear immediately (one-frame pulse)
       gameState.tapPulse = false;
     }
 
