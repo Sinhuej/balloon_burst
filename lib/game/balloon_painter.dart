@@ -8,6 +8,8 @@ class BalloonPainter extends CustomPainter {
 
   BalloonPainter(this.balloons, this.gameState);
 
+  static const double balloonRadius = 16.0;
+
   @override
   void paint(Canvas canvas, Size size) {
     // Viewport truth
@@ -18,7 +20,7 @@ class BalloonPainter extends CustomPainter {
     final bgPaint = Paint()..color = Colors.black;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
-    // Subtle bottom danger affordance (visual only)
+    // Subtle bottom danger affordance
     final dangerHeight = 40.0;
     final dangerRect = Rect.fromLTWH(
       0,
@@ -39,7 +41,7 @@ class BalloonPainter extends CustomPainter {
 
     canvas.drawRect(dangerRect, dangerPaint);
 
-    // Intro banner (first ~1.5s @ ~60fps)
+    // Intro banner (first ~1.5s)
     if (gameState.framesSinceStart < 90) {
       final textPainter = TextPainter(
         text: const TextSpan(
@@ -61,7 +63,7 @@ class BalloonPainter extends CustomPainter {
       textPainter.paint(canvas, offset);
     }
 
-    // Tap feedback pulse (one frame)
+    // Tap feedback pulse
     if (gameState.tapPulse) {
       final pulsePaint = Paint()
         ..color = const Color.fromARGB(18, 80, 160, 255);
@@ -69,15 +71,22 @@ class BalloonPainter extends CustomPainter {
       gameState.tapPulse = false;
     }
 
-    // Balloons
+    // Balloons (render adapter logic)
+    final centerX = size.width / 2;
+
     for (final balloon in balloons) {
+      if (balloon.isPopped) continue;
+
       final paint = Paint()
-        ..color = balloon.color
+        ..color = Colors.redAccent
         ..style = PaintingStyle.fill;
 
+      final x = centerX + (balloon.xOffset * size.width * 0.5);
+      final y = balloon.y;
+
       canvas.drawCircle(
-        Offset(balloon.x, balloon.y),
-        balloon.radius,
+        Offset(x, y),
+        balloonRadius,
         paint,
       );
     }
