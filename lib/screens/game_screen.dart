@@ -9,6 +9,7 @@ import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
+import 'package:balloon_burst/engine/audio/sound_manager.dart';
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
@@ -40,6 +41,9 @@ class _GameScreenState extends State<GameScreen>
   @override
   void initState() {
     super.initState();
+
+    // 🔊 Warm up audio so first tap is not silent
+    SoundManager.warmUp();
 
     _controller = GameController(
       momentum: MomentumController(),

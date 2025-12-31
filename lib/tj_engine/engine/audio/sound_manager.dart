@@ -2,25 +2,25 @@ import 'package:audioplayers/audioplayers.dart';
 
 class SoundManager {
   static final AudioPlayer _player = AudioPlayer();
-  static bool _ready = false;
+  static bool _warmedUp = false;
 
-  static void warmUp() {
-    _player.setVolume(0);
-    _player.play(AssetSource('silence.mp3')).then((_) {
-      _ready = true;
-      _player.stop();
-      _player.setVolume(1);
-    });
-  }
+  static Future<void> warmUp() async {
+    if (_warmedUp) return;
 
-  static void ensureReady() {
-    if (!_ready) {
-      warmUp();
+    try {
+      // Play a silent sound to initialize the audio pipeline
+      await _player.setVolume(0.0);
+      await _player.play(AssetSource('audio/silence.mp3'));
+      await _player.stop();
+      await _player.setVolume(1.0);
+    } catch (_) {
+      // Fail silently — audio warmup should never crash the game
     }
+
+    _warmedUp = true;
   }
 
-  static void play(String sound) {
-    ensureReady();
-    _player.play(AssetSource(sound));
+  static Future<void> play(String asset) async {
+    await _player.play(AssetSource(asset));
   }
 }
