@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -30,8 +32,10 @@ class _GameScreenState extends State<GameScreen>
 
   Duration _lastTime = Duration.zero;
 
-  // 🔹 TEMP conservative fall speed (world units per second)
   static const double baseFallSpeed = 120.0;
+  static const double balloonRadius = 16.0;
+
+  Size _lastSize = Size.zero;
 
   @override
   void initState() {
@@ -54,23 +58,48 @@ class _GameScreenState extends State<GameScreen>
 
     _lastTime = elapsed;
 
-    // Spawn balloons
     _spawner.update(
       dt: dt,
       tier: 0,
       balloons: _balloons,
     );
 
-    // 🔹 MOVE BALLOONS DOWNWARD
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       _balloons[i] = b.movedBy(baseFallSpeed * dt);
     }
 
-    // Engine logic (escapes, momentum penalties)
     _controller.update(_balloons, dt);
 
     setState(() {});
+  }
+
+  void _handleTap(TapDownDetails details) {
+    if (_lastSize == Size.zero) return;
+
+    final tapPos = details.localPosition;
+    final centerX = _lastSize.width / 2;
+
+    bool hit = false;
+
+    for (int i = 0; i < _balloons.length; i++) {
+      final b = _balloons[i];
+      if (b.isPopped) continue;
+
+      final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
+      final by = b.y;
+
+      final dx = tapPos.dx - bx;
+      final dy = tapPos.dy - by;
+
+      if (sqrt(dx * dx + dy * dy) <= balloonRadius) {
+        _balloons[i] = b.pop();
+        hit = true;
+        break;
+      }
+    }
+
+    _controller.registerTap(hit: hit);
   }
 
   @override
@@ -82,9 +111,19 @@ class _GameScreenState extends State<GameScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomPaint(
-        painter: BalloonPainter(_balloons, _gameState),
-        size: Size.infinite,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          _lastSize = constraints.biggest;
+
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: _handleTap,
+            child: CustomPaint(
+              painter: BalloonPainter(_balloons, _gameState),
+              size: Size.infinite,
+            ),
+          );
+        },
       ),
     );
   }
