@@ -30,6 +30,9 @@ class _GameScreenState extends State<GameScreen>
 
   Duration _lastTime = Duration.zero;
 
+  // 🔹 TEMP conservative fall speed (world units per second)
+  static const double baseFallSpeed = 120.0;
+
   @override
   void initState() {
     super.initState();
@@ -51,14 +54,20 @@ class _GameScreenState extends State<GameScreen>
 
     _lastTime = elapsed;
 
-    // Spawn balloons (tier 0 for now)
+    // Spawn balloons
     _spawner.update(
       dt: dt,
       tier: 0,
       balloons: _balloons,
     );
 
-    // Update game logic
+    // 🔹 MOVE BALLOONS DOWNWARD
+    for (int i = 0; i < _balloons.length; i++) {
+      final b = _balloons[i];
+      _balloons[i] = b.movedBy(baseFallSpeed * dt);
+    }
+
+    // Engine logic (escapes, momentum penalties)
     _controller.update(_balloons, dt);
 
     setState(() {});
