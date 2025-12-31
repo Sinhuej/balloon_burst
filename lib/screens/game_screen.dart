@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
+import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
@@ -23,6 +24,7 @@ class _GameScreenState extends State<GameScreen>
 
   final GameState _gameState = GameState();
   final List<Balloon> _balloons = [];
+  final BalloonSpawner _spawner = BalloonSpawner();
 
   late final GameController _controller;
 
@@ -49,11 +51,17 @@ class _GameScreenState extends State<GameScreen>
 
     _lastTime = elapsed;
 
+    // Spawn balloons (tier 0 for now)
+    _spawner.update(
+      dt: dt,
+      tier: 0,
+      balloons: _balloons,
+    );
+
+    // Update game logic
     _controller.update(_balloons, dt);
 
-    setState(() {
-      // repaint
-    });
+    setState(() {});
   }
 
   @override
