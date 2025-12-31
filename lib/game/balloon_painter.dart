@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
-import 'balloon.dart';
+import 'package:balloon_burst/gameplay/balloon.dart';
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
@@ -18,7 +18,7 @@ class BalloonPainter extends CustomPainter {
     final bgPaint = Paint()..color = Colors.black;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
-    // Subtle bottom danger affordance
+    // Subtle bottom danger affordance (visual only)
     final dangerHeight = 40.0;
     final dangerRect = Rect.fromLTWH(
       0,
@@ -39,7 +39,7 @@ class BalloonPainter extends CustomPainter {
 
     canvas.drawRect(dangerRect, dangerPaint);
 
-    // Intro banner (first ~1.5s)
+    // Intro banner (first ~1.5s @ ~60fps)
     if (gameState.framesSinceStart < 90) {
       final textPainter = TextPainter(
         text: const TextSpan(
@@ -61,7 +61,7 @@ class BalloonPainter extends CustomPainter {
       textPainter.paint(canvas, offset);
     }
 
-    // Tap feedback pulse
+    // Tap feedback pulse (one frame)
     if (gameState.tapPulse) {
       final pulsePaint = Paint()
         ..color = const Color.fromARGB(18, 80, 160, 255);

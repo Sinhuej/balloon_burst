@@ -24,9 +24,19 @@ class GameController {
     _escapeCount = 0;
   }
 
+  /// Call this from your tap handler when you wire input back in.
+  /// Engine-truth: hit=true emits a one-frame visual pulse.
+  void registerTap({required bool hit}) {
+    momentum.registerTap(hit: hit);
+    if (hit) {
+      gameState.tapPulse = true;
+    }
+  }
+
   void update(List<Balloon> balloons, double dt) {
     bool escapedThisFrame = false;
 
+    // Viewport-aware escape threshold
     final double escapeY = gameState.viewportHeight + 24.0;
 
     for (final b in balloons) {
@@ -38,11 +48,6 @@ class GameController {
 
     if (escapedThisFrame) {
       momentum.registerTap(hit: false);
-    }
-
-    // Successful tap feedback (engine truth)
-    if (momentum.lastTapWasHit) {
-      gameState.tapPulse = true;
     }
 
     if (_escapeCount >= maxEscapesBeforeFail) {
