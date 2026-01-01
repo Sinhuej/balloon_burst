@@ -7,21 +7,13 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+
     repositories {
         google()
         mavenCentral()
     }
 }
 
-include ":app"
-
-def flutterSdkPath = System.getenv("FLUTTER_ROOT")
-if (flutterSdkPath == null) {
-    flutterSdkPath = System.getenv("FLUTTER_HOME")
-}
-if (flutterSdkPath == null) {
-    throw new GradleException("FLUTTER_ROOT not set")
-}
-
-gradle.ext.flutterRoot = flutterSdkPath
+rootProject.name = "android"
+include(":app")
