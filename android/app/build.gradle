@@ -14,8 +14,8 @@ android {
         targetSdkVersion 35
 
         // Provided automatically by Flutter plugin
-        versionCode flutter.versionCode
-        versionName flutter.versionName
+        versionCode flutter.versionCode 1
+        versionName flutter.versionName "1.0"
     }
 
     compileOptions {
