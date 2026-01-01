@@ -1,30 +1,27 @@
-include ':app'
-
-def localProperties = new Properties()
-def localPropertiesFile = new File(rootDir, "local.properties")
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader("UTF-8") { reader ->
-        localProperties.load(reader)
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
     }
 }
 
-def flutterSdkPath = localProperties.getProperty("flutter.sdk")
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+include ":app"
+
+def flutterSdkPath = System.getenv("FLUTTER_ROOT")
 if (flutterSdkPath == null) {
-    throw new GradleException("Flutter SDK not found. Define flutter.sdk in local.properties.")
+    flutterSdkPath = System.getenv("FLUTTER_HOME")
+}
+if (flutterSdkPath == null) {
+    throw new GradleException("FLUTTER_ROOT not set")
 }
 
 gradle.ext.flutterRoot = flutterSdkPath
-
-def flutterProjectRoot = rootDir.parentFile.toPath()
-
-def plugins = new Properties()
-def pluginsFile = new File(flutterProjectRoot.toFile(), '.flutter-plugins')
-if (pluginsFile.exists()) {
-    pluginsFile.withReader('UTF-8') { reader -> plugins.load(reader) }
-}
-
-plugins.each { name, path ->
-    def pluginDirectory = flutterProjectRoot.resolve(path).resolve('android').toFile()
-    include ":$name"
-    project(":$name").projectDir = pluginDirectory
-}

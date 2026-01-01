@@ -1,21 +1,19 @@
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-}
+def flutterRoot = rootProject.ext.flutterRoot
+
+apply plugin: "com.android.application"
+apply plugin: "kotlin-android"
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.example.balloon_burst"
-    compileSdkVersion 34
+    compileSdkVersion 35
 
     defaultConfig {
         applicationId "com.example.balloon_burst"
         minSdkVersion 21
-        targetSdkVersion 34
-
-        // CI-safe values (Flutter overrides if needed)
-        versionCode 1
-        versionName "1.0.0"
+        targetSdkVersion 35
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
     }
 
     compileOptions {
@@ -29,9 +27,5 @@ android {
 }
 
 flutter {
-    source '../..'
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    source "../.."
 }

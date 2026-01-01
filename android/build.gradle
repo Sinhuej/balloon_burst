@@ -1,9 +1,5 @@
 buildscript {
-    ext {
-        kotlin_version = '1.9.22'
-        flutterVersionCode = 1
-        flutterVersionName = "1.0"
-    }
+    ext.kotlin_version = "1.9.22"
 
     repositories {
         google()
@@ -11,7 +7,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath "com.android.tools.build:gradle:8.2.2"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
