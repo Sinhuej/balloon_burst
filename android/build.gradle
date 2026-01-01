@@ -10,6 +10,23 @@ buildscript {
     }
 }
 
+/* ---- FLUTTER ROOT (REQUIRED) ---- */
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Define flutter.sdk in local.properties.")
+}
+
+ext.flutterRoot = flutterRoot
+/* -------------------------------- */
+
 allprojects {
     repositories {
         google()
