@@ -27,15 +27,12 @@ plugins {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    // 🚨 THIS IS THE FIX
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+
     repositories {
         google()
         mavenCentral()
-
-        // 🔑 THIS IS THE MISSING PIECE
-        maven {
-            url = uri("${System.getenv("FLUTTER_ROOT")}/bin/cache/artifacts/engine/android")
-        }
     }
 }
 
