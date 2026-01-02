@@ -10,7 +10,6 @@ if (flutterRoot == null) {
         flutterRoot = props.getProperty("flutter.sdk")
     }
 }
-
 if (flutterRoot == null) {
     throw new GradleException("Flutter SDK not found. Set FLUTTER_ROOT or flutter.sdk")
 }
@@ -19,12 +18,13 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.cube23.balloon_burst"
-    compileSdk 34
+
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.cube23.balloon_burst"
         minSdk 21
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 
