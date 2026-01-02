@@ -23,14 +23,17 @@ jobs:
         with:
           flutter-version: '3.22.3'
 
-      - name: Diagnostics (prove state)
+      - name: Accept Android SDK licenses
         run: |
           set -x
-          ls -la
-          ls -la android || true
+          yes | flutter doctor --android-licenses
 
-      - name: Build release APK (Flutter-managed)
+      - name: Diagnostics
         run: |
           set -x
           flutter doctor -v
+
+      - name: Build release APK
+        run: |
+          set -x
           flutter build apk --release --verbose
