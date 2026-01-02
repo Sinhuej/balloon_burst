@@ -10,6 +10,12 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
 
+    env:
+      FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.22.3-x64
+      FLUTTER_SUPPRESS_ANALYTICS: "true"
+      FLUTTER_DAEMON: "false"
+      FLUTTER_DISABLE_WATCHER: "true"
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -28,5 +34,6 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build release APK (Flutter)
-        run: flutter build apk --release
+      - name: Build release APK (Flutter, no daemon)
+        run: |
+          flutter build apk --release --no-daemon
