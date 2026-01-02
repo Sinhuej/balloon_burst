@@ -1,27 +1,19 @@
 plugins {
     id "com.android.application"
-    id "org.jetbrains.kotlin.android"
+    id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
     namespace "com.example.balloon_burst"
-    compileSdk 35
+    compileSdkVersion flutter.compileSdkVersion
 
     defaultConfig {
         applicationId "com.example.balloon_burst"
-        minSdk 21
-        targetSdk 35
-        // versionCode & versionName come from pubspec.yaml
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
     }
 
     buildTypes {
