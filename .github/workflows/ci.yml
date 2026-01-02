@@ -18,22 +18,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.22.3'
-
-      - name: Accept Android SDK licenses
+      - name: Build release APK (Gradle only)
         run: |
           set -x
-          yes | flutter doctor --android-licenses
-
-      - name: Diagnostics
-        run: |
-          set -x
-          flutter doctor -v
-
-      - name: Build release APK
-        run: |
-          set -x
-          flutter build apk --release --verbose
+          cd android
+          chmod +x gradlew
+          ./gradlew --version
+          ./gradlew assembleRelease --stacktrace --info --no-daemon
