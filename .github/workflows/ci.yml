@@ -2,16 +2,14 @@ name: Build Balloon Burst APK
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -22,20 +20,24 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.22.3
+          flutter-version: "3.22.3"
           channel: stable
 
-      - name: Flutter doctor
-        run: flutter doctor -v
+      - name: Environment diagnostics
+        run: |
+          set -x
+          flutter --version
+          dart --version
+          java -version
+          ./android/gradlew --version || true
+          env | sort
 
-      - name: Recreate Android platform
-        run: flutter create . --platforms=android --project-name balloon_burst
+      - name: Ensure local.properties
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+          cat android/local.properties
 
-      - name: Fix regenerated Gradle
-        run: bash android_post_create_fix.sh
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Build release APK (verbose)
+        run: |
+          set -x
+          flutter build apk --release --verbose
