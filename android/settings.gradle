@@ -6,7 +6,6 @@ pluginManagement {
     }
 
     def flutterSdkPath = System.getenv("FLUTTER_ROOT")
-
     if (flutterSdkPath == null) {
         def localProps = new Properties()
         def localPropsFile = file("local.properties")
@@ -23,10 +22,6 @@ pluginManagement {
     }
 
     includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
-}
-
-plugins {
-    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
 }
 
 dependencyResolutionManagement {
