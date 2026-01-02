@@ -1,4 +1,4 @@
-name: CI - Build Balloon Burst APK (Gradle + Flutter SDK)
+name: CI - Build Balloon Burst APK (Flutter prime + Gradle)
 
 on:
   push:
@@ -31,11 +31,12 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # 🔑 THIS IS THE MISSING PIECE
-      - name: Populate Flutter release engine AARs
-        run: flutter build aar
+      # 🔑 REQUIRED: primes Flutter engine AARs so Gradle can resolve io.flutter:*
+      - name: Prime Flutter engine artifacts
+        run: flutter build apk --release
 
-      - name: Build release APK (Gradle only)
+      # 🚀 Your preferred path: Gradle-only build
+      - name: Build release APK (Gradle)
         run: |
           set -x
           cd android
