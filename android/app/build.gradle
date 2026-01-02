@@ -1,8 +1,21 @@
-plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-    id 'dev.flutter.flutter-gradle-plugin'
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+def flutterRoot = System.getenv("FLUTTER_ROOT")
+if (flutterRoot == null) {
+    Properties props = new Properties()
+    File propsFile = rootProject.file("local.properties")
+    if (propsFile.exists()) {
+        props.load(new FileInputStream(propsFile))
+        flutterRoot = props.getProperty("flutter.sdk")
+    }
 }
+
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Set FLUTTER_ROOT or flutter.sdk")
+}
+
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.cube23.balloon_burst"
