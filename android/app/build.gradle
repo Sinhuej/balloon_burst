@@ -46,3 +46,8 @@ android {
         }
     }
 }
+
+dependencies {
+    // 🔑 Explicit Flutter Android embedding
+    implementation "io.flutter:flutter_embedding_release"
+}
