@@ -23,18 +23,17 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Flutter SDK (no flutter build)
+      - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.3'
 
-      # REQUIRED: populate Flutter engine AARs
-      - name: Flutter precache (Android)
-        run: flutter precache --android
-
-      # REQUIRED: generate .dart_tool/package_config.json
       - name: Flutter pub get
         run: flutter pub get
+
+      # 🔑 THIS IS THE MISSING PIECE
+      - name: Populate Flutter release engine AARs
+        run: flutter build aar
 
       - name: Build release APK (Gradle only)
         run: |
