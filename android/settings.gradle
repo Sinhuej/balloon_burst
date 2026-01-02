@@ -29,6 +29,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+
+        // 🔑 REQUIRED for Flutter engine artifacts
+        maven {
+            url "https://storage.googleapis.com/download.flutter.io"
+        }
     }
 }
 
