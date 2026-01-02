@@ -46,3 +46,12 @@ app.*.map.json
 
 # Local workflow scripts
 steps_*.sh
+# Local helper scripts / scratch
+Build
+Get
+Run
+startup
+android_rebuild.sh
+android_reset_nuke.sh
+android_verify.sh
+fix_gradle_repos.sh
