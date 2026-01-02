@@ -28,7 +28,11 @@ jobs:
         with:
           flutter-version: '3.22.3'
 
-      # REQUIRED: generates .dart_tool/package_config.json
+      # REQUIRED: populate Flutter engine AARs
+      - name: Flutter precache (Android)
+        run: flutter precache --android
+
+      # REQUIRED: generate .dart_tool/package_config.json
       - name: Flutter pub get
         run: flutter pub get
 
