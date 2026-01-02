@@ -19,7 +19,7 @@ pluginManagement {
         throw new GradleException("Flutter SDK not found. Set FLUTTER_ROOT or flutter.sdk")
     }
 
-    includeBuild(flutterSdkPath + "/packages/flutter_tools/gradle")
+    includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
 }
 
 plugins {
@@ -32,8 +32,9 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
 
+        // 🔑 THIS IS THE MISSING PIECE
         maven {
-            url System.getenv("FLUTTER_ROOT") + "/bin/cache/artifacts/engine/android"
+            url = uri("${System.getenv("FLUTTER_ROOT")}/bin/cache/artifacts/engine/android")
         }
     }
 }
