@@ -2,8 +2,7 @@ name: CI - Build Balloon Burst APK (Flutter authoritative)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -12,9 +11,10 @@ jobs:
 
     env:
       FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.22.3-x64
-      FLUTTER_SUPPRESS_ANALYTICS: "true"
-      FLUTTER_DAEMON: "false"
-      FLUTTER_DISABLE_WATCHER: "true"
+      FLUTTER_SUPPRESS_ANALYTICS: true
+      FLUTTER_DAEMON: false
+      FLUTTER_DISABLE_WATCHER: true
+      PUB_CACHE: /home/runner/.pub-cache
 
     steps:
       - name: Checkout repo
@@ -34,6 +34,5 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build release APK (Flutter, no daemon)
-        run: |
-          flutter build apk --release --no-daemon
+      - name: Build release APK (Flutter authoritative)
+        run: flutter build apk --release
