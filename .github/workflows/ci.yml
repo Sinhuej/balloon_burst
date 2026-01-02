@@ -1,4 +1,4 @@
-name: CI - Build Balloon Burst APK (Flutter prime + Gradle)
+name: CI - Build Balloon Burst APK (Flutter authoritative)
 
 on:
   push:
@@ -9,9 +9,6 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-
-    env:
-      FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.22.3-x64
 
     steps:
       - name: Checkout repo
@@ -31,14 +28,5 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # 🔑 REQUIRED: primes Flutter engine AARs so Gradle can resolve io.flutter:*
-      - name: Prime Flutter engine artifacts
+      - name: Build release APK (Flutter)
         run: flutter build apk --release
-
-      # 🚀 Your preferred path: Gradle-only build
-      - name: Build release APK (Gradle)
-        run: |
-          set -x
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
