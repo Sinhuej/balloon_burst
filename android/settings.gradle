@@ -24,16 +24,15 @@ pluginManagement {
     includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
 }
 
+plugins {
+    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()
-
-        // 🔑 REQUIRED for Flutter engine artifacts
-        maven {
-            url "https://storage.googleapis.com/download.flutter.io"
-        }
     }
 }
 
