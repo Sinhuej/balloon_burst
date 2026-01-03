@@ -1,4 +1,4 @@
-name: Build Android APK
+name: CI
 
 on:
   push:
@@ -6,47 +6,46 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Install Android SDK cmdline-tools (correct layout)
+      - name: Install Android command-line tools (clean)
         shell: bash
         run: |
           set -euxo pipefail
 
           ANDROID_HOME="$HOME/android-sdk"
-          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+          mkdir -p "$ANDROID_HOME"
           cd "$ANDROID_HOME"
 
           curl -L -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q tools.zip
+          rm tools.zip
 
-          # THIS is the critical fix
-          mv commandlinetools/cmdline-tools/* cmdline-tools/latest/
+          mkdir -p cmdline-tools/latest
+          mv cmdline-tools/bin \
+             cmdline-tools/lib \
+             cmdline-tools/source.properties \
+             cmdline-tools/NOTICE.txt \
+             cmdline-tools/latest/
 
-          rm -rf tools.zip commandlinetools
-
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
-
-      - name: Accept ALL Android SDK licenses
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          export ANDROID_HOME="$HOME/android-sdk"
-          export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 
-          which sdkmanager
-          sdkmanager --version
           yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Build APK
+        run: flutter build apk --release
