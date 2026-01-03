@@ -20,10 +20,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Flutter
+      - name: Set up Flutter (pinned)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: stable
+          flutter-version: '3.22.2'
           cache: true
 
       - name: Flutter pub get
