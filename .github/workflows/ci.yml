@@ -19,6 +19,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
       - name: Install Android command-line tools (clean)
         shell: bash
         run: |
