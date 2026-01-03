@@ -34,23 +34,24 @@ set_env_var() {
 ########################################
 echo "▶ Setting up Android SDK"
 mkdir -p "$SDK_ROOT"
+cd "$SDK_ROOT"
 
 ########################################
 # Download cmdline-tools if missing
 ########################################
 if [[ ! -d "$LATEST_DIR" ]]; then
   echo "▶ Downloading Android cmdline-tools"
-  cd "$SDK_ROOT"
 
   rm -f "$TOOLS_ZIP"
   curl -sSL "$TOOLS_URL" -o "$TOOLS_ZIP"
 
-  rm -rf cmdline-tools latest
-  unzip -oq "$TOOLS_ZIP"
+  unzip -q "$TOOLS_ZIP"
 
-  mv cmdline-tools latest
-  mkdir -p "$CMDLINE_DIR"
-  mv latest "$LATEST_DIR"
+  # Google zip extracts as: cmdline-tools/
+  rm -rf cmdline-tools.tmp
+  mv cmdline-tools cmdline-tools.tmp
+  mkdir -p cmdline-tools
+  mv cmdline-tools.tmp cmdline-tools/latest
 
   rm -f "$TOOLS_ZIP"
 else
@@ -65,7 +66,7 @@ set_env_var ANDROID_SDK_ROOT "$SDK_ROOT"
 set_env_var PATH "$LATEST_DIR/bin:$PATH"
 
 ########################################
-# Accept licenses
+# Accept licenses (Termux-safe)
 ########################################
 yes | bash "$LATEST_DIR/bin/sdkmanager" --licenses >/dev/null || true
 
