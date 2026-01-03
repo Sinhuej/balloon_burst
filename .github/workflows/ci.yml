@@ -3,31 +3,58 @@ name: CI
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Flutter (pinned)
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.2'
+          channel: stable
           cache: true
 
-      - name: Flutter pub get
-        run: flutter pub get
+      - name: Install Android command-line tools
+        shell: bash
+        run: |
+          set -euxo pipefail
 
-      - name: Build APK (release)
+          ANDROID_HOME="$HOME/android-sdk"
+          mkdir -p "$ANDROID_HOME"
+          cd "$ANDROID_HOME"
+
+          curl -L -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q tools.zip
+          rm tools.zip
+
+          mkdir -p cmdline-tools/latest
+          mv cmdline-tools/bin \
+             cmdline-tools/lib \
+             cmdline-tools/source.properties \
+             cmdline-tools/NOTICE.txt \
+             cmdline-tools/latest/
+
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+          sdkmanager --licenses <<< "y"
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build release APK
         run: flutter build apk --release
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: balloon-burst-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
