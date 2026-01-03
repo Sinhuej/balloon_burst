@@ -5,6 +5,11 @@
         android:label="Balloon Burst"
         android:icon="@mipmap/ic_launcher">
 
+        <!-- REQUIRED for Flutter v2 embedding -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
