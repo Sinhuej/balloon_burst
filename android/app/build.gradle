@@ -1,45 +1,14 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-
-def flutterRoot = System.getenv("FLUTTER_ROOT")
-if (flutterRoot == null) {
-    Properties props = new Properties()
-    File propsFile = rootProject.file("local.properties")
-    if (propsFile.exists()) {
-        props.load(new FileInputStream(propsFile))
-        flutterRoot = props.getProperty("flutter.sdk")
-    }
+plugins {
+    id "com.android.application"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "org.jetbrains.kotlin.android"
 }
-
-if (flutterRoot == null) {
-    throw new GradleException("Flutter SDK not found. Set FLUTTER_ROOT or flutter.sdk")
-}
-
-apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    namespace "com.cube23.balloon_burst"
-    compileSdk 35
+    namespace "com.example.balloon_burst"
 
-    defaultConfig {
-        applicationId "com.cube23.balloon_burst"
-        minSdk 21
-        targetSdk 35
-        versionCode 1
-        versionName "1.0"
-
-        manifestPlaceholders = [
-            applicationName: "io.flutter.embedding.android.FlutterApplication"
-        ]
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            shrinkResources false
-            signingConfig signingConfigs.debug
-        }
-    }
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -48,6 +17,21 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId "com.example.balloon_burst"
+        minSdk flutter.minSdkVersion
+        targetSdk flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            // CI sanity build (replace later with real signing)
+            signingConfig signingConfigs.debug
+        }
     }
 }
 
