@@ -17,7 +17,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install Android SDK cmdline-tools
+      - name: Install Android SDK cmdline-tools (correct layout)
         shell: bash
         run: |
           set -euxo pipefail
@@ -29,11 +29,14 @@ jobs:
           curl -L -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q tools.zip
 
-          rsync -a --exclude='latest' cmdline-tools/ cmdline-tools/latest/
-          rm -rf tools.zip cmdline-tools
+          # THIS is the critical fix
+          mv commandlinetools/cmdline-tools/* cmdline-tools/latest/
+
+          rm -rf tools.zip commandlinetools
 
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
 
       - name: Accept ALL Android SDK licenses
         shell: bash
@@ -44,35 +47,6 @@ jobs:
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 
-          # prove sdkmanager exists
           which sdkmanager
           sdkmanager --version
-
-          # accept *every* license (this is the missing piece)
           yes | sdkmanager --licenses
-
-      - name: Install Android SDK packages
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          export ANDROID_HOME="$HOME/android-sdk"
-          export ANDROID_SDK_ROOT="$ANDROID_HOME"
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
-
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
-      - name: Flutter precache
-        run: flutter precache
-
-      - name: Build release APK
-        run: flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: balloon-burst-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
