@@ -1,0 +1,51 @@
+name: Android CI Build Check
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Android command-line tools (clean)
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          ANDROID_HOME="$HOME/android-sdk"
+          mkdir -p "$ANDROID_HOME"
+          cd "$ANDROID_HOME"
+
+          curl -L -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q tools.zip
+          rm tools.zip
+
+          mkdir -p cmdline-tools/latest
+          mv cmdline-tools/bin \
+             cmdline-tools/lib \
+             cmdline-tools/source.properties \
+             cmdline-tools/NOTICE.txt \
+             cmdline-tools/latest/
+
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Build APK
+        run: flutter build apk --release
