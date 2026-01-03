@@ -1,35 +1,25 @@
 plugins {
     id "com.android.application"
+    id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id "org.jetbrains.kotlin.android"
 }
 
 android {
-    namespace "com.example.balloon_burst"
-
-    compileSdk flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    namespace "com.cube23.balloonburst"
+    compileSdkVersion flutter.compileSdkVersion
 
     defaultConfig {
-        applicationId "com.example.balloon_burst"
-        minSdk flutter.minSdkVersion
-        targetSdk flutter.targetSdkVersion
-        versionCode flutter.versionCode
-        versionName flutter.versionName
+        applicationId "com.cube23.balloonburst"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+
+        // ✅ FIX: explicit versioning (Flutter 3.22+ compatible)
+        versionCode 1
+        versionName "1.0.0"
     }
 
     buildTypes {
         release {
-            // CI sanity build (replace later with real signing)
             signingConfig signingConfigs.debug
         }
     }
