@@ -23,14 +23,17 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+
           ANDROID_HOME="$HOME/android-sdk"
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
           cd "$ANDROID_HOME"
 
           curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
-          mv latest cmdline-tools/latest
+
+          # Move contents into required 'latest' folder
+          mv cmdline-tools/* cmdline-tools/latest/
+          rmdir cmdline-tools
 
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
