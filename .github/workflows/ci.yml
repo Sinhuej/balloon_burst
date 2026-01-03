@@ -10,11 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
@@ -31,28 +29,19 @@ jobs:
           curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q cmdline-tools.zip
 
-          # Move everything EXCEPT 'latest' safely
-          rsync -a --delete \
-            --exclude='latest' \
-            cmdline-tools/ cmdline-tools/latest/
+          # Copy tools into latest (works for all Google zip layouts)
+          rsync -a --exclude='latest' cmdline-tools/ cmdline-tools/latest/
 
-          rm -rf cmdline-tools
-          mkdir -p cmdline-tools
-          mv cmdline-tools/latest cmdline-tools/latest
+          rm -rf cmdline-tools.zip cmdline-tools
 
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
 
       - name: Accept Android licenses
-        shell: bash
-        run: |
-          set -euxo pipefail
-          yes | sdkmanager --licenses
+        run: yes | sdkmanager --licenses
 
       - name: Install Android SDK 35
-        shell: bash
         run: |
-          set -euxo pipefail
           sdkmanager \
             "platform-tools" \
             "platforms;android-35" \
