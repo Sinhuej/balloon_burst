@@ -1,4 +1,4 @@
-name: CI - Build Balloon Burst APK (Flutter authoritative)
+name: Build Android APK
 
 on:
   push:
@@ -9,36 +9,55 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
 
-    env:
-      FLUTTER_SUPPRESS_ANALYTICS: true
-      FLUTTER_DAEMON: false
-      FLUTTER_DISABLE_WATCHER: true
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.22.3'
-
-      - name: Install Android SDK 35
+      - name: Install Android SDK cmdline-tools
+        shell: bash
         run: |
           set -euxo pipefail
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
+          ANDROID_HOME="$HOME/android-sdk"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME"
 
+          curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
+          mv latest cmdline-tools/latest
+
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
+
+      - name: Accept Android licenses
+        shell: bash
+        run: |
+          set -euxo pipefail
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Flutter pub get
-        run: flutter pub get
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+      - name: Flutter precache
+        run: flutter precache
 
       - name: Build release APK
         run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: balloon-burst-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
