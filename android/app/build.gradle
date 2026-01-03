@@ -3,16 +3,23 @@ apply plugin: 'kotlin-android'
 
 def flutterRoot = System.getenv("FLUTTER_ROOT")
 if (flutterRoot == null) {
-    throw new GradleException("FLUTTER_ROOT not set (CI only build)")
+    Properties props = new Properties()
+    File propsFile = rootProject.file("local.properties")
+    if (propsFile.exists()) {
+        props.load(new FileInputStream(propsFile))
+        flutterRoot = props.getProperty("flutter.sdk")
+    }
+}
+
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Set FLUTTER_ROOT or flutter.sdk")
 }
 
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.cube23.balloon_burst"
-
     compileSdk 35
-    ndkVersion "25.2.9519653"
 
     defaultConfig {
         applicationId "com.cube23.balloon_burst"
@@ -20,19 +27,10 @@ android {
         targetSdk 35
         versionCode 1
         versionName "1.0"
-    }
 
-    // 🔥 HARD STOP: this prevents OutputFile crash
-    splits {
-        abi {
-            enable false
-        }
-    }
-
-    packagingOptions {
-        jniLibs {
-            useLegacyPackaging = true
-        }
+        manifestPlaceholders = [
+            applicationName: "io.flutter.embedding.android.FlutterApplication"
+        ]
     }
 
     buildTypes {
