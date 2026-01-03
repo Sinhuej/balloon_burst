@@ -53,8 +53,10 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload release APK
+      - name: Upload release APK (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: balloon-burst-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: warn
