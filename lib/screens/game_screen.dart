@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
-
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
@@ -33,10 +32,10 @@ class _GameScreenState extends State<GameScreen>
   final WorldState _worldState = WorldState();
 
   late final GameController _controller;
-  final SpeedCurve _speedCurve = SpeedCurve();
 
   Duration _lastTime = Duration.zero;
 
+  static const double baseRiseSpeed = -120.0; // ⬆ Rising Worlds
   static const double balloonRadius = 16.0;
 
   Size _lastSize = Size.zero;
@@ -48,7 +47,7 @@ class _GameScreenState extends State<GameScreen>
     _controller = GameController(
       momentum: MomentumController(),
       tier: TierController(),
-      speed: _speedCurve,
+      speed: SpeedCurve(),
       gameState: _gameState,
     );
 
@@ -62,22 +61,16 @@ class _GameScreenState extends State<GameScreen>
 
     _lastTime = elapsed;
 
-    // Spawn balloons (tier tied to world index)
     _spawner.update(
       dt: dt,
-      tier: _worldState.worldIndex,
+      tier: 0,
       balloons: _balloons,
+      gameState: _gameState,
     );
-
-    // 🌍 Rising Worlds: speed increases per world
-    final riseSpeed =
-        _speedCurve.speedForTier(_worldState.worldIndex);
 
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-
-      // Negative Y moves UP (rising balloons)
-      _balloons[i] = b.movedBy(-riseSpeed * dt);
+      _balloons[i] = b.movedBy(baseRiseSpeed * dt);
     }
 
     _controller.update(_balloons, dt);
@@ -107,18 +100,14 @@ class _GameScreenState extends State<GameScreen>
         _balloons[i] = b.pop();
         hit = true;
 
-        // 🔊 Play sound ONLY on successful pop
         AudioPlayerService.playPop();
 
-        // 🎈 Rising Worlds progression
         _worldState.registerPop();
-
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
-
-          // Soft reset between worlds
           _balloons.clear();
           _controller.momentum.reset();
+          _spawner.reset();
         }
 
         break;
@@ -140,6 +129,7 @@ class _GameScreenState extends State<GameScreen>
       body: LayoutBuilder(
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
+          _gameState.viewportHeight = _lastSize.height;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
