@@ -1,7 +1,7 @@
 import 'package:balloon_burst/gameplay/balloon.dart';
 
 /// Simple Flutter-only spawner.
-/// Replaces Flame-based Spawner for the active game loop.
+/// Rising Worlds version: balloons spawn below viewport.
 class BalloonSpawner {
   double _timer = 0.0;
   int _spawnCount = 0;
@@ -13,6 +13,7 @@ class BalloonSpawner {
     required double dt,
     required int tier,
     required List<Balloon> balloons,
+    required double viewportHeight,
   }) {
     _timer += dt;
 
@@ -23,6 +24,7 @@ class BalloonSpawner {
         _spawnCount,
         total: _spawnCount + 1,
         tier: tier,
+        viewportHeight: viewportHeight,
       );
 
       balloons.add(balloon);

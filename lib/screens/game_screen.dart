@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
+
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
@@ -35,7 +36,7 @@ class _GameScreenState extends State<GameScreen>
 
   Duration _lastTime = Duration.zero;
 
-  static const double baseRiseSpeed = -120.0; // ⬆ Rising Worlds
+  static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
   Size _lastSize = Size.zero;
@@ -65,12 +66,13 @@ class _GameScreenState extends State<GameScreen>
       dt: dt,
       tier: 0,
       balloons: _balloons,
-      gameState: _gameState,
+      viewportHeight: _lastSize.height,
     );
 
+    // ⬆ Rising Worlds: balloons move UP
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-      _balloons[i] = b.movedBy(baseRiseSpeed * dt);
+      _balloons[i] = b.movedBy(-baseRiseSpeed * dt);
     }
 
     _controller.update(_balloons, dt);
@@ -102,12 +104,13 @@ class _GameScreenState extends State<GameScreen>
 
         AudioPlayerService.playPop();
 
+        // 🎈 TJ-30 Rising Worlds progression
         _worldState.registerPop();
+
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
           _balloons.clear();
           _controller.momentum.reset();
-          _spawner.reset();
         }
 
         break;
@@ -129,7 +132,6 @@ class _GameScreenState extends State<GameScreen>
       body: LayoutBuilder(
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
-          _gameState.viewportHeight = _lastSize.height;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
