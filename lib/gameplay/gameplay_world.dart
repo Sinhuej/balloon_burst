@@ -58,15 +58,12 @@ class GameplayWorld {
     final updated = List<Balloon>.from(balloons);
     updated[index] = b.pop();
 
-    // TJ-30: register world progress
     worldState.registerPop();
-
-    // Mark for deferred world advance
     final shouldAdvance = worldState.isWorldComplete;
 
     return copyWith(
       balloons: updated,
-      lastActionWasPowerUp: false,
+      lastActionWasPowerUp: true, // 🔑 restore gameplay signal
       pendingWorldAdvance: shouldAdvance,
     );
   }
@@ -75,7 +72,6 @@ class GameplayWorld {
     final remaining = balloons.where((b) => !b.isPopped).toList();
     if (remaining.length == balloons.length) return this;
 
-    // After normal cleanup, safely advance world
     if (pendingWorldAdvance) {
       worldState.advanceWorld();
       return GameplayWorld(
