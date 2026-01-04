@@ -47,7 +47,6 @@ class _GameScreenState extends State<GameScreen>
     super.initState();
 
     // 🔥 Warm up audio ONCE to remove first-tap delay
-    AudioWarmup.warm();
 
     _controller = GameController(
       momentum: MomentumController(),
