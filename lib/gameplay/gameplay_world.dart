@@ -7,11 +7,13 @@ class GameplayWorld {
   final List<Balloon> balloons;
   final bool lastActionWasPowerUp;
   final WorldState worldState;
+  final bool pendingWorldAdvance;
 
   const GameplayWorld({
     required this.balloons,
     this.lastActionWasPowerUp = false,
     WorldState? worldState,
+    this.pendingWorldAdvance = false,
   }) : worldState = worldState ?? WorldState();
 
   int get poppedCount => balloons.where((b) => b.isPopped).length;
@@ -28,12 +30,15 @@ class GameplayWorld {
     List<Balloon>? balloons,
     bool? lastActionWasPowerUp,
     WorldState? worldState,
+    bool? pendingWorldAdvance,
   }) {
     return GameplayWorld(
       balloons: balloons ?? this.balloons,
       lastActionWasPowerUp:
           lastActionWasPowerUp ?? this.lastActionWasPowerUp,
       worldState: worldState ?? this.worldState,
+      pendingWorldAdvance:
+          pendingWorldAdvance ?? this.pendingWorldAdvance,
     );
   }
 
@@ -56,26 +61,30 @@ class GameplayWorld {
     // TJ-30: register world progress
     worldState.registerPop();
 
-    // TJ-30: world completion + soft reset
-    if (worldState.isWorldComplete) {
-      worldState.advanceWorld();
-
-      return GameplayWorld(
-        balloons: const [],
-        lastActionWasPowerUp: false,
-        worldState: worldState,
-      );
-    }
+    // Mark for deferred world advance
+    final shouldAdvance = worldState.isWorldComplete;
 
     return copyWith(
       balloons: updated,
       lastActionWasPowerUp: false,
+      pendingWorldAdvance: shouldAdvance,
     );
   }
 
   GameplayWorld removePoppedBalloons() {
     final remaining = balloons.where((b) => !b.isPopped).toList();
     if (remaining.length == balloons.length) return this;
+
+    // After normal cleanup, safely advance world
+    if (pendingWorldAdvance) {
+      worldState.advanceWorld();
+      return GameplayWorld(
+        balloons: const [],
+        lastActionWasPowerUp: false,
+        worldState: worldState,
+        pendingWorldAdvance: false,
+      );
+    }
 
     return copyWith(
       balloons: remaining,
