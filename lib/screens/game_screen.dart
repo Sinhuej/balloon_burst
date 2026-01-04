@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
+import 'package:balloon_burst/audio/audio_warmup.dart';
 
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
@@ -45,6 +46,9 @@ class _GameScreenState extends State<GameScreen>
   void initState() {
     super.initState();
 
+    // 🔥 Warm up audio ONCE to remove first-tap delay
+    AudioWarmup.warm();
+
     _controller = GameController(
       momentum: MomentumController(),
       tier: TierController(),
@@ -79,10 +83,6 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleTap(TapDownDetails details) {
-    // 🔊 FORCED AUDIO — this MUST fire on every tap
-    AudioPlayerService.playPop();
-    debugPrint('TAP DETECTED');
-
     if (_lastSize == Size.zero) return;
 
     final tapPos = details.localPosition;
@@ -103,6 +103,9 @@ class _GameScreenState extends State<GameScreen>
       if (sqrt(dx * dx + dy * dy) <= balloonRadius) {
         _balloons[i] = b.pop();
         hit = true;
+
+        // 🔊 Play sound ONLY on real balloon pop
+        AudioPlayerService.playPop();
 
         // 🎈 TJ-30: Rising Worlds progression
         _worldState.registerPop();
