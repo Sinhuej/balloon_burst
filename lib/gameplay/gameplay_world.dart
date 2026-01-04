@@ -1,15 +1,18 @@
 import 'balloon.dart';
 import '../game/commands/pop_first_available_command.dart';
 import '../game/commands/remove_popped_balloons_command.dart';
+import '../world/world_state.dart';
 
 class GameplayWorld {
   final List<Balloon> balloons;
   final bool lastActionWasPowerUp;
+  final WorldState worldState;
 
   const GameplayWorld({
     required this.balloons,
     this.lastActionWasPowerUp = false,
-  });
+    WorldState? worldState,
+  }) : worldState = worldState ?? WorldState();
 
   int get poppedCount => balloons.where((b) => b.isPopped).length;
 
@@ -24,11 +27,13 @@ class GameplayWorld {
   GameplayWorld copyWith({
     List<Balloon>? balloons,
     bool? lastActionWasPowerUp,
+    WorldState? worldState,
   }) {
     return GameplayWorld(
       balloons: balloons ?? this.balloons,
       lastActionWasPowerUp:
           lastActionWasPowerUp ?? this.lastActionWasPowerUp,
+      worldState: worldState ?? this.worldState,
     );
   }
 
@@ -41,18 +46,41 @@ class GameplayWorld {
 
   GameplayWorld popBalloonAt(int index) {
     if (index < 0 || index >= balloons.length) return this;
+
     final b = balloons[index];
     if (b.isPopped) return this;
 
     final updated = List<Balloon>.from(balloons);
     updated[index] = b.pop();
-    return copyWith(balloons: updated, lastActionWasPowerUp: false);
+
+    // TJ-30: register world progress
+    worldState.registerPop();
+
+    // TJ-30: world completion + soft reset
+    if (worldState.isWorldComplete) {
+      worldState.advanceWorld();
+
+      return GameplayWorld(
+        balloons: const [],
+        lastActionWasPowerUp: false,
+        worldState: worldState,
+      );
+    }
+
+    return copyWith(
+      balloons: updated,
+      lastActionWasPowerUp: false,
+    );
   }
 
   GameplayWorld removePoppedBalloons() {
     final remaining = balloons.where((b) => !b.isPopped).toList();
     if (remaining.length == balloons.length) return this;
-    return copyWith(balloons: remaining, lastActionWasPowerUp: false);
+
+    return copyWith(
+      balloons: remaining,
+      lastActionWasPowerUp: false,
+    );
   }
 
   List<Object> get suggestedCommands {
