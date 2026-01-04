@@ -98,23 +98,22 @@ class _GameScreenState extends State<GameScreen>
         _balloons[i] = b.pop();
         hit = true;
 
-        // 🎈 TJ-30: register real-world pop
+        // 🎈 TJ-30: real-world progression
         _worldState.registerPop();
 
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
 
-          // Soft reset (preserves sound & momentum systems)
+          // Soft reset — momentum only (speed derives naturally)
           _balloons.clear();
           _controller.momentum.reset();
-          _controller.speed.reset();
         }
 
         break;
       }
     }
 
-    // ⚠️ DO NOT TOUCH — this drives sound & speed
+    // Drives sound + momentum + speed
     _controller.registerTap(hit: hit);
   }
 
