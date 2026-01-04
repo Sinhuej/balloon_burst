@@ -8,6 +8,7 @@ import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:balloon_burst/world/world_state.dart';
 
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
@@ -27,6 +28,7 @@ class _GameScreenState extends State<GameScreen>
   final GameState _gameState = GameState();
   final List<Balloon> _balloons = [];
   final BalloonSpawner _spawner = BalloonSpawner();
+  final WorldState _worldState = WorldState();
 
   late final GameController _controller;
 
@@ -95,10 +97,24 @@ class _GameScreenState extends State<GameScreen>
       if (sqrt(dx * dx + dy * dy) <= balloonRadius) {
         _balloons[i] = b.pop();
         hit = true;
+
+        // 🎈 TJ-30: register real-world pop
+        _worldState.registerPop();
+
+        if (_worldState.isWorldComplete) {
+          _worldState.advanceWorld();
+
+          // Soft reset (preserves sound & momentum systems)
+          _balloons.clear();
+          _controller.momentum.reset();
+          _controller.speed.reset();
+        }
+
         break;
       }
     }
 
+    // ⚠️ DO NOT TOUCH — this drives sound & speed
     _controller.registerTap(hit: hit);
   }
 
