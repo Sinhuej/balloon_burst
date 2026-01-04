@@ -55,3 +55,7 @@ android_rebuild.sh
 android_reset_nuke.sh
 android_verify.sh
 fix_gradle_repos.sh
+
+# Android SDK / command line tools (CI only)
+cmdline-tools/
+android-sdk/
