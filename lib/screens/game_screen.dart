@@ -1,3 +1,5 @@
+import 'package:balloon_burst/engine/audio/sound_controller.dart';
+
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -31,6 +33,7 @@ class _GameScreenState extends State<GameScreen>
   final WorldState _worldState = WorldState();
 
   late final GameController _controller;
+  late final SoundController _sound;
 
   Duration _lastTime = Duration.zero;
 
@@ -42,6 +45,8 @@ class _GameScreenState extends State<GameScreen>
   @override
   void initState() {
     super.initState();
+
+    _sound = SoundController();
 
     _controller = GameController(
       momentum: MomentumController(),
@@ -77,6 +82,7 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleTap(TapDownDetails details) {
+    _sound.playPop();
     if (_lastSize == Size.zero) return;
 
     final tapPos = details.localPosition;
