@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
-import 'package:balloon_burst/audio/audio_warmup.dart';
 
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
@@ -34,10 +33,10 @@ class _GameScreenState extends State<GameScreen>
   final WorldState _worldState = WorldState();
 
   late final GameController _controller;
+  final SpeedCurve _speedCurve = SpeedCurve();
 
   Duration _lastTime = Duration.zero;
 
-  static const double baseFallSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
   Size _lastSize = Size.zero;
@@ -46,12 +45,10 @@ class _GameScreenState extends State<GameScreen>
   void initState() {
     super.initState();
 
-    // 🔥 Warm up audio ONCE to remove first-tap delay
-
     _controller = GameController(
       momentum: MomentumController(),
       tier: TierController(),
-      speed: SpeedCurve(),
+      speed: _speedCurve,
       gameState: _gameState,
     );
 
@@ -65,15 +62,22 @@ class _GameScreenState extends State<GameScreen>
 
     _lastTime = elapsed;
 
+    // Spawn balloons (tier tied to world index)
     _spawner.update(
       dt: dt,
-      tier: 0,
+      tier: _worldState.worldIndex,
       balloons: _balloons,
     );
 
+    // 🌍 Rising Worlds: speed increases per world
+    final riseSpeed =
+        _speedCurve.speedForTier(_worldState.worldIndex);
+
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-      _balloons[i] = b.movedBy(baseFallSpeed * dt);
+
+      // Negative Y moves UP (rising balloons)
+      _balloons[i] = b.movedBy(-riseSpeed * dt);
     }
 
     _controller.update(_balloons, dt);
@@ -103,14 +107,16 @@ class _GameScreenState extends State<GameScreen>
         _balloons[i] = b.pop();
         hit = true;
 
-        // 🔊 Play sound ONLY on real balloon pop
+        // 🔊 Play sound ONLY on successful pop
         AudioPlayerService.playPop();
 
-        // 🎈 TJ-30: Rising Worlds progression
+        // 🎈 Rising Worlds progression
         _worldState.registerPop();
 
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
+
+          // Soft reset between worlds
           _balloons.clear();
           _controller.momentum.reset();
         }
