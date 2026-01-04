@@ -1,17 +1,24 @@
 import 'package:audioplayers/audioplayers.dart';
 
+/// TapJunkie Standard
+/// -----------------
+/// AudioWarmup preloads audio on first user interaction
+/// to prevent first-tap latency on Android.
 class AudioWarmup {
-  static final AudioPlayer _warmupPlayer = AudioPlayer();
+  static final AudioPlayer _player = AudioPlayer();
 
-  static Future<void> warm() async {
+  static Future<void> warmUp() async {
     try {
-      await _warmupPlayer.play(
+      // Play silently once to unlock audio pipeline
+      await _player.play(
         AssetSource('audio/pop.mp3'),
         volume: 0.0,
       );
-      await _warmupPlayer.stop();
+
+      // Stop immediately
+      await _player.stop();
     } catch (_) {
-      // warm-up should never crash the game
+      // Fail silently — warmup should NEVER block start
     }
   }
 }
