@@ -1,9 +1,9 @@
-import 'package:balloon_burst/engine/audio/sound_controller.dart';
-
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+
+import 'package:balloon_burst/audio/audio_player.dart';
 
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
@@ -33,7 +33,6 @@ class _GameScreenState extends State<GameScreen>
   final WorldState _worldState = WorldState();
 
   late final GameController _controller;
-  late final SoundController _sound;
 
   Duration _lastTime = Duration.zero;
 
@@ -45,8 +44,6 @@ class _GameScreenState extends State<GameScreen>
   @override
   void initState() {
     super.initState();
-
-    _sound = SoundController();
 
     _controller = GameController(
       momentum: MomentumController(),
@@ -82,7 +79,10 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleTap(TapDownDetails details) {
-    _sound.playPop();
+    // 🔊 FORCED AUDIO — this MUST fire on every tap
+    AudioPlayerService.playPop();
+    debugPrint('TAP DETECTED');
+
     if (_lastSize == Size.zero) return;
 
     final tapPos = details.localPosition;
@@ -104,13 +104,11 @@ class _GameScreenState extends State<GameScreen>
         _balloons[i] = b.pop();
         hit = true;
 
-        // 🎈 TJ-30: real-world progression
+        // 🎈 TJ-30: Rising Worlds progression
         _worldState.registerPop();
 
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
-
-          // Soft reset — momentum only (speed derives naturally)
           _balloons.clear();
           _controller.momentum.reset();
         }
@@ -119,7 +117,6 @@ class _GameScreenState extends State<GameScreen>
       }
     }
 
-    // Drives sound + momentum + speed
     _controller.registerTap(hit: hit);
   }
 
