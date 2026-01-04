@@ -32,6 +32,8 @@ class _GameScreenState extends State<GameScreen>
 
   late final GameController _controller;
 
+  bool _pendingWorldReset = false;
+
   Duration _lastTime = Duration.zero;
 
   static const double baseFallSpeed = 120.0;
@@ -54,6 +56,13 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
+    // 🔁 TJ-30: safe world reset between frames
+    if (_pendingWorldReset) {
+      _pendingWorldReset = false;
+      _balloons.clear();
+      _controller.momentum.reset();
+    }
+
     final dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
@@ -98,22 +107,18 @@ class _GameScreenState extends State<GameScreen>
         _balloons[i] = b.pop();
         hit = true;
 
-        // 🎈 TJ-30: real-world progression
         _worldState.registerPop();
 
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
-
-          // Soft reset — momentum only (speed derives naturally)
-          _balloons.clear();
-          _controller.momentum.reset();
+          _pendingWorldReset = true;
         }
 
         break;
       }
     }
 
-    // Drives sound + momentum + speed
+    // 🔊 ⚡ This must see a consistent world
     _controller.registerTap(hit: hit);
   }
 
