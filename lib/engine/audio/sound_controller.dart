@@ -2,9 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:audio_session/audio_session.dart';
 
 class SoundController {
-  final AudioPlayer _player = AudioPlayer(
-    playerId: 'sfx',
-  )..setReleaseMode(ReleaseMode.stop);
+  final AudioPlayer _player = AudioPlayer(playerId: 'sfx');
 
   SoundController() {
     _init();
@@ -12,18 +10,20 @@ class SoundController {
 
   Future<void> _init() async {
     final session = await AudioSession.instance;
+
+    // ANDROID-ONLY configuration
     await session.configure(
-      const AudioSessionConfiguration(
-        avAudioSessionCategory: AVAudioSessionCategory.ambient,
-        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.mixWithOthers,
+      AudioSessionConfiguration(
         androidAudioAttributes: AndroidAudioAttributes(
           contentType: AndroidAudioContentType.sonification,
           usage: AndroidAudioUsage.game,
         ),
-        androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransientMayDuck,
+        androidAudioFocusGainType:
+            AndroidAudioFocusGainType.gainTransientMayDuck,
       ),
     );
 
+    await _player.setReleaseMode(ReleaseMode.stop);
     await _player.setPlayerMode(PlayerMode.lowLatency);
     await _player.setVolume(1.0);
   }
