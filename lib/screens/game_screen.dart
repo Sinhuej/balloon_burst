@@ -69,10 +69,19 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
-    // ⬆ Rising Worlds: balloons move UP
+    // ⬆ Rising Worlds: balloons move UP with world pressure
+    final speed = baseRiseSpeed * _spawner.speedMultiplier;
+
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-      _balloons[i] = b.movedBy(-baseRiseSpeed * dt);
+      _balloons[i] = b.movedBy(-speed * dt);
+    }
+
+    // 🧹 Off-screen balloon culling (top of viewport)
+    for (int i = _balloons.length - 1; i >= 0; i--) {
+      if (_balloons[i].y < -balloonRadius) {
+        _balloons.removeAt(i);
+      }
     }
 
     _controller.update(_balloons, dt);
@@ -104,7 +113,8 @@ class _GameScreenState extends State<GameScreen>
 
         AudioPlayerService.playPop();
 
-        // 🎈 TJ-30 Rising Worlds progression
+        // 🎈 Rising Worlds pressure & progression
+        _spawner.registerPop();
         _worldState.registerPop();
 
         if (_worldState.isWorldComplete) {
@@ -115,6 +125,10 @@ class _GameScreenState extends State<GameScreen>
 
         break;
       }
+    }
+
+    if (!hit) {
+      _spawner.registerMiss();
     }
 
     _controller.registerTap(hit: hit);
