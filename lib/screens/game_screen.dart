@@ -86,6 +86,17 @@ class _GameScreenState extends State<GameScreen>
 
     _controller.update(_balloons, dt);
 
+    // Debug only: confirm worlds/speed/interval are changing.
+    assert(() {
+      debugPrint(
+        'RW world=${_spawner.currentWorld} '
+        'speedMult=${_spawner.speedMultiplier.toStringAsFixed(2)} '
+        'spawnInt=${_spawner.spawnInterval.toStringAsFixed(2)} '
+        'balloons=${_balloons.length}',
+      );
+      return true;
+    }());
+
     setState(() {});
   }
 
@@ -113,15 +124,21 @@ class _GameScreenState extends State<GameScreen>
 
         AudioPlayerService.playPop();
 
-        // 🎈 Rising Worlds pressure & progression
+        // Rising Worlds pressure tracking (spawner)
         _spawner.registerPop();
+
+        // Keep WorldState tracking for now, but DO NOT clear/reset gameplay here.
         _worldState.registerPop();
 
+        // IMPORTANT: Disable legacy "world complete = clear/reset" behavior.
+        // Rising Worlds v1 is continuous ascent; clearing caused black-screen stalls.
+        /*
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
           _balloons.clear();
           _controller.momentum.reset();
         }
+        */
 
         break;
       }
