@@ -10,14 +10,28 @@ class BalloonPainter extends CustomPainter {
 
   static const double balloonRadius = 16.0;
 
+  Color _backgroundForWorld(int world) {
+    switch (world) {
+      case 2:
+        return Colors.indigo.shade900;
+      case 3:
+        return Colors.purple.shade800;
+      case 4:
+        return Colors.blueGrey.shade800;
+      default:
+        return Colors.black;
+    }
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     // Viewport truth
     gameState.viewportHeight = size.height;
     gameState.framesSinceStart++;
 
-    // Background
-    final bgPaint = Paint()..color = Colors.black;
+    // 🌍 Rising Worlds background (painter-owned)
+    final bgPaint =
+        Paint()..color = _backgroundForWorld(gameState.currentWorld);
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     // Subtle bottom danger affordance
@@ -71,7 +85,7 @@ class BalloonPainter extends CustomPainter {
       gameState.tapPulse = false;
     }
 
-    // Balloons (render adapter logic)
+    // Balloons
     final centerX = size.width / 2;
 
     for (final balloon in balloons) {
