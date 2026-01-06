@@ -126,17 +126,17 @@ class _GameScreenState extends State<GameScreen>
   }
 
   Color _backgroundForWorld(int world) {
-    switch (world) {
-      case 2:
-        return Colors.blueGrey.shade900;
-      case 3:
-        return Colors.deepPurple.shade900;
-      case 4:
-        return Colors.black87;
-      default:
-        return Colors.black;
-    }
+  switch (world) {
+    case 2:
+      return Colors.indigo.shade900;
+    case 3:
+      return Colors.purple.shade800;
+    case 4:
+      return Colors.blueGrey.shade800;
+    default:
+      return Colors.black;
   }
+}
 
   @override
   void dispose() {
