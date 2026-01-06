@@ -69,7 +69,6 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
-    // ⬆ Rising Worlds: balloons move UP with world pressure
     final speed = baseRiseSpeed * _spawner.speedMultiplier;
 
     for (int i = 0; i < _balloons.length; i++) {
@@ -77,7 +76,6 @@ class _GameScreenState extends State<GameScreen>
       _balloons[i] = b.movedBy(-speed * dt);
     }
 
-    // 🧹 Off-screen balloon culling
     for (int i = _balloons.length - 1; i >= 0; i--) {
       if (_balloons[i].y < -balloonRadius) {
         _balloons.removeAt(i);
@@ -113,20 +111,8 @@ class _GameScreenState extends State<GameScreen>
 
         AudioPlayerService.playPop();
 
-        // Rising Worlds pressure tracking
         _spawner.registerPop();
         _worldState.registerPop();
-
-        // NOTE:
-        // Legacy WorldState reset intentionally disabled.
-        // Rising Worlds v1 is continuous ascent.
-        /*
-        if (_worldState.isWorldComplete) {
-          _worldState.advanceWorld();
-          _balloons.clear();
-          _controller.momentum.reset();
-        }
-        */
 
         break;
       }
@@ -137,6 +123,19 @@ class _GameScreenState extends State<GameScreen>
     }
 
     _controller.registerTap(hit: hit);
+  }
+
+  Color _backgroundForWorld(int world) {
+    switch (world) {
+      case 2:
+        return Colors.blueGrey.shade900;
+      case 3:
+        return Colors.deepPurple.shade900;
+      case 4:
+        return Colors.black87;
+      default:
+        return Colors.black;
+    }
   }
 
   @override
@@ -157,6 +156,11 @@ class _GameScreenState extends State<GameScreen>
             onTapDown: _handleTap,
             child: Stack(
               children: [
+                // 🌍 Rising Worlds background
+                Container(
+                  color: _backgroundForWorld(_spawner.currentWorld),
+                ),
+
                 CustomPaint(
                   painter: BalloonPainter(_balloons, _gameState),
                   size: Size.infinite,
@@ -174,7 +178,7 @@ class _GameScreenState extends State<GameScreen>
                         'World: ${_spawner.currentWorld}\n'
                         'Speed: ${_spawner.speedMultiplier.toStringAsFixed(2)}x\n'
                         'Spawn: ${_spawner.spawnInterval.toStringAsFixed(2)}s\n'
-                        'Balloons: ${_balloons.length}',
+                        'Active: ${_balloons.length}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
