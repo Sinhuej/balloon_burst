@@ -165,15 +165,36 @@ class _GameScreenState extends State<GameScreen>
           _lastSize = constraints.biggest;
 
           return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: _handleTap,
-            child: CustomPaint(
+           behavior: HitTestBehavior.opaque,
+           onTapDown: _handleTap,
+           child: Stack(
+            children: [
+             CustomPaint(
               painter: BalloonPainter(_balloons, _gameState),
               size: Size.infinite,
-            ),
-          );
-        },
       ),
-    );
-  }
-}
+
+      // 🧪 DEBUG: Rising Worlds overlay (temporary)
+      Positioned(
+        top: 8,
+        left: 8,
+        child: IgnorePointer(
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            color: Colors.black.withOpacity(0.6),
+            child: Text(
+              'World: ${_spawner.currentWorld}\n'
+              'Speed: ${_spawner.speedMultiplier.toStringAsFixed(2)}x\n'
+              'Spawn: ${_spawner.spawnInterval.toStringAsFixed(2)}s\n'
+              'Balloons: ${_balloons.length}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+);
