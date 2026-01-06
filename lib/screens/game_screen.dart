@@ -77,7 +77,7 @@ class _GameScreenState extends State<GameScreen>
       _balloons[i] = b.movedBy(-speed * dt);
     }
 
-    // 🧹 Off-screen balloon culling (top of viewport)
+    // 🧹 Off-screen balloon culling
     for (int i = _balloons.length - 1; i >= 0; i--) {
       if (_balloons[i].y < -balloonRadius) {
         _balloons.removeAt(i);
@@ -85,17 +85,6 @@ class _GameScreenState extends State<GameScreen>
     }
 
     _controller.update(_balloons, dt);
-
-    // Debug only: confirm worlds/speed/interval are changing.
-    assert(() {
-      debugPrint(
-        'RW world=${_spawner.currentWorld} '
-        'speedMult=${_spawner.speedMultiplier.toStringAsFixed(2)} '
-        'spawnInt=${_spawner.spawnInterval.toStringAsFixed(2)} '
-        'balloons=${_balloons.length}',
-      );
-      return true;
-    }());
 
     setState(() {});
   }
@@ -124,14 +113,13 @@ class _GameScreenState extends State<GameScreen>
 
         AudioPlayerService.playPop();
 
-        // Rising Worlds pressure tracking (spawner)
+        // Rising Worlds pressure tracking
         _spawner.registerPop();
-
-        // Keep WorldState tracking for now, but DO NOT clear/reset gameplay here.
         _worldState.registerPop();
 
-        // IMPORTANT: Disable legacy "world complete = clear/reset" behavior.
-        // Rising Worlds v1 is continuous ascent; clearing caused black-screen stalls.
+        // NOTE:
+        // Legacy WorldState reset intentionally disabled.
+        // Rising Worlds v1 is continuous ascent.
         /*
         if (_worldState.isWorldComplete) {
           _worldState.advanceWorld();
@@ -165,36 +153,41 @@ class _GameScreenState extends State<GameScreen>
           _lastSize = constraints.biggest;
 
           return GestureDetector(
-           behavior: HitTestBehavior.opaque,
-           onTapDown: _handleTap,
-           child: Stack(
-            children: [
-             CustomPaint(
-              painter: BalloonPainter(_balloons, _gameState),
-              size: Size.infinite,
-      ),
+            behavior: HitTestBehavior.opaque,
+            onTapDown: _handleTap,
+            child: Stack(
+              children: [
+                CustomPaint(
+                  painter: BalloonPainter(_balloons, _gameState),
+                  size: Size.infinite,
+                ),
 
-      // 🧪 DEBUG: Rising Worlds overlay (temporary)
-      Positioned(
-        top: 8,
-        left: 8,
-        child: IgnorePointer(
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            color: Colors.black.withOpacity(0.6),
-            child: Text(
-              'World: ${_spawner.currentWorld}\n'
-              'Speed: ${_spawner.speedMultiplier.toStringAsFixed(2)}x\n'
-              'Spawn: ${_spawner.spawnInterval.toStringAsFixed(2)}s\n'
-              'Balloons: ${_balloons.length}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-              ),
+                // 🧪 DEBUG: Rising Worlds overlay (temporary)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      color: Colors.black.withOpacity(0.6),
+                      child: Text(
+                        'World: ${_spawner.currentWorld}\n'
+                        'Speed: ${_spawner.speedMultiplier.toStringAsFixed(2)}x\n'
+                        'Spawn: ${_spawner.spawnInterval.toStringAsFixed(2)}s\n'
+                        'Balloons: ${_balloons.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
+          );
+        },
       ),
-    ],
-  ),
-);
+    );
+  }
+}
