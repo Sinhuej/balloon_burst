@@ -30,7 +30,7 @@ class _BalloonBurstAppState extends State<BalloonBurstApp> {
       debugShowCheckedModeBanner: false,
       home: _view == AppView.start
           ? StartScreen(onStart: _startGame)
-          : const AppRoot(), // ✅ ONLY entry to gameplay
+          : AppRoot(), // ✅ non-const StatefulWidget
     );
   }
 }
