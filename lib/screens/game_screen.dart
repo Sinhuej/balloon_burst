@@ -120,8 +120,7 @@ class _GameScreenState extends State<GameScreen>
         AudioPlayerService.playPop();
 
         widget.spawner.registerPop();
-        widget.gameState.registerPop();
-
+        
         break;
       }
     }
