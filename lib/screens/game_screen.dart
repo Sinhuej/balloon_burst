@@ -4,20 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
-
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
-import 'package:balloon_burst/world/world_state.dart';
 
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final GameState gameState;
+  final BalloonSpawner spawner;
+  final VoidCallback onRequestDebug;
+
+  const GameScreen({
+    super.key,
+    required this.gameState,
+    required this.spawner,
+    required this.onRequestDebug,
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -27,11 +34,7 @@ class _GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
 
-  final GameState _gameState = GameState();
   final List<Balloon> _balloons = [];
-  final BalloonSpawner _spawner = BalloonSpawner();
-  final WorldState _worldState = WorldState();
-
   late final GameController _controller;
 
   Duration _lastTime = Duration.zero;
@@ -49,7 +52,7 @@ class _GameScreenState extends State<GameScreen>
       momentum: MomentumController(),
       tier: TierController(),
       speed: SpeedCurve(),
-      gameState: _gameState,
+      gameState: widget.gameState,
     );
 
     _ticker = createTicker(_onTick)..start();
@@ -62,20 +65,25 @@ class _GameScreenState extends State<GameScreen>
 
     _lastTime = elapsed;
 
-    _spawner.update(
+    widget.spawner.update(
       dt: dt,
       tier: 0,
       balloons: _balloons,
       viewportHeight: _lastSize.height,
     );
 
-    final speed = baseRiseSpeed * _spawner.speedMultiplier;
+    // 🔗 Sync world → render state
+    widget.gameState.currentWorld = widget.spawner.currentWorld;
 
+    final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
+
+    // Rising Worlds movement
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       _balloons[i] = b.movedBy(-speed * dt);
     }
 
+    // Off-screen culling
     for (int i = _balloons.length - 1; i >= 0; i--) {
       if (_balloons[i].y < -balloonRadius) {
         _balloons.removeAt(i);
@@ -111,31 +119,16 @@ class _GameScreenState extends State<GameScreen>
 
         AudioPlayerService.playPop();
 
-        _spawner.registerPop();
-        _worldState.registerPop();
-
+        widget.spawner.registerPop();
         break;
       }
     }
 
     if (!hit) {
-      _spawner.registerMiss();
+      widget.spawner.registerMiss();
     }
 
     _controller.registerTap(hit: hit);
-  }
-
-  Color _backgroundForWorld(int world) {
-    switch (world) {
-      case 2:
-        return Colors.indigo.shade900;
-      case 3:
-        return Colors.purple.shade800;
-      case 4:
-        return Colors.blueGrey.shade800;
-      default:
-        return Colors.black;
-    }
   }
 
   @override
@@ -154,42 +147,10 @@ class _GameScreenState extends State<GameScreen>
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: _handleTap,
-            child: Stack(
-              children: [
-                // 🌍 Rising Worlds background (fills viewport)
-                Positioned.fill(
-                  child: Container(
-                    color: _backgroundForWorld(_spawner.currentWorld),
-                  ),
-                ),
-
-                CustomPaint(
-                  painter: BalloonPainter(_balloons, _gameState),
-                  size: Size.infinite,
-                ),
-
-                // 🧪 DEBUG: Rising Worlds overlay (temporary)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: IgnorePointer(
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      color: Colors.black.withOpacity(0.6),
-                      child: Text(
-                        'World: ${_spawner.currentWorld}\n'
-                        'Speed: ${_spawner.speedMultiplier.toStringAsFixed(2)}x\n'
-                        'Spawn: ${_spawner.spawnInterval.toStringAsFixed(2)}s\n'
-                        'Active: ${_balloons.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            onLongPress: widget.onRequestDebug, // 🧪 Debug Screen trigger
+            child: CustomPaint(
+              painter: BalloonPainter(_balloons, widget.gameState),
+              size: Size.infinite,
             ),
           );
         },
