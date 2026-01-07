@@ -32,7 +32,7 @@ class _AppRootState extends State<AppRoot> {
         );
 
       case ScreenMode.blank:
-        return const BlankScreen();
+        return BlankScreen();
 
       case ScreenMode.game:
       default:
