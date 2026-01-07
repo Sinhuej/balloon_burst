@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
+
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
@@ -42,6 +43,9 @@ class _GameScreenState extends State<GameScreen>
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
+  // 🎯 Hit forgiveness (TJ-30 feel tuning)
+  static const double hitForgiveness = 6.0;
+
   Size _lastSize = Size.zero;
 
   @override
@@ -72,18 +76,13 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
-    // 🔗 Sync world → render state
-    widget.gameState.currentWorld = widget.spawner.currentWorld;
-
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
 
-    // Rising Worlds movement
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       _balloons[i] = b.movedBy(-speed * dt);
     }
 
-    // Off-screen culling
     for (int i = _balloons.length - 1; i >= 0; i--) {
       if (_balloons[i].y < -balloonRadius) {
         _balloons.removeAt(i);
@@ -113,13 +112,16 @@ class _GameScreenState extends State<GameScreen>
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
 
-      if (sqrt(dx * dx + dy * dy) <= balloonRadius) {
+      // 🎯 Forgiving hit test
+      if (sqrt(dx * dx + dy * dy) <= balloonRadius + hitForgiveness) {
         _balloons[i] = b.pop();
         hit = true;
 
         AudioPlayerService.playPop();
 
         widget.spawner.registerPop();
+        widget.gameState.registerPop();
+
         break;
       }
     }
@@ -147,10 +149,19 @@ class _GameScreenState extends State<GameScreen>
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: _handleTap,
-            onLongPress: widget.onRequestDebug, // 🧪 Debug Screen trigger
-            child: CustomPaint(
-              painter: BalloonPainter(_balloons, widget.gameState),
-              size: Size.infinite,
+            onLongPress: widget.onRequestDebug,
+            child: Stack(
+              children: [
+                Container(
+                  color: widget.spawner.currentWorld == 3
+                      ? Colors.purple
+                      : Colors.black,
+                ),
+                CustomPaint(
+                  painter: BalloonPainter(_balloons, widget.gameState),
+                  size: Size.infinite,
+                ),
+              ],
             ),
           );
         },
