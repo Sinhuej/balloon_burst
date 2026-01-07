@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'state/app_state.dart';
 import 'screens/start_screen.dart';
-import 'screens/game_screen.dart';
+import 'app_root.dart';
 
 void main() {
   runApp(const BalloonBurstApp());
@@ -26,9 +27,10 @@ class _BalloonBurstAppState extends State<BalloonBurstApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: _view == AppView.start
           ? StartScreen(onStart: _startGame)
-          : const GameScreen(),
+          : const AppRoot(), // ✅ ONLY entry to gameplay
     );
   }
 }

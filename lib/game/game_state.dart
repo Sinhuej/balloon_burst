@@ -1,9 +1,20 @@
+enum ScreenMode {
+  game,
+  debug,
+  blank,
+}
+
 class GameState {
-  double viewportHeight = 0;
-
-  // One-frame tap feedback pulse
-  bool tapPulse = false;
-
-  // Intro banner timing (frame-based)
+  // Viewport / frame tracking
+  double viewportHeight = 0.0;
   int framesSinceStart = 0;
+
+  // Rising Worlds (render-facing)
+  int currentWorld = 1;
+
+  // Screen control
+  ScreenMode screenMode = ScreenMode.game;
+
+  // Tap feedback
+  bool tapPulse = false;
 }
