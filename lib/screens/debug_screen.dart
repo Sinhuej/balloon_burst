@@ -18,7 +18,7 @@ class DebugScreen extends StatelessWidget {
 
   String _debugText() {
     return '''
-World: ${gameState.currentWorld}
+World: ${spawner.currentWorld}
 Frames: ${gameState.framesSinceStart}
 Total Pops: ${spawner.totalPops}
 Speed Multiplier: ${spawner.speedMultiplier.toStringAsFixed(2)}
