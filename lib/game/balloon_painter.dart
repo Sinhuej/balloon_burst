@@ -29,11 +29,6 @@ class BalloonPainter extends CustomPainter {
     gameState.viewportHeight = size.height;
     gameState.framesSinceStart++;
 
-    // 🌍 Rising Worlds background (painter-owned)
-    final bgPaint =
-        Paint()..color = _backgroundForWorld(gameState.currentWorld);
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
     // Subtle bottom danger affordance
     final dangerHeight = 40.0;
     final dangerRect = Rect.fromLTWH(
