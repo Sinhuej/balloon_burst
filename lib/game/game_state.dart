@@ -1,6 +1,18 @@
+/// Global game state shared across screens and systems
 class GameState {
+  // -------------------------------
+  // Core runtime state
+  // -------------------------------
   int framesSinceStart = 0;
   bool tapPulse = false;
+
+  /// Updated by BalloonPainter every frame
+  double viewportHeight = 0.0;
+
+  // -------------------------------
+  // App / screen routing state
+  // -------------------------------
+  ScreenMode screenMode = ScreenMode.game;
 
   // -------------------------------
   // TJ Debug Log Buffer (Tap Rush parity)
@@ -16,4 +28,11 @@ class GameState {
       _debugLogs.removeLast();
     }
   }
+}
+
+/// App-level screen modes
+enum ScreenMode {
+  game,
+  debug,
+  blank,
 }
