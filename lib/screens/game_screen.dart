@@ -103,10 +103,12 @@ class _GameScreenState extends State<GameScreen>
     final tapPos = details.localPosition;
     final centerX = _lastSize.width / 2;
 
-    final compensation =
-        baseRiseSpeed *
-        widget.spawner.speedMultiplier *
-        hitTimeCompensation;
+    final rawCompensation =
+      baseRiseSpeed *
+      widget.spawner.speedMultiplier *
+      hitTimeCompensation;
+
+    final compensation = rawCompensation.clamp(0.0, 6.0);
 
     bool hit = false;
 
