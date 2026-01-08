@@ -147,6 +147,18 @@ class _GameScreenState extends State<GameScreen>
     _ticker.dispose();
     super.dispose();
   }
+Color _backgroundForWorld(int world) {
+  switch (world) {
+    case 2:
+      return const Color(0xFF2E86DE); // Sky blue
+    case 3:
+      return const Color(0xFF6C2EB9); // Neon purple
+    case 4:
+      return const Color(0xFF0B0F2F); // Deep space
+    default:
+      return const Color(0xFF0A0A0F); // Night carnival
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -161,11 +173,11 @@ class _GameScreenState extends State<GameScreen>
             onLongPress: widget.onRequestDebug,
             child: Stack(
               children: [
-                Container(
-                  color: widget.spawner.currentWorld == 3
-                      ? Colors.purple
-                      : Colors.black,
-                ),
+             
+          Container(
+           color: _backgroundForWorld(widget.spawner.currentWorld),
+                 ),
+
                 CustomPaint(
                   painter: BalloonPainter(_balloons, widget.gameState),
                   size: Size.infinite,
