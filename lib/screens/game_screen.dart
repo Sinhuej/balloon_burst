@@ -43,8 +43,11 @@ class _GameScreenState extends State<GameScreen>
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
-  // 🎯 Hit forgiveness (TJ-30 feel tuning)
+  // 🎯 Spatial forgiveness
   static const double hitForgiveness = 6.0;
+
+  // 🎯 Temporal compensation factor (~40ms)
+  static const double hitTimeCompensation = 0.04;
 
   Size _lastSize = Size.zero;
 
@@ -100,6 +103,11 @@ class _GameScreenState extends State<GameScreen>
     final tapPos = details.localPosition;
     final centerX = _lastSize.width / 2;
 
+    final compensation =
+        baseRiseSpeed *
+        widget.spawner.speedMultiplier *
+        hitTimeCompensation;
+
     bool hit = false;
 
     for (int i = 0; i < _balloons.length; i++) {
@@ -107,20 +115,20 @@ class _GameScreenState extends State<GameScreen>
       if (b.isPopped) continue;
 
       final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
-      final by = b.y;
+
+      // 🎯 Temporal compensation (balloon was lower when finger landed)
+      final by = b.y + compensation;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
 
-      // 🎯 Forgiving hit test
       if (sqrt(dx * dx + dy * dy) <= balloonRadius + hitForgiveness) {
         _balloons[i] = b.pop();
         hit = true;
 
         AudioPlayerService.playPop();
-
         widget.spawner.registerPop();
-        
+
         break;
       }
     }
