@@ -15,7 +15,7 @@ class GameState {
   ScreenMode screenMode = ScreenMode.game;
 
   // -------------------------------
-  // TJ Debug Log Buffer (Tap Rush parity)
+  // TJ Debug Log Buffer (TapRush parity)
   // -------------------------------
   static const int maxLogs = 120;
   final List<String> _debugLogs = [];

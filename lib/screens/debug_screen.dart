@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 
-class DebugScreen extends StatelessWidget {
+class DebugScreen extends StatefulWidget {
   final GameState gameState;
   final BalloonSpawner spawner;
   final VoidCallback onClose;
@@ -16,104 +16,129 @@ class DebugScreen extends StatelessWidget {
     required this.onClose,
   });
 
-  String _headerText() {
-    return '''
-World: ${spawner.currentWorld}
-Frames: ${gameState.framesSinceStart}
-Total Pops: ${spawner.totalPops}
-Speed Multiplier: ${spawner.speedMultiplier.toStringAsFixed(2)}
-Spawn Interval: ${spawner.spawnInterval.toStringAsFixed(2)}
-''';
-  }
+  @override
+  State<DebugScreen> createState() => _DebugScreenState();
+}
 
-  String _allLogsText() {
-    return gameState.debugLogs.reversed.join('\n');
-  }
-
-  void _copyAll(BuildContext context) {
-    final text = '''
-=== BALLOON BURST DEBUG ===
-${_headerText()}
---- EVENT LOG ---
-${_allLogsText()}
-''';
-
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Debug log copied to clipboard')),
-    );
-  }
-
+class _DebugScreenState extends State<DebugScreen> {
   @override
   Widget build(BuildContext context) {
+    final logs = widget.gameState.debugLogs.reversed.toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Debug HUD'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: onClose,
+          onPressed: widget.onClose,
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              widget.gameState.debugFrozen
+                  ? Icons.play_arrow
+                  : Icons.pause,
+            ),
+            tooltip: widget.gameState.debugFrozen
+                ? 'Resume logging'
+                : 'Freeze logging',
+            onPressed: () {
+              setState(() {
+                widget.gameState.toggleFreeze();
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Clear logs',
+            onPressed: () {
+              setState(() {
+                widget.gameState.clearLogs();
+              });
+            },
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --------------------
-            // Snapshot state
-            // --------------------
-            Text(
-              _headerText(),
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 14,
-              ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // --- SUMMARY ---
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              'World: ${widget.spawner.currentWorld}\n'
+              'Frames: ${widget.gameState.framesSinceStart}\n'
+              'Total Pops: ${widget.spawner.totalPops}\n'
+              'Speed Multiplier: ${widget.spawner.speedMultiplier.toStringAsFixed(2)}\n'
+              'Spawn Interval: ${widget.spawner.spawnInterval.toStringAsFixed(2)}',
+              style: const TextStyle(fontFamily: 'monospace'),
             ),
+          ),
 
-            const SizedBox(height: 12),
+          // --- FILTERS ---
+          Wrap(
+            spacing: 8,
+            children: DebugEventType.values.map((type) {
+              final enabled =
+                  widget.gameState.enabledFilters.contains(type);
 
-            // --------------------
-            // Copy button
-            // --------------------
-            ElevatedButton.icon(
+              return FilterChip(
+                label: Text(type.name.toUpperCase()),
+                selected: enabled,
+                onSelected: (_) {
+                  setState(() {
+                    if (enabled) {
+                      widget.gameState.enabledFilters.remove(type);
+                    } else {
+                      widget.gameState.enabledFilters.add(type);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 8),
+
+          // --- COPY BUTTON ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: ElevatedButton.icon(
               icon: const Icon(Icons.copy),
-              label: const Text('Copy Debug Info'),
-              onPressed: () => _copyAll(context),
+              label: const Text('Copy Debug Log'),
+              onPressed: () {
+                final text = logs.join('\n');
+                Clipboard.setData(ClipboardData(text: text));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Debug log copied')),
+                );
+              },
             ),
+          ),
 
-            const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
-            const Text(
-              'Event Log',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 8),
-
-            // --------------------
-            // Scrollable log view
-            // --------------------
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                color: Colors.black12,
-                child: ListView.builder(
-                  itemCount: gameState.debugLogs.length,
-                  itemBuilder: (context, index) {
-                    final line = gameState.debugLogs[index];
-                    return Text(
-                      line,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
-                    );
-                  },
-                ),
+          // --- LOG VIEW ---
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
+              color: Colors.black.withOpacity(0.05),
+              child: ListView.builder(
+                itemCount: logs.length,
+                itemBuilder: (context, index) {
+                  return Text(
+                    logs[index],
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
+                  );
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

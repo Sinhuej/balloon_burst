@@ -1,10 +1,8 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
-
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
@@ -42,11 +40,7 @@ class _GameScreenState extends State<GameScreen>
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
-
-  // 🎯 Spatial forgiveness
   static const double hitForgiveness = 6.0;
-
-  // 🎯 Temporal compensation factor (~40ms)
   static const double hitTimeCompensation = 0.04;
 
   Size _lastSize = Size.zero;
@@ -71,6 +65,7 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
 
     _lastTime = elapsed;
+    widget.gameState.framesSinceStart++;
 
     widget.spawner.update(
       dt: dt,
@@ -82,33 +77,31 @@ class _GameScreenState extends State<GameScreen>
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
 
     for (int i = 0; i < _balloons.length; i++) {
-      final b = _balloons[i];
-      _balloons[i] = b.movedBy(-speed * dt);
+      _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    for (int i = _balloons.length - 1; i >= 0; i--) {
-      if (_balloons[i].y < -balloonRadius) {
-        _balloons.removeAt(i);
-      }
-    }
+    _balloons.removeWhere((b) => b.y < -balloonRadius);
 
-    _controller.update(_balloons, dt);
+    if (elapsed.inMilliseconds % 1000 < 16) {
+      widget.gameState.log(
+        'SPEED world=${widget.spawner.currentWorld} '
+        'speed=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
+        'spawn=${widget.spawner.spawnInterval.toStringAsFixed(2)}',
+      );
+    }
 
     setState(() {});
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_lastSize == Size.zero) return;
+    final tap = details.localPosition;
+    final cx = _lastSize.width / 2;
 
-    final tapPos = details.localPosition;
-    final centerX = _lastSize.width / 2;
-
-    final rawCompensation =
-      baseRiseSpeed *
-      widget.spawner.speedMultiplier *
-      hitTimeCompensation;
-
-    final compensation = rawCompensation.clamp(0.0, 6.0);
+    final compensation =
+        (baseRiseSpeed *
+                widget.spawner.speedMultiplier *
+                hitTimeCompensation)
+            .clamp(0.0, 6.0);
 
     bool hit = false;
 
@@ -116,55 +109,58 @@ class _GameScreenState extends State<GameScreen>
       final b = _balloons[i];
       if (b.isPopped) continue;
 
-      final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
-
-      // 🎯 Temporal compensation (balloon was lower when finger landed)
+      final bx = cx + (b.xOffset * _lastSize.width * 0.5);
       final by = b.y + compensation;
 
-      final dx = tapPos.dx - bx;
-      final dy = tapPos.dy - by;
+      final dx = tap.dx - bx;
+      final dy = tap.dy - by;
+      final dist = sqrt(dx * dx + dy * dy);
+      final radius = balloonRadius + hitForgiveness;
 
-      if (sqrt(dx * dx + dy * dy) <= balloonRadius + hitForgiveness) {
+      if (dist <= radius) {
         _balloons[i] = b.pop();
         hit = true;
 
         AudioPlayerService.playPop();
-        widget.spawner.registerPop();
+        widget.spawner.registerPop(widget.gameState);
 
+        widget.gameState.log(
+          'TAP hit=true dist=${dist.toStringAsFixed(1)} '
+          'r=${radius.toStringAsFixed(1)} '
+          'world=${widget.spawner.currentWorld}',
+        );
         break;
       }
     }
 
     if (!hit) {
-      widget.spawner.registerMiss();
+      widget.spawner.registerMiss(widget.gameState);
+      widget.gameState.log(
+        'TAP hit=false world=${widget.spawner.currentWorld}',
+      );
     }
 
     _controller.registerTap(hit: hit);
   }
 
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
+  Color _backgroundForWorld(int w) {
+    switch (w) {
+      case 2:
+        return const Color(0xFF2E86DE);
+      case 3:
+        return const Color(0xFF6C2EB9);
+      case 4:
+        return const Color(0xFF0B0F2F);
+      default:
+        return const Color(0xFF0A0A0F);
+    }
   }
-Color _backgroundForWorld(int world) {
-  switch (world) {
-    case 2:
-      return const Color(0xFF2E86DE); // Sky blue
-    case 3:
-      return const Color(0xFF6C2EB9); // Neon purple
-    case 4:
-      return const Color(0xFF0B0F2F); // Deep space
-    default:
-      return const Color(0xFF0A0A0F); // Night carnival
-  }
-}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: LayoutBuilder(
-        builder: (context, constraints) {
+        builder: (_, constraints) {
           _lastSize = constraints.biggest;
 
           return GestureDetector(
@@ -173,13 +169,16 @@ Color _backgroundForWorld(int world) {
             onLongPress: widget.onRequestDebug,
             child: Stack(
               children: [
-             
-          Container(
-           color: _backgroundForWorld(widget.spawner.currentWorld),
-                 ),
-
+                Container(
+                  color: _backgroundForWorld(
+                    widget.spawner.currentWorld,
+                  ),
+                ),
                 CustomPaint(
-                  painter: BalloonPainter(_balloons, widget.gameState),
+                  painter: BalloonPainter(
+                    _balloons,
+                    widget.gameState,
+                  ),
                   size: Size.infinite,
                 ),
               ],
