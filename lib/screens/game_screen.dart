@@ -42,8 +42,10 @@ class _GameScreenState extends State<GameScreen>
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
-  // 🎯 Hit forgiveness (already tuned)
+  // 🎯 Spatial forgiveness
   static const double hitForgiveness = 6.0;
+
+  // 🎯 Temporal compensation (~40ms)
   static const double hitTimeCompensation = 0.04;
 
   Size _lastSize = Size.zero;
@@ -79,7 +81,8 @@ class _GameScreenState extends State<GameScreen>
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
 
     for (int i = 0; i < _balloons.length; i++) {
-      _balloons[i] = _balloons[i].movedBy(-speed * dt);
+      final b = _balloons[i];
+      _balloons[i] = b.movedBy(-speed * dt);
     }
 
     for (int i = _balloons.length - 1; i >= 0; i--) {
@@ -98,10 +101,12 @@ class _GameScreenState extends State<GameScreen>
     final tapPos = details.localPosition;
     final centerX = _lastSize.width / 2;
 
-    final compensation = (baseRiseSpeed *
-            widget.spawner.speedMultiplier *
-            hitTimeCompensation)
-        .clamp(0.0, 6.0);
+    final rawCompensation =
+        baseRiseSpeed *
+        widget.spawner.speedMultiplier *
+        hitTimeCompensation;
+
+    final compensation = rawCompensation.clamp(0.0, 6.0);
 
     bool hit = false;
 
@@ -115,52 +120,53 @@ class _GameScreenState extends State<GameScreen>
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
 
-      if (sqrt(dx * dx + dy * dy) <= balloonRadius + hitForgiveness) {
+      if (sqrt(dx * dx + dy * dy) <=
+          balloonRadius + hitForgiveness) {
         _balloons[i] = b.pop();
         hit = true;
 
         AudioPlayerService.playPop();
-        widget.spawner.registerPop();
 
-        widget.gameState.log(
-          'TAP hit=true dist=${sqrt(dx * dx + dy * dy).toStringAsFixed(1)} '
-          'r=${balloonRadius + hitForgiveness} world=${widget.spawner.currentWorld}',
-        );
+        // ✅ FIX: pass currentWorld
+        widget.spawner.registerPop(widget.spawner.currentWorld);
+
         break;
       }
     }
 
     if (!hit) {
-      widget.spawner.registerMiss();
-      widget.gameState.log(
-        'TAP hit=false world=${widget.spawner.currentWorld}',
-      );
+      // ✅ FIX: pass currentWorld
+      widget.spawner.registerMiss(widget.spawner.currentWorld);
     }
 
     _controller.registerTap(hit: hit);
   }
 
-  Color _worldColor(int world) {
+  Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
-        return Colors.lightBlueAccent;
+        return Colors.lightBlue.shade300;
       case 3:
-        return Colors.purpleAccent;
+        return Colors.purple.shade700;
       case 4:
-        return Colors.indigo.shade900;
+        return Colors.black;
       default:
         return Colors.black;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final currentWorld = widget.spawner.currentWorld;
-    final nextWorld = (currentWorld + 1).clamp(1, 4);
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
 
-    // 🎨 Visual anticipation intensity
-    final anticipation = ((widget.spawner.worldProgress - 0.85) / 0.15)
-        .clamp(0.0, 1.0);
+  @override
+  Widget build(BuildContext context) {
+    final world = widget.spawner.currentWorld;
+    final progress = widget.spawner.worldProgress;
+
+    final bool anticipating = progress >= 0.85;
 
     return Scaffold(
       body: LayoutBuilder(
@@ -173,28 +179,27 @@ class _GameScreenState extends State<GameScreen>
             onLongPress: widget.onRequestDebug,
             child: Stack(
               children: [
-                // Base world background
-                Container(color: _worldColor(currentWorld)),
+                // 🌍 World background
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  color: _backgroundForWorld(world),
+                ),
 
-                // 🌍 Anticipation overlay (next world)
-                if (anticipation > 0)
-                  Opacity(
-                    opacity: anticipation * 0.35,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            _worldColor(nextWorld),
-                            Colors.transparent,
-                          ],
-                        ),
+                // 🔔 Anticipation overlay
+                if (anticipating)
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.white.withOpacity(0.10),
+                          Colors.transparent,
+                        ],
                       ),
                     ),
                   ),
 
-                // Balloons
                 CustomPaint(
                   painter: BalloonPainter(_balloons, widget.gameState),
                   size: Size.infinite,
@@ -205,11 +210,5 @@ class _GameScreenState extends State<GameScreen>
         },
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
   }
 }
