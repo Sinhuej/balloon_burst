@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -40,6 +41,8 @@ class _GameScreenState extends State<GameScreen>
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
+
+  // 🎯 Hit forgiveness (already tuned)
   static const double hitForgiveness = 6.0;
   static const double hitTimeCompensation = 0.04;
 
@@ -65,7 +68,6 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
 
     _lastTime = elapsed;
-    widget.gameState.framesSinceStart++;
 
     widget.spawner.update(
       dt: dt,
@@ -80,28 +82,26 @@ class _GameScreenState extends State<GameScreen>
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    _balloons.removeWhere((b) => b.y < -balloonRadius);
-
-    if (elapsed.inMilliseconds % 1000 < 16) {
-      widget.gameState.log(
-        'SPEED world=${widget.spawner.currentWorld} '
-        'speed=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
-        'spawn=${widget.spawner.spawnInterval.toStringAsFixed(2)}',
-      );
+    for (int i = _balloons.length - 1; i >= 0; i--) {
+      if (_balloons[i].y < -balloonRadius) {
+        _balloons.removeAt(i);
+      }
     }
 
+    _controller.update(_balloons, dt);
     setState(() {});
   }
 
   void _handleTap(TapDownDetails details) {
-    final tap = details.localPosition;
-    final cx = _lastSize.width / 2;
+    if (_lastSize == Size.zero) return;
 
-    final compensation =
-        (baseRiseSpeed *
-                widget.spawner.speedMultiplier *
-                hitTimeCompensation)
-            .clamp(0.0, 6.0);
+    final tapPos = details.localPosition;
+    final centerX = _lastSize.width / 2;
+
+    final compensation = (baseRiseSpeed *
+            widget.spawner.speedMultiplier *
+            hitTimeCompensation)
+        .clamp(0.0, 6.0);
 
     bool hit = false;
 
@@ -109,32 +109,29 @@ class _GameScreenState extends State<GameScreen>
       final b = _balloons[i];
       if (b.isPopped) continue;
 
-      final bx = cx + (b.xOffset * _lastSize.width * 0.5);
+      final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
       final by = b.y + compensation;
 
-      final dx = tap.dx - bx;
-      final dy = tap.dy - by;
-      final dist = sqrt(dx * dx + dy * dy);
-      final radius = balloonRadius + hitForgiveness;
+      final dx = tapPos.dx - bx;
+      final dy = tapPos.dy - by;
 
-      if (dist <= radius) {
+      if (sqrt(dx * dx + dy * dy) <= balloonRadius + hitForgiveness) {
         _balloons[i] = b.pop();
         hit = true;
 
         AudioPlayerService.playPop();
-        widget.spawner.registerPop(widget.gameState);
+        widget.spawner.registerPop();
 
         widget.gameState.log(
-          'TAP hit=true dist=${dist.toStringAsFixed(1)} '
-          'r=${radius.toStringAsFixed(1)} '
-          'world=${widget.spawner.currentWorld}',
+          'TAP hit=true dist=${sqrt(dx * dx + dy * dy).toStringAsFixed(1)} '
+          'r=${balloonRadius + hitForgiveness} world=${widget.spawner.currentWorld}',
         );
         break;
       }
     }
 
     if (!hit) {
-      widget.spawner.registerMiss(widget.gameState);
+      widget.spawner.registerMiss();
       widget.gameState.log(
         'TAP hit=false world=${widget.spawner.currentWorld}',
       );
@@ -143,24 +140,31 @@ class _GameScreenState extends State<GameScreen>
     _controller.registerTap(hit: hit);
   }
 
-  Color _backgroundForWorld(int w) {
-    switch (w) {
+  Color _worldColor(int world) {
+    switch (world) {
       case 2:
-        return const Color(0xFF2E86DE);
+        return Colors.lightBlueAccent;
       case 3:
-        return const Color(0xFF6C2EB9);
+        return Colors.purpleAccent;
       case 4:
-        return const Color(0xFF0B0F2F);
+        return Colors.indigo.shade900;
       default:
-        return const Color(0xFF0A0A0F);
+        return Colors.black;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentWorld = widget.spawner.currentWorld;
+    final nextWorld = (currentWorld + 1).clamp(1, 4);
+
+    // 🎨 Visual anticipation intensity
+    final anticipation = ((widget.spawner.worldProgress - 0.85) / 0.15)
+        .clamp(0.0, 1.0);
+
     return Scaffold(
       body: LayoutBuilder(
-        builder: (_, constraints) {
+        builder: (context, constraints) {
           _lastSize = constraints.biggest;
 
           return GestureDetector(
@@ -169,16 +173,30 @@ class _GameScreenState extends State<GameScreen>
             onLongPress: widget.onRequestDebug,
             child: Stack(
               children: [
-                Container(
-                  color: _backgroundForWorld(
-                    widget.spawner.currentWorld,
+                // Base world background
+                Container(color: _worldColor(currentWorld)),
+
+                // 🌍 Anticipation overlay (next world)
+                if (anticipation > 0)
+                  Opacity(
+                    opacity: anticipation * 0.35,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            _worldColor(nextWorld),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+
+                // Balloons
                 CustomPaint(
-                  painter: BalloonPainter(
-                    _balloons,
-                    widget.gameState,
-                  ),
+                  painter: BalloonPainter(_balloons, widget.gameState),
                   size: Size.infinite,
                 ),
               ],
@@ -187,5 +205,11 @@ class _GameScreenState extends State<GameScreen>
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
   }
 }
