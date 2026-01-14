@@ -42,10 +42,7 @@ class _GameScreenState extends State<GameScreen>
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
-  // 🎯 Spatial forgiveness
   static const double hitForgiveness = 6.0;
-
-  // 🎯 Temporal compensation (~40ms)
   static const double hitTimeCompensation = 0.04;
 
   Size _lastSize = Size.zero;
@@ -127,16 +124,16 @@ class _GameScreenState extends State<GameScreen>
 
         AudioPlayerService.playPop();
 
-        // ✅ FIX: pass currentWorld
-        widget.spawner.registerPop(widget.spawner.currentWorld);
+        // ✅ CORRECT ARGUMENT
+        widget.spawner.registerPop(widget.gameState);
 
         break;
       }
     }
 
     if (!hit) {
-      // ✅ FIX: pass currentWorld
-      widget.spawner.registerMiss(widget.spawner.currentWorld);
+      // ✅ CORRECT ARGUMENT
+      widget.spawner.registerMiss(widget.gameState);
     }
 
     _controller.registerTap(hit: hit);
@@ -165,7 +162,6 @@ class _GameScreenState extends State<GameScreen>
   Widget build(BuildContext context) {
     final world = widget.spawner.currentWorld;
     final progress = widget.spawner.worldProgress;
-
     final bool anticipating = progress >= 0.85;
 
     return Scaffold(
@@ -179,13 +175,11 @@ class _GameScreenState extends State<GameScreen>
             onLongPress: widget.onRequestDebug,
             child: Stack(
               children: [
-                // 🌍 World background
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   color: _backgroundForWorld(world),
                 ),
 
-                // 🔔 Anticipation overlay
                 if (anticipating)
                   Container(
                     decoration: BoxDecoration(
