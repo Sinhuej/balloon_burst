@@ -112,7 +112,7 @@ class _GameScreenState extends State<GameScreen>
       if (b.isPopped) continue;
 
       final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
-      final by = b.y + compensation;
+      final by = b.y - compensation;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
