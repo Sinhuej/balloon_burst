@@ -46,9 +46,6 @@ class _GameScreenState extends State<GameScreen>
   // Spatial forgiveness
   static const double hitForgiveness = 6.0;
 
-  // Temporal compensation (~40ms)
-  static const double hitTimeCompensation = 0.04;
-
   @override
   void initState() {
     super.initState();
@@ -99,13 +96,6 @@ class _GameScreenState extends State<GameScreen>
     final tapPos = details.localPosition;
     final centerX = _lastSize.width / 2;
 
-    final rawComp =
-        baseRiseSpeed *
-        widget.spawner.speedMultiplier *
-        hitTimeCompensation;
-
-    final compensation = rawComp.clamp(0.0, 6.0);
-
     bool hit = false;
 
     for (int i = 0; i < _balloons.length; i++) {
@@ -113,7 +103,7 @@ class _GameScreenState extends State<GameScreen>
       if (b.isPopped) continue;
 
       final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
-      final by = b.y - compensation; // ✅ vertical lead fix
+      final by = b.y; // ✅ vertical lead fix
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
