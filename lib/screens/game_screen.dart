@@ -113,7 +113,7 @@ class _GameScreenState extends State<GameScreen>
       if (b.isPopped) continue;
 
       final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
-      final by = b.y + compensation;
+      final by = b.y + compensation; // ✅ vertical lead fix
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
@@ -124,16 +124,13 @@ class _GameScreenState extends State<GameScreen>
         _balloons[i] = b.pop();
         AudioPlayerService.playPop();
 
-        // ✅ FIX: pass GameState
         widget.spawner.registerPop(widget.gameState);
-
         hit = true;
         break;
       }
     }
 
     if (!hit) {
-      // ✅ FIX: pass GameState
       widget.spawner.registerMiss(widget.gameState);
     }
 
@@ -149,13 +146,13 @@ class _GameScreenState extends State<GameScreen>
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF2E86DE);
+        return const Color(0xFF2E86DE); // Sky Blue
       case 3:
-        return const Color(0xFF6C2EB9);
+        return const Color(0xFF6C2EB9); // Neon Purple
       case 4:
-        return const Color(0xFF0B0F2F);
+        return const Color(0xFF0B0F2F); // Deep Space
       default:
-        return const Color(0xFF0A0A0F);
+        return const Color(0xFF0A0A0F); // Dark Carnival
     }
   }
 
