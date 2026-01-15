@@ -43,10 +43,10 @@ class _GameScreenState extends State<GameScreen>
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
-  // 🎯 Spatial forgiveness
+  // Spatial forgiveness
   static const double hitForgiveness = 6.0;
 
-  // 🎯 Temporal compensation (~40ms)
+  // Temporal compensation (~40ms)
   static const double hitTimeCompensation = 0.04;
 
   @override
@@ -93,32 +93,6 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
-  void _logTap({
-    required bool hit,
-    required Offset tap,
-    required double bx,
-    required double by,
-    required double dx,
-    required double dy,
-    required double dist,
-    required double radius,
-    required double compensation,
-  }) {
-    widget.gameState.log(
-      'TAP '
-      'hit=$hit '
-      'world=${widget.spawner.currentWorld} '
-      'tap=(${tap.dx.toStringAsFixed(0)},${tap.dy.toStringAsFixed(0)}) '
-      'balloon=(${bx.toStringAsFixed(0)},${by.toStringAsFixed(0)}) '
-      'dx=${dx.toStringAsFixed(1)} '
-      'dy=${dy.toStringAsFixed(1)} '
-      'dist=${dist.toStringAsFixed(1)} '
-      'r=${radius.toStringAsFixed(1)} '
-      'comp=${compensation.toStringAsFixed(1)} '
-      'speed=${widget.spawner.speedMultiplier.toStringAsFixed(2)}'
-    );
-  }
-
   void _handleTap(TapDownDetails details) {
     if (_lastSize == Size.zero) return;
 
@@ -146,31 +120,21 @@ class _GameScreenState extends State<GameScreen>
       final dist = sqrt(dx * dx + dy * dy);
       final effectiveRadius = balloonRadius + hitForgiveness;
 
-      final didHit = dist <= effectiveRadius;
-
-      _logTap(
-        hit: didHit,
-        tap: tapPos,
-        bx: bx,
-        by: by,
-        dx: dx,
-        dy: dy,
-        dist: dist,
-        radius: effectiveRadius,
-        compensation: compensation,
-      );
-
-      if (didHit) {
+      if (dist <= effectiveRadius) {
         _balloons[i] = b.pop();
         AudioPlayerService.playPop();
-        widget.spawner.registerPop();
+
+        // ✅ FIX: pass GameState
+        widget.spawner.registerPop(widget.gameState);
+
         hit = true;
         break;
       }
     }
 
     if (!hit) {
-      widget.spawner.registerMiss();
+      // ✅ FIX: pass GameState
+      widget.spawner.registerMiss(widget.gameState);
     }
 
     _controller.registerTap(hit: hit);
@@ -185,13 +149,13 @@ class _GameScreenState extends State<GameScreen>
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF2E86DE); // Sky blue
+        return const Color(0xFF2E86DE);
       case 3:
-        return const Color(0xFF6C2EB9); // Neon purple
+        return const Color(0xFF6C2EB9);
       case 4:
-        return const Color(0xFF0B0F2F); // Deep space
+        return const Color(0xFF0B0F2F);
       default:
-        return const Color(0xFF0A0A0F); // Dark carnival
+        return const Color(0xFF0A0A0F);
     }
   }
 
