@@ -98,22 +98,35 @@ class _GameScreenState extends State<GameScreen>
 
     bool hit = false;
 
+    double? closestDist;
+    double? closestDx;
+    double? closestDy;
+    double? closestBx;
+    double? closestBy;
+
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       if (b.isPopped) continue;
 
       final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
-      final by = b.y + balloonRadius; // ✅ vertical lead fix
+      final by = b.y + balloonRadius;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
       final dist = sqrt(dx * dx + dy * dy);
       final effectiveRadius = balloonRadius + hitForgiveness;
 
+      if (closestDist == null || dist < closestDist!) {
+        closestDist = dist;
+        closestDx = dx;
+        closestDy = dy;
+        closestBx = bx;
+        closestBy = by;
+      }
+
       if (dist <= effectiveRadius) {
         _balloons[i] = b.pop();
         AudioPlayerService.playPop();
-
         widget.spawner.registerPop(widget.gameState);
         hit = true;
         break;
@@ -121,6 +134,18 @@ class _GameScreenState extends State<GameScreen>
     }
 
     if (!hit) {
+      if (closestDist != null) {
+        debugPrint(
+          'MISS world=${widget.spawner.currentWorld} '
+          'tap=(${tapPos.dx.toStringAsFixed(1)},${tapPos.dy.toStringAsFixed(1)}) '
+          'balloon=(${closestBx!.toStringAsFixed(1)},${closestBy!.toStringAsFixed(1)}) '
+          'dx=${closestDx!.toStringAsFixed(1)} '
+          'dy=${closestDy!.toStringAsFixed(1)} '
+          'dist=${closestDist!.toStringAsFixed(1)} '
+          'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}'
+        );
+      }
+
       widget.spawner.registerMiss(widget.gameState);
     }
 
