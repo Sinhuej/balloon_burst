@@ -135,7 +135,7 @@ class _GameScreenState extends State<GameScreen>
 
     if (!hit) {
       if (closestDist != null) {
-        debugPrint(
+        widget.gameState.log(
           'MISS world=${widget.spawner.currentWorld} '
           'tap=(${tapPos.dx.toStringAsFixed(1)},${tapPos.dy.toStringAsFixed(1)}) '
           'balloon=(${closestBx!.toStringAsFixed(1)},${closestBy!.toStringAsFixed(1)}) '
