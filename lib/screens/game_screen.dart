@@ -40,6 +40,8 @@ class _GameScreenState extends State<GameScreen>
   Duration _lastTime = Duration.zero;
   Size _lastSize = Size.zero;
 
+  double _lastDt = 0.016; // last frame delta (for hit compensation)
+
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
 
@@ -66,6 +68,7 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
 
     _lastTime = elapsed;
+    _lastDt = dt;
 
     widget.spawner.update(
       dt: dt,
@@ -96,6 +99,10 @@ class _GameScreenState extends State<GameScreen>
     final tapPos = details.localPosition;
     final centerX = _lastSize.width / 2;
 
+    // One-frame vertical lead compensation
+    final frameLead =
+        baseRiseSpeed * widget.spawner.speedMultiplier * _lastDt;
+
     bool hit = false;
 
     double? closestDist;
@@ -109,7 +116,7 @@ class _GameScreenState extends State<GameScreen>
       if (b.isPopped) continue;
 
       final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
-      final by = b.y + balloonRadius + 18.0;
+      final by = b.y + balloonRadius + 18.0 - frameLead;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
