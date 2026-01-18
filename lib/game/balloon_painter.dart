@@ -10,19 +10,6 @@ class BalloonPainter extends CustomPainter {
 
   static const double balloonRadius = 16.0;
 
-  Color _backgroundForWorld(int world) {
-    switch (world) {
-      case 2:
-        return Colors.indigo.shade900;
-      case 3:
-        return Colors.purple.shade800;
-      case 4:
-        return Colors.blueGrey.shade800;
-      default:
-        return Colors.black;
-    }
-  }
-
   @override
   void paint(Canvas canvas, Size size) {
     // Viewport truth
@@ -91,6 +78,8 @@ class BalloonPainter extends CustomPainter {
         ..style = PaintingStyle.fill;
 
       final x = centerX + (balloon.xOffset * size.width * 0.5);
+
+      // IMPORTANT: Balloon.y is the circle center y.
       final y = balloon.y;
 
       canvas.drawCircle(
