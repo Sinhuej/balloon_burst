@@ -41,7 +41,7 @@ class _GameScreenState extends State<GameScreen>
   Size _lastSize = Size.zero;
 
   static const double baseRiseSpeed = 120.0;
-  static const double balloonRadius = 16.0;
+  static const double balloonRadius = 16.0;// or even 18.0
 
   // Spatial forgiveness (radius is 16, so 10–14 is reasonable)
   static const double hitForgiveness = 14.0;
