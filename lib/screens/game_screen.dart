@@ -44,7 +44,7 @@ class _GameScreenState extends State<GameScreen>
   static const double balloonRadius = 16.0;
 
   // Spatial forgiveness
-  static const double hitForgiveness = 6.0;
+  static const double hitForgiveness = 14.0;
 
   @override
   void initState() {
