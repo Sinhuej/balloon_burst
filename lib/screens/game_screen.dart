@@ -219,16 +219,28 @@ class _GameScreenState extends State<GameScreen>
             onLongPress: widget.onRequestDebug,
             child: AnimatedBuilder(
               animation: Listenable.merge([_pulseCtrl, _shakeCtrl]),
-              builder: (context, child) {
+              builder: (context, _) {
                 return Stack(
                   children: [
-                    Container(
-                      color: _backgroundForWorld(currentWorld),
+                    // Base background — MUST fill
+                    Positioned.fill(
+                      child: Container(
+                        color: _backgroundForWorld(currentWorld),
+                      ),
                     ),
-                    Transform.translate(
-                      offset: Offset(0, _shakeYOffset()),
-                      child: child,
+
+                    // Gameplay layer — MUST fill
+                    Positioned.fill(
+                      child: Transform.translate(
+                        offset: Offset(0, _shakeYOffset()),
+                        child: CustomPaint(
+                          painter:
+                              BalloonPainter(_balloons, widget.gameState),
+                        ),
+                      ),
                     ),
+
+                    // World Surge Pulse overlay — MUST fill
                     IgnorePointer(
                       child: Positioned.fill(
                         child: Opacity(
@@ -242,10 +254,6 @@ class _GameScreenState extends State<GameScreen>
                   ],
                 );
               },
-              child: CustomPaint(
-                painter: BalloonPainter(_balloons, widget.gameState),
-                size: Size.infinite,
-              ),
             ),
           );
         },
