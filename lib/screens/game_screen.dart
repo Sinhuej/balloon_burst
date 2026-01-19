@@ -131,10 +131,12 @@ class _GameScreenState extends State<GameScreen>
       sin(pi * _shakeCtrl.value) * _shakeAmpPx;
 
   double _pulseOpacity() {
-    final t = _pulseCtrl.value;
-    final eased = 1 - t;
+    final t = _pulseCtrl.value.clamp(0.0, 1.0);
+    final eased = 1.0 - t;
     return _pulseMaxOpacity * eased * eased;
   }
+
+  bool get _pulseActive => _pulseCtrl.isAnimating || _pulseCtrl.value > 0.0;
 
   void _handleTap(TapDownDetails details) {
     if (_lastSize == Size.zero) return;
@@ -197,13 +199,13 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   Widget build(BuildContext context) {
-    final currentWorld = widget.spawner.currentWorld;
-    final nextWorld = currentWorld + 1;
-
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
+
+          final currentWorld = widget.spawner.currentWorld;
+          final nextWorld = currentWorld + 1;
 
           return SizedBox.expand(
             child: GestureDetector(
@@ -224,23 +226,22 @@ class _GameScreenState extends State<GameScreen>
                         child: Transform.translate(
                           offset: Offset(0, _shakeYOffset()),
                           child: CustomPaint(
-                            painter: BalloonPainter(
-                              _balloons,
-                              widget.gameState,
-                            ),
+                            painter: BalloonPainter(_balloons, widget.gameState),
                           ),
                         ),
                       ),
-                      IgnorePointer(
-                        child: Positioned.fill(
-                          child: Opacity(
-                            opacity: _pulseOpacity(),
-                            child: Container(
-                              color: _backgroundForWorld(nextWorld),
+                      // Overlay only exists when pulse is active (prevents screen wash/occlusion)
+                      if (_pulseActive)
+                        IgnorePointer(
+                          child: Positioned.fill(
+                            child: Opacity(
+                              opacity: _pulseOpacity(),
+                              child: Container(
+                                color: _backgroundForWorld(nextWorld),
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   );
                 },
