@@ -130,14 +130,6 @@ class _GameScreenState extends State<GameScreen>
   double _shakeYOffset() =>
       sin(pi * _shakeCtrl.value) * _shakeAmpPx;
 
-  double _pulseOpacity() {
-    final t = _pulseCtrl.value.clamp(0.0, 1.0);
-    final eased = 1.0 - t;
-    return _pulseMaxOpacity * eased * eased;
-  }
-
-  bool get _pulseActive => _pulseCtrl.isAnimating || _pulseCtrl.value > 0.0;
-
   void _handleTap(TapDownDetails details) {
     if (_lastSize == Size.zero) return;
 
@@ -217,11 +209,25 @@ class _GameScreenState extends State<GameScreen>
                 builder: (context, _) {
                   return Stack(
                     children: [
+                      // Base background
                       Positioned.fill(
                         child: Container(
                           color: _backgroundForWorld(currentWorld),
                         ),
                       ),
+
+                      // Pulse layer (behind balloons, SAFE animation)
+                      Positioned.fill(
+                        child: AnimatedOpacity(
+                          opacity: _pulseCtrl.isAnimating ? _pulseMaxOpacity : 0.0,
+                          duration: const Duration(milliseconds: 180),
+                          child: Container(
+                            color: _backgroundForWorld(nextWorld),
+                          ),
+                        ),
+                      ),
+
+                      // Gameplay
                       Positioned.fill(
                         child: Transform.translate(
                           offset: Offset(0, _shakeYOffset()),
@@ -230,18 +236,6 @@ class _GameScreenState extends State<GameScreen>
                           ),
                         ),
                       ),
-                      // Overlay only exists when pulse is active (prevents screen wash/occlusion)
-                      if (_pulseActive)
-                        IgnorePointer(
-                          child: Positioned.fill(
-                            child: Opacity(
-                              opacity: _pulseOpacity(),
-                              child: Container(
-                                color: _backgroundForWorld(nextWorld),
-                              ),
-                            ),
-                          ),
-                        ),
                     ],
                   );
                 },
