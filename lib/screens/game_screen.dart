@@ -45,9 +45,6 @@ class _GameScreenState extends State<GameScreen>
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 14.0;
 
-  // -----------------------------
-  // WORLD SURGE PULSE v1
-  // -----------------------------
   late final AnimationController _pulseCtrl;
   late final AnimationController _shakeCtrl;
 
@@ -110,16 +107,13 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
-  // -----------------------------
-  // WORLD SURGE TRIGGER (LOCKED)
-  // -----------------------------
   void _maybeTriggerWorldSurge() {
-    final int pops = widget.spawner.totalPops;
-    final int world = widget.spawner.currentWorld;
+    final pops = widget.spawner.totalPops;
+    final world = widget.spawner.currentWorld;
 
     if (_lastSurgeWorld == world) return;
 
-    final int? triggerAt = switch (world) {
+    final triggerAt = switch (world) {
       1 => BalloonSpawner.world2Pops - 5,
       2 => BalloonSpawner.world3Pops - 5,
       3 => BalloonSpawner.world4Pops - 5,
@@ -133,14 +127,12 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
-  double _shakeYOffset() {
-    final t = _shakeCtrl.value.clamp(0.0, 1.0);
-    return sin(pi * t) * _shakeAmpPx;
-  }
+  double _shakeYOffset() =>
+      sin(pi * _shakeCtrl.value) * _shakeAmpPx;
 
   double _pulseOpacity() {
-    final t = _pulseCtrl.value.clamp(0.0, 1.0);
-    final eased = 1.0 - t;
+    final t = _pulseCtrl.value;
+    final eased = 1 - t;
     return _pulseMaxOpacity * eased * eased;
   }
 
@@ -213,47 +205,46 @@ class _GameScreenState extends State<GameScreen>
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
 
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: _handleTap,
-            onLongPress: widget.onRequestDebug,
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_pulseCtrl, _shakeCtrl]),
-              builder: (context, _) {
-                return Stack(
-                  children: [
-                    // Base background — MUST fill
-                    Positioned.fill(
-                      child: Container(
-                        color: _backgroundForWorld(currentWorld),
-                      ),
-                    ),
-
-                    // Gameplay layer — MUST fill
-                    Positioned.fill(
-                      child: Transform.translate(
-                        offset: Offset(0, _shakeYOffset()),
-                        child: CustomPaint(
-                          painter:
-                              BalloonPainter(_balloons, widget.gameState),
+          return SizedBox.expand(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: _handleTap,
+              onLongPress: widget.onRequestDebug,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_pulseCtrl, _shakeCtrl]),
+                builder: (context, _) {
+                  return Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Container(
+                          color: _backgroundForWorld(currentWorld),
                         ),
                       ),
-                    ),
-
-                    // World Surge Pulse overlay — MUST fill
-                    IgnorePointer(
-                      child: Positioned.fill(
-                        child: Opacity(
-                          opacity: _pulseOpacity(),
-                          child: Container(
-                            color: _backgroundForWorld(nextWorld),
+                      Positioned.fill(
+                        child: Transform.translate(
+                          offset: Offset(0, _shakeYOffset()),
+                          child: CustomPaint(
+                            painter: BalloonPainter(
+                              _balloons,
+                              widget.gameState,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                      IgnorePointer(
+                        child: Positioned.fill(
+                          child: Opacity(
+                            opacity: _pulseOpacity(),
+                            child: Container(
+                              color: _backgroundForWorld(nextWorld),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           );
         },
