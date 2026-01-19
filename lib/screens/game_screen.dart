@@ -12,9 +12,10 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
-import 'screens/game/effects/world_surge_pulse.dart';
-import 'screens/game/input/tap_handler.dart';
-import 'screens/game/render/game_canvas.dart';
+// ✅ FIXED IMPORT PATHS
+import 'game/effects/world_surge_pulse.dart';
+import 'game/input/tap_handler.dart';
+import 'game/render/game_canvas.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -32,7 +33,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -42,12 +44,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Duration _lastTime = Duration.zero;
   Size _lastSize = Size.zero;
 
-  // Gameplay constants
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 14.0;
 
-  // Debug HUD
   bool _showHud = false;
   double _fps = 0.0;
 
@@ -63,7 +63,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
 
     _surge = WorldSurgePulse(vsync: this);
-
     _ticker = createTicker(_onTick)..start();
   }
 
@@ -74,7 +73,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _lastTime = elapsed;
 
-    // FPS (smoothed)
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
@@ -116,7 +114,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleLongPress() {
-    // Toggle HUD locally (dev-only), AND still allow external debug hook.
     setState(() => _showHud = !_showHud);
     widget.onRequestDebug();
   }
@@ -124,13 +121,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF2E86DE); // Sky Blue
+        return const Color(0xFF2E86DE);
       case 3:
-        return const Color(0xFF6C2EB9); // Neon Purple
+        return const Color(0xFF6C2EB9);
       case 4:
-        return const Color(0xFF0B0F2F); // Deep Space
+        return const Color(0xFF0B0F2F);
       default:
-        return const Color(0xFF0A0A0F); // Dark Carnival
+        return const Color(0xFF0A0A0F);
     }
   }
 
