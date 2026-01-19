@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -31,7 +32,7 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
 
@@ -41,10 +42,19 @@ class _GameScreenState extends State<GameScreen>
   Size _lastSize = Size.zero;
 
   static const double baseRiseSpeed = 120.0;
-  static const double balloonRadius = 16.0;// or even 18.0
-
-  // Spatial forgiveness (radius is 16, so 10–14 is reasonable)
+  static const double balloonRadius = 16.0;
   static const double hitForgiveness = 14.0;
+
+  // -----------------------------
+  // WORLD SURGE PULSE v1
+  // -----------------------------
+  late final AnimationController _pulseCtrl;
+  late final AnimationController _shakeCtrl;
+
+  int _lastSurgeWorld = 0;
+
+  static const double _pulseMaxOpacity = 0.08;
+  static const double _shakeAmpPx = 2.5;
 
   @override
   void initState() {
@@ -55,6 +65,16 @@ class _GameScreenState extends State<GameScreen>
       tier: TierController(),
       speed: SpeedCurve(),
       gameState: widget.gameState,
+    );
+
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+
+    _shakeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
     );
 
     _ticker = createTicker(_onTick)..start();
@@ -90,6 +110,40 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
+  // -----------------------------
+  // WORLD SURGE TRIGGER (LOCKED)
+  // -----------------------------
+  void _maybeTriggerWorldSurge() {
+    final int pops = widget.spawner.totalPops;
+    final int world = widget.spawner.currentWorld;
+
+    if (_lastSurgeWorld == world) return;
+
+    final int? triggerAt = switch (world) {
+      1 => BalloonSpawner.world2Pops - 5,
+      2 => BalloonSpawner.world3Pops - 5,
+      3 => BalloonSpawner.world4Pops - 5,
+      _ => null,
+    };
+
+    if (triggerAt != null && pops == triggerAt) {
+      _lastSurgeWorld = world;
+      _pulseCtrl.forward(from: 0.0);
+      _shakeCtrl.forward(from: 0.0);
+    }
+  }
+
+  double _shakeYOffset() {
+    final t = _shakeCtrl.value.clamp(0.0, 1.0);
+    return sin(pi * t) * _shakeAmpPx;
+  }
+
+  double _pulseOpacity() {
+    final t = _pulseCtrl.value.clamp(0.0, 1.0);
+    final eased = 1.0 - t;
+    return _pulseMaxOpacity * eased * eased;
+  }
+
   void _handleTap(TapDownDetails details) {
     if (_lastSize == Size.zero) return;
 
@@ -98,56 +152,30 @@ class _GameScreenState extends State<GameScreen>
 
     bool hit = false;
 
-    double? closestDist;
-    double? closestDx;
-    double? closestDy;
-    double? closestBx;
-    double? closestBy;
-
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       if (b.isPopped) continue;
 
-      // IMPORTANT: Match BalloonPainter exactly.
-      // Painter draws circle center at (x, b.y).
       final bx = centerX + (b.xOffset * _lastSize.width * 0.5);
       final by = b.y;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
       final dist = sqrt(dx * dx + dy * dy);
-      final effectiveRadius = balloonRadius + hitForgiveness;
 
-      if (closestDist == null || dist < closestDist!) {
-        closestDist = dist;
-        closestDx = dx;
-        closestDy = dy;
-        closestBx = bx;
-        closestBy = by;
-      }
-
-      if (dist <= effectiveRadius) {
+      if (dist <= balloonRadius + hitForgiveness) {
         _balloons[i] = b.pop();
         AudioPlayerService.playPop();
         widget.spawner.registerPop(widget.gameState);
+
+        _maybeTriggerWorldSurge();
+
         hit = true;
         break;
       }
     }
 
     if (!hit) {
-      if (closestDist != null) {
-        widget.gameState.log(
-          'MISS world=${widget.spawner.currentWorld} '
-          'tap=(${tapPos.dx.toStringAsFixed(1)},${tapPos.dy.toStringAsFixed(1)}) '
-          'balloon=(${closestBx!.toStringAsFixed(1)},${closestBy!.toStringAsFixed(1)}) '
-          'dx=${closestDx!.toStringAsFixed(1)} '
-          'dy=${closestDy!.toStringAsFixed(1)} '
-          'dist=${closestDist!.toStringAsFixed(1)} '
-          'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}'
-        );
-      }
-
       widget.spawner.registerMiss(widget.gameState);
     }
 
@@ -156,6 +184,8 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   void dispose() {
+    _pulseCtrl.dispose();
+    _shakeCtrl.dispose();
     _ticker.dispose();
     super.dispose();
   }
@@ -163,18 +193,21 @@ class _GameScreenState extends State<GameScreen>
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF2E86DE); // Sky Blue
+        return const Color(0xFF2E86DE);
       case 3:
-        return const Color(0xFF6C2EB9); // Neon Purple
+        return const Color(0xFF6C2EB9);
       case 4:
-        return const Color(0xFF0B0F2F); // Deep Space
+        return const Color(0xFF0B0F2F);
       default:
-        return const Color(0xFF0A0A0F); // Dark Carnival
+        return const Color(0xFF0A0A0F);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentWorld = widget.spawner.currentWorld;
+    final nextWorld = currentWorld + 1;
+
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -184,16 +217,35 @@ class _GameScreenState extends State<GameScreen>
             behavior: HitTestBehavior.opaque,
             onTapDown: _handleTap,
             onLongPress: widget.onRequestDebug,
-            child: Stack(
-              children: [
-                Container(
-                  color: _backgroundForWorld(widget.spawner.currentWorld),
-                ),
-                CustomPaint(
-                  painter: BalloonPainter(_balloons, widget.gameState),
-                  size: Size.infinite,
-                ),
-              ],
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_pulseCtrl, _shakeCtrl]),
+              builder: (context, child) {
+                return Stack(
+                  children: [
+                    Container(
+                      color: _backgroundForWorld(currentWorld),
+                    ),
+                    Transform.translate(
+                      offset: Offset(0, _shakeYOffset()),
+                      child: child,
+                    ),
+                    IgnorePointer(
+                      child: Positioned.fill(
+                        child: Opacity(
+                          opacity: _pulseOpacity(),
+                          child: Container(
+                            color: _backgroundForWorld(nextWorld),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              child: CustomPaint(
+                painter: BalloonPainter(_balloons, widget.gameState),
+                size: Size.infinite,
+              ),
             ),
           );
         },
