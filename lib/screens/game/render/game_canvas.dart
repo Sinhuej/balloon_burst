@@ -10,6 +10,7 @@ import '../debug/debug_hud.dart';
 class GameCanvas extends StatelessWidget {
   final int currentWorld;
   final int nextWorld;
+
   final Color backgroundColor;
   final Color pulseColor;
 
@@ -54,23 +55,32 @@ class GameCanvas extends StatelessWidget {
         child: AnimatedBuilder(
           animation: surge.listenable,
           builder: (context, _) {
+            // Decide which background color should be dominant
+            final Color effectiveBg = surge.showNextWorldColor
+                ? pulseColor
+                : backgroundColor;
+
             return Stack(
               children: [
-                // Base background
+                // Base background (can flip briefly to next world)
                 Positioned.fill(
-                  child: Container(color: backgroundColor),
+                  child: Container(color: effectiveBg),
                 ),
 
-                // Pulse layer BEHIND balloons (only when active)
-                if (surge.isActive)
+                // Pulse fade-back layer (subtle energy wash)
+                if (surge.isActive && surge.pulseOpacity > 0)
                   Positioned.fill(
                     child: Opacity(
                       opacity: surge.pulseOpacity,
-                      child: Container(color: pulseColor),
+                      child: Container(
+                        color: surge.showNextWorldColor
+                            ? backgroundColor
+                            : pulseColor,
+                      ),
                     ),
                   ),
 
-                // Gameplay (balloons) on top
+                // Gameplay (balloons) ALWAYS on top
                 Positioned.fill(
                   child: Transform.translate(
                     offset: Offset(0, surge.shakeYOffset),
@@ -80,6 +90,7 @@ class GameCanvas extends StatelessWidget {
                   ),
                 ),
 
+                // Debug HUD (dev only)
                 if (showHud)
                   DebugHud(
                     fps: fps,
