@@ -1,16 +1,17 @@
 import 'dart:math';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
-import 'package:balloon_burst/game/game_controller.dart';
-
-import '../effects/world_surge_pulse.dart';
+import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 
 class TapHandler {
-  static bool handleTap({
+  static void handleTap({
     required TapDownDetails details,
     required Size lastSize,
     required List<Balloon> balloons,
@@ -21,14 +22,13 @@ class TapHandler {
     required double balloonRadius,
     required double hitForgiveness,
   }) {
-    if (lastSize == Size.zero) return false;
+    if (lastSize == Size.zero) return;
 
     final tapPos = details.localPosition;
     final centerX = lastSize.width / 2;
 
     bool hit = false;
 
-    // Full telemetry (restored)
     double? closestDist;
     double? closestDx;
     double? closestDy;
@@ -39,8 +39,7 @@ class TapHandler {
       final b = balloons[i];
       if (b.isPopped) continue;
 
-      // IMPORTANT: Match BalloonPainter exactly.
-      // Painter draws circle center at (x, b.y).
+      // MUST MATCH BalloonPainter
       final bx = centerX + (b.xOffset * lastSize.width * 0.5);
       final by = b.y;
 
@@ -62,7 +61,6 @@ class TapHandler {
         AudioPlayerService.playPop();
         spawner.registerPop(gameState);
 
-        // Trigger surge cue BEFORE speed increase (threshold - 5)
         surge.maybeTrigger(
           totalPops: spawner.totalPops,
           currentWorld: spawner.currentWorld,
@@ -77,7 +75,6 @@ class TapHandler {
     }
 
     if (!hit) {
-      // Restore detailed miss telemetry
       if (closestDist != null) {
         gameState.log(
           'MISS world=${spawner.currentWorld} '
@@ -86,13 +83,13 @@ class TapHandler {
           'dx=${closestDx!.toStringAsFixed(1)} '
           'dy=${closestDy!.toStringAsFixed(1)} '
           'dist=${closestDist!.toStringAsFixed(1)} '
-          'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}',
+          'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}'
         );
       }
+
       spawner.registerMiss(gameState);
     }
 
     controller.registerTap(hit: hit);
-    return hit;
   }
 }

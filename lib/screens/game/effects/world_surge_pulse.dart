@@ -4,16 +4,16 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
-/// World Surge Pulse v1
-/// - Trigger at (threshold - 5) pops for upcoming world change.
-/// - Provides:
-///   - pulseOpacity (0.08 -> 0.0 over ~180ms, easeOut)
-///   - shakeYOffset (vertical micro shake 2–3px over ~120ms)
+/// World Surge Pulse v1.1
+/// - Fires 15 taps before world transition
+/// - Fake-out flash: current → next → current
+/// - Vertical micro-shake
 class WorldSurgePulse {
   final AnimationController _pulseCtrl;
   final AnimationController _shakeCtrl;
 
   int _lastSurgeWorld = 0;
+  bool _invertColors = false;
 
   static const double pulseMaxOpacity = 0.08;
   static const double shakeAmpPx = 2.5;
@@ -22,7 +22,7 @@ class WorldSurgePulse {
     required TickerProvider vsync,
   })  : _pulseCtrl = AnimationController(
           vsync: vsync,
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 160),
         ),
         _shakeCtrl = AnimationController(
           vsync: vsync,
@@ -34,7 +34,6 @@ class WorldSurgePulse {
     _shakeCtrl.dispose();
   }
 
-  /// Fire when we are (threshold - 5) pops away from a world switch.
   void maybeTrigger({
     required int totalPops,
     required int currentWorld,
@@ -45,18 +44,34 @@ class WorldSurgePulse {
     if (_lastSurgeWorld == currentWorld) return;
 
     final int? triggerAt = switch (currentWorld) {
-      1 => world2Pops - 5,
-      2 => world3Pops - 5,
-      3 => world4Pops - 5,
+      1 => world2Pops - 15,
+      2 => world3Pops - 15,
+      3 => world4Pops - 15,
       _ => null,
     };
 
     if (triggerAt != null && totalPops == triggerAt) {
       _lastSurgeWorld = currentWorld;
-      _pulseCtrl.forward(from: 0.0);
-      _shakeCtrl.forward(from: 0.0);
+
+      _invertColors = true;
+      _pulseCtrl
+        ..reset()
+        ..forward();
+
+      _shakeCtrl
+        ..reset()
+        ..forward();
+
+      // snap back to current color
+      _pulseCtrl.addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _invertColors = false;
+        }
+      });
     }
   }
+
+  bool get showNextWorldColor => _invertColors;
 
   bool get isActive =>
       _pulseCtrl.isAnimating || _pulseCtrl.value > 0.0;
