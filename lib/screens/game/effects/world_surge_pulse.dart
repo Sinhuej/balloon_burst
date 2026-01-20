@@ -1,4 +1,7 @@
 import 'dart:math';
+
+import 'package:flutter/animation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
 /// World Surge Pulse v1
@@ -32,7 +35,6 @@ class WorldSurgePulse {
   }
 
   /// Fire when we are (threshold - 5) pops away from a world switch.
-  /// Uses BalloonSpawner's locked thresholds via the caller.
   void maybeTrigger({
     required int totalPops,
     required int currentWorld,
@@ -56,10 +58,10 @@ class WorldSurgePulse {
     }
   }
 
-  bool get isActive => _pulseCtrl.isAnimating || _pulseCtrl.value > 0.0;
+  bool get isActive =>
+      _pulseCtrl.isAnimating || _pulseCtrl.value > 0.0;
 
   double get pulseOpacity {
-    // Safe, bounded, ease-out without “invisible overlay” bugs.
     final t = _pulseCtrl.value.clamp(0.0, 1.0);
     final eased = 1.0 - t;
     return pulseMaxOpacity * eased * eased;
@@ -67,9 +69,9 @@ class WorldSurgePulse {
 
   double get shakeYOffset {
     final t = _shakeCtrl.value.clamp(0.0, 1.0);
-    // Single bump: 0 -> 1 -> 0
     return sin(pi * t) * shakeAmpPx;
   }
 
-  Listenable get listenable => Listenable.merge([_pulseCtrl, _shakeCtrl]);
+  Listenable get listenable =>
+      Listenable.merge([_pulseCtrl, _shakeCtrl]);
 }
