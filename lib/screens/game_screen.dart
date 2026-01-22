@@ -46,7 +46,7 @@ class _GameScreenState extends State<GameScreen>
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
-  static const double hitForgiveness = 14.0;
+  static const double hitForgiveness = 18.0;
 
   bool _showHud = false;
   double _fps = 0.0;
