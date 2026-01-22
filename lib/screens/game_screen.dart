@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
@@ -12,10 +14,9 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
-// ✅ FIXED IMPORT PATHS
+import 'game/render/game_canvas.dart';
 import 'game/effects/world_surge_pulse.dart';
 import 'game/input/tap_handler.dart';
-import 'game/render/game_canvas.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -45,11 +46,16 @@ class _GameScreenState extends State<GameScreen>
   Size _lastSize = Size.zero;
 
   static const double baseRiseSpeed = 120.0;
-  static const double balloonRadius = 16.0;
-  static const double hitForgiveness = 18.0;
 
   bool _showHud = false;
-  double _fps = 0.0;
+
+  // DEV ONLY HUD — locked on in debug, impossible in release
+  void _initDebugHud() {
+    assert(() {
+      _showHud = true;
+      return true;
+    }());
+  }
 
   @override
   void initState() {
@@ -63,6 +69,8 @@ class _GameScreenState extends State<GameScreen>
     );
 
     _surge = WorldSurgePulse(vsync: this);
+    _initDebugHud();
+
     _ticker = createTicker(_onTick)..start();
   }
 
@@ -72,9 +80,6 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
 
     _lastTime = elapsed;
-
-    final instFps = dt > 0 ? (1.0 / dt) : 0.0;
-    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
     widget.spawner.update(
       dt: dt,
@@ -89,33 +94,15 @@ class _GameScreenState extends State<GameScreen>
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    for (int i = _balloons.length - 1; i >= 0; i--) {
-      if (_balloons[i].y < -balloonRadius) {
-        _balloons.removeAt(i);
-      }
-    }
-
     _controller.update(_balloons, dt);
     setState(() {});
   }
 
-  void _handleTap(TapDownDetails details) {
-    TapHandler.handleTap(
-      details: details,
-      lastSize: _lastSize,
-      balloons: _balloons,
-      gameState: widget.gameState,
-      spawner: widget.spawner,
-      controller: _controller,
-      surge: _surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
-    );
-  }
-
-  void _handleLongPress() {
-    setState(() => _showHud = !_showHud);
-    widget.onRequestDebug();
+  @override
+  void dispose() {
+    _surge.dispose();
+    _ticker.dispose();
+    super.dispose();
   }
 
   Color _backgroundForWorld(int world) {
@@ -131,30 +118,15 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
-  double _recentAccuracy() {
-    final hits = widget.spawner.recentHits;
-    final misses = widget.spawner.recentMisses;
-    final total = hits + misses;
-    if (total <= 0) return 1.0;
-    return hits / total;
-  }
-
-  @override
-  void dispose() {
-    _surge.dispose();
-    _ticker.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final currentWorld = widget.spawner.currentWorld;
+    final nextWorld = currentWorld + 1;
+
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
-
-          final currentWorld = widget.spawner.currentWorld;
-          final nextWorld = currentWorld + 1;
 
           return GameCanvas(
             currentWorld: currentWorld,
@@ -164,13 +136,21 @@ class _GameScreenState extends State<GameScreen>
             surge: _surge,
             balloons: _balloons,
             gameState: widget.gameState,
-            onTapDown: _handleTap,
-            onLongPress: _handleLongPress,
             showHud: _showHud,
-            fps: _fps,
+            fps: _ticker.isActive ? 1 / (_lastTime.inMicroseconds / 1e6) : 0,
             speedMultiplier: widget.spawner.speedMultiplier,
-            recentAccuracy: _recentAccuracy(),
+            recentAccuracy: widget.spawner.accuracyModifier,
             recentMisses: widget.spawner.recentMisses,
+            onTapDown: (details) => TapHandler.handleTap(
+              details: details,
+              balloons: _balloons,
+              size: _lastSize,
+              spawner: widget.spawner,
+              gameState: widget.gameState,
+              controller: _controller,
+              surge: _surge,
+            ),
+            onLongPress: widget.onRequestDebug,
           );
         },
       ),
