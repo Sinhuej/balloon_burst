@@ -1,10 +1,6 @@
-import 'dart:async';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
@@ -34,8 +30,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -45,9 +40,16 @@ class _GameScreenState extends State<GameScreen>
   Duration _lastTime = Duration.zero;
   Size _lastSize = Size.zero;
 
+  // Gameplay tuning (owned by GameScreen; passed into TapHandler)
   static const double baseRiseSpeed = 120.0;
+  static const double balloonRadius = 16.0;
+  static const double hitForgiveness = 14.0;
 
+  // Debug HUD (dev-only)
   bool _showHud = false;
+
+  // Simple performance metric (smoothed)
+  double _fps = 0.0;
 
   // DEV ONLY HUD — locked on in debug, impossible in release
   void _initDebugHud() {
@@ -75,11 +77,15 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
-    final dt = (_lastTime == Duration.zero)
+    final double dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
 
     _lastTime = elapsed;
+
+    // FPS: exponential moving average so it doesn't jitter
+    final double instFps = (dt > 0) ? (1.0 / dt) : 0.0;
+    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
     widget.spawner.update(
       dt: dt,
@@ -88,13 +94,15 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
-    final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
+    final double speed = baseRiseSpeed * widget.spawner.speedMultiplier;
 
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
     _controller.update(_balloons, dt);
+
+    // Pump UI for painter + HUD + effects
     setState(() {});
   }
 
@@ -120,8 +128,9 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   Widget build(BuildContext context) {
-    final currentWorld = widget.spawner.currentWorld;
-    final nextWorld = currentWorld + 1;
+    // NOTE: these are re-evaluated every build, which is fine (cheap).
+    final int currentWorld = widget.spawner.currentWorld;
+    final int nextWorld = currentWorld + 1;
 
     return Scaffold(
       body: LayoutBuilder(
@@ -137,20 +146,20 @@ class _GameScreenState extends State<GameScreen>
             balloons: _balloons,
             gameState: widget.gameState,
             showHud: _showHud,
-            fps: _ticker.isActive ? 1 / (_lastTime.inMicroseconds / 1e6) : 0,
+            fps: _fps,
             speedMultiplier: widget.spawner.speedMultiplier,
             recentAccuracy: widget.spawner.accuracyModifier,
             recentMisses: widget.spawner.recentMisses,
             onTapDown: (details) => TapHandler.handleTap(
-             details: details,
-             lastSize: _lastSize,
-             balloons: _balloons,
-             gameState: widget.gameState,
-             spawner: widget.spawner,
-             controller: _controller,
-             surge: _surge,
-             balloonRadius: balloonRadius,
-             hitForgiveness: hitForgiveness,
+              details: details,
+              lastSize: _lastSize,
+              balloons: _balloons,
+              gameState: widget.gameState,
+              spawner: widget.spawner,
+              controller: _controller,
+              surge: _surge,
+              balloonRadius: balloonRadius,
+              hitForgiveness: hitForgiveness,
             ),
             onLongPress: widget.onRequestDebug,
           );
