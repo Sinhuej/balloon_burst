@@ -44,9 +44,9 @@ class WorldSurgePulse {
     if (_lastSurgeWorld == currentWorld) return;
 
     final int? triggerAt = switch (currentWorld) {
-      1 => world2Pops - 15,
-      2 => world3Pops - 15,
-      3 => world4Pops - 15,
+      1 => world2Pops - 3,
+      2 => world3Pops - 4,
+      3 => world4Pops - 5,
       _ => null,
     };
 
