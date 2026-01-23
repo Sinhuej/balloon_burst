@@ -50,7 +50,7 @@ class _GameScreenState extends State<GameScreen>
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 14.0;
 
-  bool _showHud = false;
+  bool _showHud = true;
 
   @override
   void initState() {
