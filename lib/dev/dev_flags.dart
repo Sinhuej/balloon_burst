@@ -1,8 +1,16 @@
+/// Centralized dev / debug feature flags.
+/// SAFE to ship — defaults control all debug behavior.
+///
+/// Flip this ONE flag to enable/disable:
+/// - Debug HUD
+/// - Detailed miss telemetry
 class DevFlags {
-  // Default ON while tuning (SlimNation-approved).
-  // Later: flip default to false for release branch.
-  static bool debugLogsEnabled = true;
+  /// Master debug switch
+  static const bool debugEnabled = true;
 
-  // Optional: keep HUD separate if you want later
-  static bool debugHudEnabled = true;
+  /// On-screen HUD
+  static bool get showDebugHud => debugEnabled;
+
+  /// Detailed miss logs
+  static bool get logMissDetails => debugEnabled;
 }

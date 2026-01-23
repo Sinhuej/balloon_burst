@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
@@ -29,15 +30,6 @@ class TapHandler {
 
     bool hit = false;
 
-    // Closest-balloon telemetry (for misses)
-    double? closestDist;
-    double closestBx = 0.0;
-    double closestBy = 0.0;
-    double closestDx = 0.0;
-    double closestDy = 0.0;
-
-    final effectiveRadius = balloonRadius + hitForgiveness;
-
     for (int i = 0; i < balloons.length; i++) {
       final b = balloons[i];
       if (b.isPopped) continue;
@@ -49,46 +41,39 @@ class TapHandler {
       final dy = tapPos.dy - by;
       final dist = sqrt(dx * dx + dy * dy);
 
-      if (closestDist == null || dist < closestDist!) {
-        closestDist = dist;
-        closestBx = bx;
-        closestBy = by;
-        closestDx = dx;
-        closestDy = dy;
-      }
-
-      if (dist <= effectiveRadius) {
+      if (dist <= balloonRadius + hitForgiveness) {
         balloons[i] = b.pop();
         AudioPlayerService.playPop();
         spawner.registerPop(gameState);
-
-        surge.maybeTrigger(
-          totalPops: spawner.totalPops,
-          currentWorld: spawner.currentWorld,
-          world2Pops: BalloonSpawner.world2Pops,
-          world3Pops: BalloonSpawner.world3Pops,
-          world4Pops: BalloonSpawner.world4Pops,
-        );
-
+        surge.maybeTrigger(spawner);
         hit = true;
         break;
       }
     }
 
     if (!hit) {
-      // Detailed miss telemetry (dev flag gated)
-      if (DevFlags.debugLogsEnabled && closestDist != null) {
+      spawner.registerMiss(gameState);
+
+      // 🔎 Detailed telemetry (DEV ONLY)
+      if (DevFlags.logMissDetails && balloons.isNotEmpty) {
+        final b = balloons.first;
+        final bx = centerX + (b.xOffset * lastSize.width * 0.5);
+        final by = b.y;
+
+        final dx = tapPos.dx - bx;
+        final dy = tapPos.dy - by;
+        final dist = sqrt(dx * dx + dy * dy);
+
         gameState.log(
           'MISS world=${spawner.currentWorld} '
           'tap=(${tapPos.dx.toStringAsFixed(1)},${tapPos.dy.toStringAsFixed(1)}) '
-          'balloon=(${closestBx.toStringAsFixed(1)},${closestBy.toStringAsFixed(1)}) '
-          'dx=${closestDx.toStringAsFixed(1)} dy=${closestDy.toStringAsFixed(1)} '
-          'dist=${closestDist!.toStringAsFixed(1)} '
-          'r=${effectiveRadius.toStringAsFixed(1)}',
+          'balloon=(${bx.toStringAsFixed(1)},${by.toStringAsFixed(1)}) '
+          'dx=${dx.toStringAsFixed(1)} '
+          'dy=${dy.toStringAsFixed(1)} '
+          'dist=${dist.toStringAsFixed(1)} '
+          'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}',
         );
       }
-
-      spawner.registerMiss(gameState);
     }
 
     controller.registerTap(hit: hit);

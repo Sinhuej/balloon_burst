@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -10,6 +12,7 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
+import 'dev/dev_flags.dart';
 import 'game/render/game_canvas.dart';
 import 'game/effects/world_surge_pulse.dart';
 import 'game/input/tap_handler.dart';
@@ -39,24 +42,15 @@ class _GameScreenState extends State<GameScreen>
   final List<Balloon> _balloons = [];
 
   Duration _lastTime = Duration.zero;
-  double _lastDt = 0.016;
   Size _lastSize = Size.zero;
 
   static const double baseRiseSpeed = 120.0;
 
-  // Tap feel (LOCKED)
+  // ✅ FEEL CONSTANTS (locked)
   static const double balloonRadius = 16.0;
-  static const double hitForgiveness = 18.0; // (your new feel lock)
+  static const double hitForgiveness = 14.0;
 
   bool _showHud = false;
-
-  // DEV ONLY HUD — on in debug builds only (never in release)
-  void _initDebugHud() {
-    assert(() {
-      _showHud = true;
-      return true;
-    }());
-  }
 
   @override
   void initState() {
@@ -70,7 +64,9 @@ class _GameScreenState extends State<GameScreen>
     );
 
     _surge = WorldSurgePulse(vsync: this);
-    _initDebugHud();
+
+    // 🔐 Dev-controlled HUD
+    _showHud = DevFlags.showDebugHud;
 
     _ticker = createTicker(_onTick)..start();
   }
@@ -81,7 +77,6 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
 
     _lastTime = elapsed;
-    _lastDt = dt.clamp(0.000001, 1.0);
 
     widget.spawner.update(
       dt: dt,
@@ -138,13 +133,13 @@ class _GameScreenState extends State<GameScreen>
             surge: _surge,
             balloons: _balloons,
             gameState: widget.gameState,
-
             showHud: _showHud,
-            fps: 1.0 / _lastDt,
+            fps: _ticker.isActive && _lastTime.inMicroseconds > 0
+                ? 1 / (_lastTime.inMicroseconds / 1e6)
+                : 0,
             speedMultiplier: widget.spawner.speedMultiplier,
             recentAccuracy: widget.spawner.accuracyModifier,
             recentMisses: widget.spawner.recentMisses,
-
             onTapDown: (details) => TapHandler.handleTap(
               details: details,
               lastSize: _lastSize,
