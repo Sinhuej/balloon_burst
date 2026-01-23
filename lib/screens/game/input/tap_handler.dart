@@ -1,6 +1,4 @@
 import 'dart:math';
-
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:balloon_burst/audio/audio_player.dart';
@@ -8,7 +6,9 @@ import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
-import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
+
+import 'package:balloon_burst/dev/dev_flags.dart';
+import '../effects/world_surge_pulse.dart';
 
 class TapHandler {
   static void handleTap({
@@ -29,31 +29,32 @@ class TapHandler {
 
     bool hit = false;
 
+    // Closest-balloon telemetry (for misses)
     double? closestDist;
-    double? closestDx;
-    double? closestDy;
-    double? closestBx;
-    double? closestBy;
+    double closestBx = 0.0;
+    double closestBy = 0.0;
+    double closestDx = 0.0;
+    double closestDy = 0.0;
+
+    final effectiveRadius = balloonRadius + hitForgiveness;
 
     for (int i = 0; i < balloons.length; i++) {
       final b = balloons[i];
       if (b.isPopped) continue;
 
-      // MUST MATCH BalloonPainter
       final bx = centerX + (b.xOffset * lastSize.width * 0.5);
       final by = b.y;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
       final dist = sqrt(dx * dx + dy * dy);
-      final effectiveRadius = balloonRadius + hitForgiveness;
 
       if (closestDist == null || dist < closestDist!) {
         closestDist = dist;
-        closestDx = dx;
-        closestDy = dy;
         closestBx = bx;
         closestBy = by;
+        closestDx = dx;
+        closestDy = dy;
       }
 
       if (dist <= effectiveRadius) {
@@ -75,15 +76,15 @@ class TapHandler {
     }
 
     if (!hit) {
-      if (closestDist != null) {
+      // Detailed miss telemetry (dev flag gated)
+      if (DevFlags.debugLogsEnabled && closestDist != null) {
         gameState.log(
           'MISS world=${spawner.currentWorld} '
           'tap=(${tapPos.dx.toStringAsFixed(1)},${tapPos.dy.toStringAsFixed(1)}) '
-          'balloon=(${closestBx!.toStringAsFixed(1)},${closestBy!.toStringAsFixed(1)}) '
-          'dx=${closestDx!.toStringAsFixed(1)} '
-          'dy=${closestDy!.toStringAsFixed(1)} '
+          'balloon=(${closestBx.toStringAsFixed(1)},${closestBy.toStringAsFixed(1)}) '
+          'dx=${closestDx.toStringAsFixed(1)} dy=${closestDy.toStringAsFixed(1)} '
           'dist=${closestDist!.toStringAsFixed(1)} '
-          'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}'
+          'r=${effectiveRadius.toStringAsFixed(1)}',
         );
       }
 

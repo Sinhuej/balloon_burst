@@ -1,39 +1,72 @@
 import 'dart:math';
+import 'package:flutter/material.dart';
 
-import 'package:flutter/animation.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/scheduler.dart';
-
-/// World Surge Pulse v1.1
-/// - Fires 15 taps before world transition
-/// - Fake-out flash: current → next → current
-/// - Vertical micro-shake
 class WorldSurgePulse {
+  final AnimationController _flipCtrl;
   final AnimationController _pulseCtrl;
   final AnimationController _shakeCtrl;
 
-  int _lastSurgeWorld = 0;
-  bool _invertColors = false;
+  bool _showNextWorldColor = false;
+  bool _isActive = false;
 
-  static const double pulseMaxOpacity = 0.08;
-  static const double shakeAmpPx = 2.5;
+  static const int _tapsBefore = 5; // LOCKED timing
+  static const double _pulseMaxOpacity = 0.10;
+  static const double _shakeAmpPx = 3.0;
 
   WorldSurgePulse({
     required TickerProvider vsync,
-  })  : _pulseCtrl = AnimationController(
+  })  : _flipCtrl = AnimationController(
           vsync: vsync,
-          duration: const Duration(milliseconds: 160),
+          duration: const Duration(milliseconds: 120),
+        ),
+        _pulseCtrl = AnimationController(
+          vsync: vsync,
+          duration: const Duration(milliseconds: 220),
         ),
         _shakeCtrl = AnimationController(
           vsync: vsync,
-          duration: const Duration(milliseconds: 120),
-        );
+          duration: const Duration(milliseconds: 160),
+        ) {
+    _flipCtrl.addStatusListener((s) {
+      if (s == AnimationStatus.completed) {
+        // after the quick flip, allow the fade-back to finish and then reset
+        _showNextWorldColor = false;
+      }
+    });
 
-  void dispose() {
-    _pulseCtrl.dispose();
-    _shakeCtrl.dispose();
+    _pulseCtrl.addStatusListener((s) {
+      if (s == AnimationStatus.completed) {
+        _isActive = false;
+      }
+    });
   }
 
+  Listenable get listenable =>
+      Listenable.merge([_flipCtrl, _pulseCtrl, _shakeCtrl]);
+
+  bool get isActive => _isActive;
+
+  /// When true, background should show next-world color (briefly).
+  bool get showNextWorldColor => _showNextWorldColor;
+
+  /// Fade layer opacity (subtle wash)
+  double get pulseOpacity {
+    if (!_isActive) return 0.0;
+    final t = _pulseCtrl.value.clamp(0.0, 1.0);
+    // ease out
+    final eased = 1.0 - t;
+    return _pulseMaxOpacity * eased * eased;
+  }
+
+  /// Shake Y offset
+  double get shakeYOffset {
+    if (!_isActive) return 0.0;
+    final t = _shakeCtrl.value.clamp(0.0, 1.0);
+    return sin(pi * t) * _shakeAmpPx;
+  }
+
+  /// Call this on POP, using current totals.
+  /// Triggers exactly _tapsBefore before the next threshold.
   void maybeTrigger({
     required int totalPops,
     required int currentWorld,
@@ -41,52 +74,29 @@ class WorldSurgePulse {
     required int world3Pops,
     required int world4Pops,
   }) {
-    if (_lastSurgeWorld == currentWorld) return;
-
     final int? triggerAt = switch (currentWorld) {
-      1 => world2Pops - 3,
-      2 => world3Pops - 4,
-      3 => world4Pops - 5,
+      1 => world2Pops - _tapsBefore,
+      2 => world3Pops - _tapsBefore,
+      3 => world4Pops - _tapsBefore,
       _ => null,
     };
 
-    if (triggerAt != null && totalPops == triggerAt) {
-      _lastSurgeWorld = currentWorld;
+    if (triggerAt == null) return;
 
-      _invertColors = true;
-      _pulseCtrl
-        ..reset()
-        ..forward();
+    // totalPops increments on pop, so trigger when we HIT the exact count.
+    if (totalPops == triggerAt) {
+      _isActive = true;
+      _showNextWorldColor = true;
 
-      _shakeCtrl
-        ..reset()
-        ..forward();
-
-      // snap back to current color
-      _pulseCtrl.addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _invertColors = false;
-        }
-      });
+      _flipCtrl.forward(from: 0.0);
+      _pulseCtrl.forward(from: 0.0);
+      _shakeCtrl.forward(from: 0.0);
     }
   }
 
-  bool get showNextWorldColor => _invertColors;
-
-  bool get isActive =>
-      _pulseCtrl.isAnimating || _pulseCtrl.value > 0.0;
-
-  double get pulseOpacity {
-    final t = _pulseCtrl.value.clamp(0.0, 1.0);
-    final eased = 1.0 - t;
-    return pulseMaxOpacity * eased * eased;
+  void dispose() {
+    _flipCtrl.dispose();
+    _pulseCtrl.dispose();
+    _shakeCtrl.dispose();
   }
-
-  double get shakeYOffset {
-    final t = _shakeCtrl.value.clamp(0.0, 1.0);
-    return sin(pi * t) * shakeAmpPx;
-  }
-
-  Listenable get listenable =>
-      Listenable.merge([_pulseCtrl, _shakeCtrl]);
 }

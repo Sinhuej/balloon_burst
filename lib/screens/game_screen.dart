@@ -30,7 +30,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -38,20 +39,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final List<Balloon> _balloons = [];
 
   Duration _lastTime = Duration.zero;
+  double _lastDt = 0.016;
   Size _lastSize = Size.zero;
 
-  // Gameplay tuning (owned by GameScreen; passed into TapHandler)
   static const double baseRiseSpeed = 120.0;
-  static const double balloonRadius = 16.0;
-  static const double hitForgiveness = 14.0;
 
-  // Debug HUD (dev-only)
+  // Tap feel (LOCKED)
+  static const double balloonRadius = 16.0;
+  static const double hitForgiveness = 18.0; // (your new feel lock)
+
   bool _showHud = false;
 
-  // Simple performance metric (smoothed)
-  double _fps = 0.0;
-
-  // DEV ONLY HUD — locked on in debug, impossible in release
+  // DEV ONLY HUD — on in debug builds only (never in release)
   void _initDebugHud() {
     assert(() {
       _showHud = true;
@@ -77,15 +76,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _onTick(Duration elapsed) {
-    final double dt = (_lastTime == Duration.zero)
+    final dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
 
     _lastTime = elapsed;
-
-    // FPS: exponential moving average so it doesn't jitter
-    final double instFps = (dt > 0) ? (1.0 / dt) : 0.0;
-    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
+    _lastDt = dt.clamp(0.000001, 1.0);
 
     widget.spawner.update(
       dt: dt,
@@ -94,15 +90,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       viewportHeight: _lastSize.height,
     );
 
-    final double speed = baseRiseSpeed * widget.spawner.speedMultiplier;
+    final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
 
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
     _controller.update(_balloons, dt);
-
-    // Pump UI for painter + HUD + effects
     setState(() {});
   }
 
@@ -128,9 +122,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // NOTE: these are re-evaluated every build, which is fine (cheap).
-    final int currentWorld = widget.spawner.currentWorld;
-    final int nextWorld = currentWorld + 1;
+    final currentWorld = widget.spawner.currentWorld;
+    final nextWorld = currentWorld + 1;
 
     return Scaffold(
       body: LayoutBuilder(
@@ -145,11 +138,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             surge: _surge,
             balloons: _balloons,
             gameState: widget.gameState,
+
             showHud: _showHud,
-            fps: _fps,
+            fps: 1.0 / _lastDt,
             speedMultiplier: widget.spawner.speedMultiplier,
             recentAccuracy: widget.spawner.accuracyModifier,
             recentMisses: widget.spawner.recentMisses,
+
             onTapDown: (details) => TapHandler.handleTap(
               details: details,
               lastSize: _lastSize,
