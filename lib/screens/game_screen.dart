@@ -127,6 +127,10 @@ class _GameScreenState extends State<GameScreen>
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
 
+          // Keep GameState viewportHeight in sync (used by GameController escapeY)
+          widget.gameState.viewportHeight = _lastSize.height;
+
+
           return GameCanvas(
             currentWorld: currentWorld,
             nextWorld: nextWorld,
