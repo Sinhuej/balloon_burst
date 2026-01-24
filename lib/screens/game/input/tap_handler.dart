@@ -40,7 +40,7 @@ class TapHandler {
         balloons.remove(b);
         spawner.registerHit();
 
-        surge.maybeTrigger(currentWorld: spawner.currentWorld, totalPops: spawner.totalPops);
+        surge.maybeTrigger(currentWorld: spawner.currentWorld, totalPops: spawner.totalPops, world2Pops: BalloonSpawner.world2Pops, world3Pops: BalloonSpawner.world3Pops, world4Pops: BalloonSpawner.world4Pops);
         break;
       }
     }
