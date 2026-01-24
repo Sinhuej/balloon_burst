@@ -1,3 +1,9 @@
+import "package:balloon_burst/engine/momentum/momentum_controller.dart";
+
+import "package:balloon_burst/engine/tier/tier_controller.dart";
+
+import "package:balloon_burst/engine/speed/speed_curve.dart";
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
