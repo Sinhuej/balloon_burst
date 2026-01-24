@@ -55,7 +55,6 @@ class GameController {
 
     // 🚨 RUN ENDS HERE
     if (_escapeCount >= maxEscapesBeforeFail) {
-      onRunEnd?.call(gameState.currentWorld);
 
       // prevent double-fire
       _escapeCount = 0;

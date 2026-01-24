@@ -50,9 +50,9 @@ class _GameScreenState extends State<GameScreen>
     super.initState();
 
     _controller = GameController(
-      momentum: widget.gameState.momentum,
-      tier: widget.gameState.tier,
-      speed: widget.gameState.speed,
+      momentum: MomentumController(),
+      tier: TierController(),
+      speed: SpeedCurve(),
       gameState: widget.gameState,
     );
 
