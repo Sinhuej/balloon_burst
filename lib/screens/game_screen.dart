@@ -1,23 +1,16 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
-import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
-import 'package:balloon_burst/engine/tier/tier_controller.dart';
-import 'package:balloon_burst/engine/speed/speed_curve.dart';
-
 import 'game/render/game_canvas.dart';
 import 'game/effects/world_surge_pulse.dart';
 import 'game/input/tap_handler.dart';
-import 'game/replay/replay_feedback.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -52,30 +45,23 @@ class _GameScreenState extends State<GameScreen>
 
   bool _showHud = false;
 
-  void _initDebugHud() {
-    assert(() {
-      _showHud = true;
-      return true;
-    }());
-  }
-
   @override
   void initState() {
     super.initState();
 
     _controller = GameController(
-      momentum: MomentumController(),
-      tier: TierController(),
-      speed: SpeedCurve(),
+      momentum: widget.gameState.momentum,
+      tier: widget.gameState.tier,
+      speed: widget.gameState.speed,
       gameState: widget.gameState,
-      onRunEnd: (world) {
-        final message = ReplayFeedback.forWorld(world);
-        debugPrint('REPLAY FEEDBACK → $message');
-      },
     );
 
     _surge = WorldSurgePulse(vsync: this);
-    _initDebugHud();
+
+    assert(() {
+      _showHud = true;
+      return true;
+    }());
 
     _ticker = createTicker(_onTick)..start();
   }

@@ -45,7 +45,13 @@ class TapHandler {
         balloons[i] = b.pop();
         AudioPlayerService.playPop();
         spawner.registerPop(gameState);
-        surge.maybeTrigger(spawner);
+        surge.maybeTrigger(
+         totalPops: spawner.totalPops,
+         currentWorld: spawner.currentWorld,
+         world2Pops: BalloonSpawner.world2Pops,
+         world3Pops: BalloonSpawner.world3Pops,
+         world4Pops: BalloonSpawner.world4Pops,
+       );
         hit = true;
         break;
       }
