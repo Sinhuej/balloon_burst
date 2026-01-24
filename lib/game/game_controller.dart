@@ -46,12 +46,13 @@ class GameController {
   void update(List<Balloon> balloons, double dt) {
     if (gameState.isGameOver) return;
 
-    final double escapeY = gameState.viewportHeight + 30.0;
+    // Rising Worlds:
+    // Balloons escape when they go ABOVE the top of the screen
+    const double escapeMargin = 24.0;
     int escapedThisFrame = 0;
 
-    // Remove escaped balloons immediately
     balloons.removeWhere((b) {
-      if (b.y > escapeY) {
+      if (b.y < -escapeMargin) {
         escapedThisFrame++;
         return true;
       }
