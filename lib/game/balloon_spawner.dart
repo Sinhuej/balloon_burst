@@ -1,30 +1,18 @@
 import 'dart:math';
 import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/game/game_state.dart';
-import 'package:balloon_burst/debug/dev_flags.dart';
 
 class BalloonSpawner {
   double _timer = 0.0;
-  int _spawnCount = 0;
-
-  double spawnInterval = 1.2;
 
   int totalPops = 0;
   int recentMisses = 0;
-  int recentHits = 0;
-
-  int _lastLoggedWorld = 1;
 
   static const int world2Pops = 50;
   static const int world3Pops = 150;
   static const int world4Pops = 350;
 
-  static const Map<int, double> worldSpeedMultiplier = {
-    1: 1.00,
-    2: 1.25,
-    3: 1.55,
-    4: 1.90,
-  };
+  static const double spawnInterval = 1.2;
 
   static const Map<int, double> worldSpawnInterval = {
     1: 1.20,
@@ -33,8 +21,12 @@ class BalloonSpawner {
     4: 0.70,
   };
 
-  static const double maxWorldRamp = 0.10;
-  static const double maxMissSlowdown = 0.05;
+  static const Map<int, double> worldSpeedMultiplier = {
+    1: 1.00,
+    2: 1.25,
+    3: 1.55,
+    4: 1.90,
+  };
 
   void update({
     required double dt,
@@ -42,54 +34,32 @@ class BalloonSpawner {
     required List<Balloon> balloons,
     required double viewportHeight,
   }) {
-    final targetInterval =
-        worldSpawnInterval[currentWorld] ?? spawnInterval;
-
-    spawnInterval += (targetInterval - spawnInterval) * 0.05;
     _timer += dt;
 
-    if (_timer >= spawnInterval) {
+    final interval =
+        worldSpawnInterval[currentWorld] ?? spawnInterval;
+
+    if (_timer >= interval) {
       _timer = 0.0;
-
-      balloons.add(
-        Balloon.spawnAt(
-          _spawnCount,
-          total: _spawnCount + 1,
-          tier: tier,
-          viewportHeight: viewportHeight,
-        ),
-      );
-
-      _spawnCount++;
+      balloons.add(Balloon.spawn(viewportHeight));
     }
   }
 
-  void registerPop(GameState gameState) {
+  void registerHit(GameState gameState) {
     totalPops++;
-    recentHits++;
     recentMisses = max(0, recentMisses - 1);
 
     final w = currentWorld;
-if (w != _lastLoggedWorld) {
-  if (DevFlags.debugLogsEnabled) {
-    gameState.log('WORLD CHANGE $_lastLoggedWorld → $w at pops=$totalPops');
-    gameState.log('BG COLOR → ${_worldName(w)}');
-  }
-  _lastLoggedWorld = w;
-}    
+    gameState.log('WORLD CHANGE → $w at pops=$totalPops');
   }
 
   void registerMiss(GameState gameState) {
     recentMisses++;
-    recentHits = max(0, recentHits - 1);
+    gameState.log(
+      'MISS recentMisses=$recentMisses accuracy=${accuracyModifier.toStringAsFixed(2)}',
+    );
+  }
 
-if (DevFlags.debugLogsEnabled) {
-  gameState.log(
-    'MISS recentMisses=$recentMisses '
-    'accuracy=${accuracyModifier.toStringAsFixed(2)}',
-  );
-}
- 
   int get currentWorld {
     if (totalPops >= world4Pops) return 4;
     if (totalPops >= world3Pops) return 3;
@@ -110,48 +80,26 @@ if (DevFlags.debugLogsEnabled) {
         start = world3Pops;
         end = world4Pops;
         break;
-      case 4:
-        start = world4Pops;
-        end = world4Pops + 200;
-        break;
       default:
-        start = 0;
-        end = world2Pops;
+        return 0.0;
     }
 
     if (end <= start) return 1.0;
-    return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
+    return ((totalPops - start) / (end - start))
+        .clamp(0.0, 1.0);
   }
 
   double get accuracyModifier {
     if (recentMisses == 0) return 1.0;
-
-    final missFactor =
-        (recentMisses / (recentMisses + recentHits + 1))
-            .clamp(0.0, 1.0);
-
-    final slowdown = missFactor * maxMissSlowdown;
-    return (1.0 - slowdown).clamp(1.0 - maxMissSlowdown, 1.0);
+    const maxMissSlowdown = 0.35;
+    final slowdown = min(recentMisses * 0.05, maxMissSlowdown);
+    return (1.0 - slowdown).clamp(0.65, 1.0);
   }
 
   double get speedMultiplier {
     final worldMult =
         worldSpeedMultiplier[currentWorld] ?? 1.0;
-
-    final ramp = 1.0 + (worldProgress * maxWorldRamp);
+    final ramp = 1.0 + (worldProgress * 0.25);
     return worldMult * ramp * accuracyModifier;
-  }
-
-  String _worldName(int w) {
-    switch (w) {
-      case 2:
-        return 'Sky Blue';
-      case 3:
-        return 'Neon Purple';
-      case 4:
-        return 'Deep Space';
-      default:
-        return 'Dark Carnival';
-    }
   }
 }
