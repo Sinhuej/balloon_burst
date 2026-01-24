@@ -38,15 +38,15 @@ class TapHandler {
       if (dist <= balloonRadius + hitForgiveness) {
         hit = true;
         balloons.remove(b);
-        spawner.registerHit(gameState);
+        spawner.registerHit();
 
-        surge.maybeTrigger(currentWorld: spawner.currentWorld);
+        surge.maybeTrigger(currentWorld: spawner.currentWorld, totalPops: spawner.totalPops);
         break;
       }
     }
 
     if (!hit) {
-      spawner.registerMiss(gameState);
+      spawner.registerMiss();
     }
 
     controller.registerTap(hit: hit);
