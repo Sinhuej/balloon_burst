@@ -10,35 +10,42 @@ class GameController {
   final SpeedCurve speed;
   final GameState gameState;
 
-  // 🔔 Run-end callback (replay feedback, UI, etc.)
-  final void Function(int world)? onRunEnd;
-
   GameController({
     required this.momentum,
     required this.tier,
     required this.speed,
     required this.gameState,
-    this.onRunEnd,
   });
 
   int _escapeCount = 0;
+  int _missStreak = 0;
+
   static const int maxEscapesBeforeFail = 3;
+  static const int maxMissStreakBeforeFail = 10;
 
   void reset() {
     _escapeCount = 0;
+    _missStreak = 0;
+    gameState.resetRun();
   }
 
   /// Register player input
   void registerTap({required bool hit}) {
     momentum.registerTap(hit: hit);
 
-    // One-frame visual feedback only
     if (hit) {
+      _missStreak = 0;
       gameState.tapPulse = true;
+    } else {
+      _missStreak++;
     }
+
+    _checkFail();
   }
 
   void update(List<Balloon> balloons, double dt) {
+    if (gameState.isGameOver) return;
+
     bool escapedThisFrame = false;
     final double escapeY = gameState.viewportHeight + 24.0;
 
@@ -51,13 +58,22 @@ class GameController {
 
     if (escapedThisFrame) {
       momentum.registerTap(hit: false);
+      _missStreak++;
+      _checkFail();
     }
+  }
 
-    // 🚨 RUN ENDS HERE
+  void _checkFail() {
+    if (gameState.isGameOver) return;
+
     if (_escapeCount >= maxEscapesBeforeFail) {
-
-      // prevent double-fire
-      _escapeCount = 0;
+      gameState.isGameOver = true;
+      gameState.endReason = 'escape';
+      gameState.log('RUN END: too many escapes');
+    } else if (_missStreak >= maxMissStreakBeforeFail) {
+      gameState.isGameOver = true;
+      gameState.endReason = 'miss_streak';
+      gameState.log('RUN END: miss streak');
     }
   }
 }
