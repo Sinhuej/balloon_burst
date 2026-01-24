@@ -70,7 +70,7 @@ class _DebugScreenState extends State<DebugScreen> {
               'Frames: ${widget.gameState.framesSinceStart}\n'
               'Total Pops: ${widget.spawner.totalPops}\n'
               'Speed Multiplier: ${widget.spawner.speedMultiplier.toStringAsFixed(2)}\n'
-              'Spawn Interval: ${widget.spawner.spawnInterval.toStringAsFixed(2)}',
+              'Spawn Interval: ${widget.spawner.spawnIntervalValue.toStringAsFixed(2)}',
               style: const TextStyle(fontFamily: 'monospace'),
             ),
           ),

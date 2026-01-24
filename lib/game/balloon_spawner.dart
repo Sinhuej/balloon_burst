@@ -41,7 +41,7 @@ class BalloonSpawner {
 
     if (_timer >= interval) {
       _timer = 0.0;
-      balloons.add(Balloon.spawn(viewportHeight));
+      balloons.add(Balloon(viewportHeight));
     }
   }
 
@@ -103,3 +103,6 @@ class BalloonSpawner {
     return worldMult * ramp * accuracyModifier;
   }
 }
+
+  double get spawnIntervalValue =>
+      worldSpawnInterval[currentWorld] ?? spawnInterval;
