@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
@@ -12,10 +14,10 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
-import 'dev/dev_flags.dart';
 import 'game/render/game_canvas.dart';
 import 'game/effects/world_surge_pulse.dart';
 import 'game/input/tap_handler.dart';
+import 'game/replay/replay_feedback.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -45,12 +47,17 @@ class _GameScreenState extends State<GameScreen>
   Size _lastSize = Size.zero;
 
   static const double baseRiseSpeed = 120.0;
-
-  // ✅ FEEL CONSTANTS (locked)
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 14.0;
 
-  bool _showHud = true;
+  bool _showHud = false;
+
+  void _initDebugHud() {
+    assert(() {
+      _showHud = true;
+      return true;
+    }());
+  }
 
   @override
   void initState() {
@@ -61,12 +68,14 @@ class _GameScreenState extends State<GameScreen>
       tier: TierController(),
       speed: SpeedCurve(),
       gameState: widget.gameState,
+      onRunEnd: (world) {
+        final message = ReplayFeedback.forWorld(world);
+        debugPrint('REPLAY FEEDBACK → $message');
+      },
     );
 
     _surge = WorldSurgePulse(vsync: this);
-
-    // 🔐 Dev-controlled HUD
-    _showHud = DevFlags.showDebugHud;
+    _initDebugHud();
 
     _ticker = createTicker(_onTick)..start();
   }
@@ -134,7 +143,7 @@ class _GameScreenState extends State<GameScreen>
             balloons: _balloons,
             gameState: widget.gameState,
             showHud: _showHud,
-            fps: _ticker.isActive && _lastTime.inMicroseconds > 0
+            fps: _ticker.isActive
                 ? 1 / (_lastTime.inMicroseconds / 1e6)
                 : 0,
             speedMultiplier: widget.spawner.speedMultiplier,

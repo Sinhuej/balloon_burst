@@ -10,11 +10,15 @@ class GameController {
   final SpeedCurve speed;
   final GameState gameState;
 
+  // 🔔 Run-end callback (replay feedback, UI, etc.)
+  final void Function(int world)? onRunEnd;
+
   GameController({
     required this.momentum,
     required this.tier,
     required this.speed,
     required this.gameState,
+    this.onRunEnd,
   });
 
   int _escapeCount = 0;
@@ -49,8 +53,12 @@ class GameController {
       momentum.registerTap(hit: false);
     }
 
+    // 🚨 RUN ENDS HERE
     if (_escapeCount >= maxEscapesBeforeFail) {
-      // TODO: fail state handling
+      onRunEnd?.call(gameState.currentWorld);
+
+      // prevent double-fire
+      _escapeCount = 0;
     }
   }
 }
