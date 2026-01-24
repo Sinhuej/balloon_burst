@@ -46,19 +46,22 @@ class GameController {
   void update(List<Balloon> balloons, double dt) {
     if (gameState.isGameOver) return;
 
-    bool escapedThisFrame = false;
     final double escapeY = gameState.viewportHeight + 24.0;
+    int escapedThisFrame = 0;
 
-    for (final b in balloons) {
+    // Remove escaped balloons immediately
+    balloons.removeWhere((b) {
       if (b.y > escapeY) {
-        escapedThisFrame = true;
-        _escapeCount++;
+        escapedThisFrame++;
+        return true;
       }
-    }
+      return false;
+    });
 
-    if (escapedThisFrame) {
+    if (escapedThisFrame > 0) {
+      _escapeCount += escapedThisFrame;
       momentum.registerTap(hit: false);
-      _missStreak++;
+      _missStreak += escapedThisFrame;
       _checkFail();
     }
   }
