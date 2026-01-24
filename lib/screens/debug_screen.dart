@@ -25,6 +25,12 @@ class _DebugScreenState extends State<DebugScreen> {
   Widget build(BuildContext context) {
     final logs = widget.gameState.debugLogs.reversed.toList();
 
+    final accuracyPercent =
+        (widget.spawner.accuracyModifier * 100).clamp(0, 100);
+
+    final worldProgressPercent =
+        (widget.spawner.worldProgress * 100).clamp(0, 100);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Debug HUD'),
@@ -67,10 +73,15 @@ class _DebugScreenState extends State<DebugScreen> {
             padding: const EdgeInsets.all(12),
             child: Text(
               'World: ${widget.spawner.currentWorld}\n'
+              'World Progress: ${worldProgressPercent.toStringAsFixed(1)}%\n'
               'Frames: ${widget.gameState.framesSinceStart}\n'
               'Total Pops: ${widget.spawner.totalPops}\n'
+              'Recent Misses: ${widget.spawner.recentMisses}\n'
+              'Accuracy: ${accuracyPercent.toStringAsFixed(1)}%\n'
               'Speed Multiplier: ${widget.spawner.speedMultiplier.toStringAsFixed(2)}\n'
-              'Spawn Interval: ${widget.spawner.spawnIntervalValue.toStringAsFixed(2)}',
+              'Spawn Interval: ${widget.spawner.spawnIntervalValue.toStringAsFixed(2)}\n'
+              'Game Over: ${widget.gameState.isGameOver}\n'
+              'End Reason: ${widget.gameState.endReason ?? "-"}',
               style: const TextStyle(fontFamily: 'monospace'),
             ),
           ),
