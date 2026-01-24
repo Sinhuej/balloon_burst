@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/debug/dev_flags.dart';
 
 class BalloonSpawner {
   double _timer = 0.0;
@@ -69,27 +70,26 @@ class BalloonSpawner {
     recentMisses = max(0, recentMisses - 1);
 
     final w = currentWorld;
-    if (w != _lastLoggedWorld) {
-      gameState.log(
-        'WORLD CHANGE $_lastLoggedWorld → $w at pops=$totalPops',
-      );
-      gameState.log(
-        'BG COLOR → ${_worldName(w)}',
-      );
-      _lastLoggedWorld = w;
-    }
+if (w != _lastLoggedWorld) {
+  if (DevFlags.debugLogsEnabled) {
+    gameState.log('WORLD CHANGE $_lastLoggedWorld → $w at pops=$totalPops');
+    gameState.log('BG COLOR → ${_worldName(w)}');
+  }
+  _lastLoggedWorld = w;
+}    
   }
 
   void registerMiss(GameState gameState) {
     recentMisses++;
     recentHits = max(0, recentHits - 1);
 
-    gameState.log(
-      'MISS recentMisses=$recentMisses '
-      'accuracy=${accuracyModifier.toStringAsFixed(2)}',
-    );
-  }
-
+if (DevFlags.debugLogsEnabled) {
+  gameState.log(
+    'MISS recentMisses=$recentMisses '
+    'accuracy=${accuracyModifier.toStringAsFixed(2)}',
+  );
+}
+ 
   int get currentWorld {
     if (totalPops >= world4Pops) return 4;
     if (totalPops >= world3Pops) return 3;

@@ -46,7 +46,7 @@ class GameController {
   void update(List<Balloon> balloons, double dt) {
     if (gameState.isGameOver) return;
 
-    final double escapeY = gameState.viewportHeight + 24.0;
+    final double escapeY = gameState.viewportHeight + 30.0;
     int escapedThisFrame = 0;
 
     // Remove escaped balloons immediately
