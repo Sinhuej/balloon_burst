@@ -8,7 +8,6 @@ import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
-import 'package:balloon_burst/dev/dev_flags.dart';
 import '../effects/world_surge_pulse.dart';
 
 class TapHandler {
@@ -61,7 +60,6 @@ class TapHandler {
       spawner.registerMiss(gameState);
 
       // 🔎 Detailed telemetry (DEV ONLY)
-      if (DevFlags.logMissDetails && balloons.isNotEmpty) {
         final b = balloons.first;
         final bx = centerX + (b.xOffset * lastSize.width * 0.5);
         final by = b.y;
