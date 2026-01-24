@@ -1,3 +1,9 @@
+enum ScreenMode {
+  game,
+  debug,
+  blank,
+}
+
 enum DebugEventType {
   hit,
   miss,
@@ -6,6 +12,11 @@ enum DebugEventType {
 /// Central mutable game state shared across systems.
 /// This file is intentionally "fat" because many systems depend on it.
 class GameState {
+  // -----------------------------
+  // APP ROUTING
+  // -----------------------------
+  ScreenMode screenMode = ScreenMode.game;
+
   // -----------------------------
   // VIEWPORT / FRAME STATE
   // -----------------------------
@@ -22,6 +33,9 @@ class GameState {
   // -----------------------------
   bool debugFrozen = false;
 
+  /// Raw debug log buffer (used by DebugScreen)
+  final List<String> debugLogs = [];
+
   /// Which debug event types are currently visible
   final Set<DebugEventType> enabledFilters = {
     DebugEventType.hit,
@@ -34,6 +48,7 @@ class GameState {
   }
 
   void clearLogs() {
+    debugLogs.clear();
     log('DEBUG logs cleared');
   }
 
@@ -53,6 +68,7 @@ class GameState {
   // LOGGING
   // -----------------------------
   void log(String message) {
+    debugLogs.add(message);
     // ignore: avoid_print
     print(message);
   }
