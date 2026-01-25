@@ -27,23 +27,17 @@ class GameController {
     _escapeCount = 0;
     _missStreak = 0;
     gameState.resetRun();
-    gameState.logEvent(DebugEventType.run, 'RUN reset');
   }
 
-  /// Register player input
+  /// Register player input ONLY
   void registerTap({required bool hit}) {
     momentum.registerTap(hit: hit);
 
     if (hit) {
       _missStreak = 0;
       gameState.tapPulse = true;
-      gameState.logEvent(DebugEventType.tap, 'HIT');
     } else {
       _missStreak++;
-      gameState.logEvent(
-        DebugEventType.tap,
-        'MISS missStreak=$_missStreak',
-      );
     }
 
     _checkFail();
@@ -52,8 +46,6 @@ class GameController {
   void update(List<Balloon> balloons, double dt) {
     if (gameState.isGameOver) return;
 
-    // Rising Worlds:
-    // Balloons escape when they go ABOVE the top of the screen
     const double escapeMargin = 24.0;
     int escapedThisFrame = 0;
 
@@ -67,13 +59,10 @@ class GameController {
 
     if (escapedThisFrame > 0) {
       _escapeCount += escapedThisFrame;
-      _missStreak += escapedThisFrame;
-
-      momentum.registerTap(hit: false);
 
       gameState.logEvent(
         DebugEventType.run,
-        'ESCAPE count=$_escapeCount escapedThisFrame=$escapedThisFrame missStreak=$_missStreak',
+        'ESCAPE count=$_escapeCount escapedThisFrame=$escapedThisFrame',
       );
 
       _checkFail();
@@ -86,6 +75,7 @@ class GameController {
     if (_escapeCount >= maxEscapesBeforeFail) {
       gameState.isGameOver = true;
       gameState.endReason = 'escape';
+
       gameState.logEvent(
         DebugEventType.run,
         'RUN END reason=escape escapes=$_escapeCount',
@@ -93,6 +83,7 @@ class GameController {
     } else if (_missStreak >= maxMissStreakBeforeFail) {
       gameState.isGameOver = true;
       gameState.endReason = 'miss_streak';
+
       gameState.logEvent(
         DebugEventType.run,
         'RUN END reason=miss_streak missStreak=$_missStreak',
