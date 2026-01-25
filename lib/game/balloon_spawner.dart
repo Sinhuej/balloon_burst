@@ -73,40 +73,36 @@ class BalloonSpawner {
     return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
   }
 
-  /// Retained for HUD / telemetry only.
-  /// Does NOT affect speed or difficulty.
+  /// Telemetry-only accuracy modifier (NO gameplay effect)
   double get accuracyModifier {
     if (recentMisses <= 0) return 1.0;
-    return (1.0 - (recentMisses * 0.04)).clamp(0.75, 1.0);
+    final penalty = (recentMisses * 0.04).clamp(0.0, 0.25);
+    return (1.0 - penalty).clamp(0.75, 1.0);
   }
 
   /// Used by GameScreen to scale rise speed.
-  /// IMPORTANT: Misses DO NOT affect speed.
+  /// NOTE: Accuracy does NOT affect motion.
   double get speedMultiplier {
     final worldMult = worldSpeedMultiplier[currentWorld] ?? 1.0;
     final ramp = 1.0 + (worldProgress * _maxWorldRamp);
     return worldMult * ramp;
   }
 
-  /// Used by DebugScreen.
   double get spawnIntervalValue {
     return worldSpawnInterval[currentWorld] ?? _baseSpawnInterval;
   }
 
-  /// Call when a hit occurs.
   void registerHit() {
     totalPops++;
     recentHits++;
     recentMisses = max(0, recentMisses - 1);
   }
 
-  /// Call when a miss occurs.
   void registerMiss() {
     recentMisses++;
     recentHits = max(0, recentHits - 1);
   }
 
-  /// Spawn/update loop
   void update({
     required double dt,
     required double viewportHeight,
@@ -114,12 +110,10 @@ class BalloonSpawner {
     int tier = 0,
   }) {
     _timer += dt;
-
     final interval = spawnIntervalValue;
 
     while (_timer >= interval) {
       _timer -= interval;
-
       final spawnIndex = _spawnCount++;
 
       balloons.add(
@@ -132,7 +126,6 @@ class BalloonSpawner {
       );
     }
 
-    // Track world change internally
     final w = currentWorld;
     if (w != _lastLoggedWorld) {
       _lastLoggedWorld = w;
