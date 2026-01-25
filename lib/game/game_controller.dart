@@ -18,39 +18,66 @@ class GameController {
   });
 
   int _escapeCount = 0;
+  int _missCount = 0;
+  bool _ended = false;
+
   static const int maxEscapesBeforeFail = 3;
+  static const int maxMissesBeforeFail = 10;
 
   void reset() {
     _escapeCount = 0;
+    _missCount = 0;
+    _ended = false;
+    gameState.isGameOver = false;
+    gameState.endReason = null;
   }
 
   /// Register player input
   void registerTap({required bool hit}) {
+    if (_ended) return;
+
     momentum.registerTap(hit: hit);
 
-    // One-frame visual feedback only
     if (hit) {
       gameState.tapPulse = true;
+    } else {
+      _missCount++;
+      _checkFail();
     }
   }
 
   void update(List<Balloon> balloons, double dt) {
-    bool escapedThisFrame = false;
+    if (_ended) return;
+
     final double escapeY = gameState.viewportHeight + 24.0;
+    int escapedThisFrame = 0;
 
     for (final b in balloons) {
       if (b.y > escapeY) {
-        escapedThisFrame = true;
-        _escapeCount++;
+        escapedThisFrame++;
       }
     }
 
-    if (escapedThisFrame) {
+    if (escapedThisFrame > 0) {
+      _escapeCount += escapedThisFrame;
       momentum.registerTap(hit: false);
+      _checkFail();
     }
+  }
+
+  void _checkFail() {
+    if (_ended) return;
 
     if (_escapeCount >= maxEscapesBeforeFail) {
-      // TODO: fail state handling
+      _endRun('escape');
+    } else if (_missCount >= maxMissesBeforeFail) {
+      _endRun('miss');
     }
+  }
+
+  void _endRun(String reason) {
+    _ended = true;
+    gameState.isGameOver = true;
+    gameState.endReason = reason;
   }
 }
