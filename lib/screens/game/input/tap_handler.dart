@@ -27,6 +27,11 @@ class TapHandler {
 
     bool hit = false;
 
+    gameState.logEvent(
+      DebugEventType.tap,
+      'tap=(${tap.dx.toStringAsFixed(1)},${tap.dy.toStringAsFixed(1)})',
+    );
+
     for (final b in List<Balloon>.from(balloons)) {
       final bx = centerX + (b.xOffset * lastSize.width * 0.5);
       final by = b.y;
@@ -40,13 +45,36 @@ class TapHandler {
         balloons.remove(b);
         spawner.registerHit();
 
-        surge.maybeTrigger(currentWorld: spawner.currentWorld, totalPops: spawner.totalPops, world2Pops: BalloonSpawner.world2Pops, world3Pops: BalloonSpawner.world3Pops, world4Pops: BalloonSpawner.world4Pops);
+        gameState.logEvent(
+          DebugEventType.hit,
+          'world=${spawner.currentWorld} '
+          'tap=(${tap.dx.toStringAsFixed(1)},${tap.dy.toStringAsFixed(1)}) '
+          'balloon=(${bx.toStringAsFixed(1)},${by.toStringAsFixed(1)}) '
+          'dx=${dx.toStringAsFixed(1)} dy=${dy.toStringAsFixed(1)} '
+          'dist=${dist.toStringAsFixed(1)} r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}',
+        );
+
+        surge.maybeTrigger(
+          currentWorld: spawner.currentWorld,
+          totalPops: spawner.totalPops,
+          world2Pops: BalloonSpawner.world2Pops,
+          world3Pops: BalloonSpawner.world3Pops,
+          world4Pops: BalloonSpawner.world4Pops,
+        );
         break;
       }
     }
 
     if (!hit) {
       spawner.registerMiss();
+
+      gameState.logEvent(
+        DebugEventType.miss,
+        'world=${spawner.currentWorld} '
+        'tap=(${tap.dx.toStringAsFixed(1)},${tap.dy.toStringAsFixed(1)}) '
+        'recentMisses=${spawner.recentMisses} '
+        'accuracy=${spawner.accuracyModifier.toStringAsFixed(2)}',
+      );
     }
 
     controller.registerTap(hit: hit);
