@@ -17,22 +17,20 @@ class GameController {
     required this.gameState,
   });
 
+  static const int maxEscapesBeforeFail = 3;
+  static const int maxMissesBeforeFail = 10;
+
   int _escapeCount = 0;
   int _missCount = 0;
   bool _ended = false;
-
-  static const int maxEscapesBeforeFail = 3;
-  static const int maxMissesBeforeFail = 10;
 
   void reset() {
     _escapeCount = 0;
     _missCount = 0;
     _ended = false;
-    gameState.isGameOver = false;
-    gameState.endReason = null;
   }
 
-  /// Register player input
+  /// Register player input ONLY
   void registerTap({required bool hit}) {
     if (_ended) return;
 
@@ -40,6 +38,7 @@ class GameController {
 
     if (hit) {
       gameState.tapPulse = true;
+      _missCount = 0;
     } else {
       _missCount++;
       _checkFail();
@@ -52,15 +51,22 @@ class GameController {
     final double escapeY = gameState.viewportHeight + 24.0;
     int escapedThisFrame = 0;
 
-    for (final b in balloons) {
+    balloons.removeWhere((b) {
       if (b.y > escapeY) {
         escapedThisFrame++;
+        return true;
       }
-    }
+      return false;
+    });
 
     if (escapedThisFrame > 0) {
       _escapeCount += escapedThisFrame;
-      momentum.registerTap(hit: false);
+
+      gameState.logEvent(
+        DebugEventType.run,
+        'ESCAPE count=$_escapeCount escapedThisFrame=$escapedThisFrame',
+      );
+
       _checkFail();
     }
   }
@@ -76,8 +82,12 @@ class GameController {
   }
 
   void _endRun(String reason) {
+    if (_ended) return;
     _ended = true;
-    gameState.isGameOver = true;
-    gameState.endReason = reason;
+
+    gameState.logEvent(
+      DebugEventType.run,
+      'RUN END reason=$reason escapes=$_escapeCount misses=$_missCount',
+    );
   }
 }
