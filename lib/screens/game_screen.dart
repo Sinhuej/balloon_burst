@@ -97,11 +97,21 @@ class _GameScreenState extends State<GameScreen>
     // Escape handling (Sparkles rule: 3 escapes ends run)
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
-      if (_balloons[i].y < -balloonRadius) {
+      final b = _balloons[i];
+
+      // Always remove popped balloons silently
+      if (b.isPopped) {
+        _balloons.removeAt(i);
+        continue;
+      }
+
+      // Only unpopped balloons can escape
+      if (b.y < -balloonRadius) {
         escapedThisTick++;
         _balloons.removeAt(i);
       }
     }
+
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
     }
