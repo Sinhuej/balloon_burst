@@ -4,9 +4,16 @@ enum ScreenMode {
   blank,
 }
 
+/// Debug event classification for filtering + telemetry readability.
+/// Keep this enum "wide" so we can grow observability without refactors.
 enum DebugEventType {
+  tap,
   hit,
   miss,
+  world,
+  speed,
+  system,
+  run,
 }
 
 /// Central mutable game state shared across systems.
@@ -38,22 +45,27 @@ class GameState {
 
   /// Which debug event types are currently visible
   final Set<DebugEventType> enabledFilters = {
+    DebugEventType.tap,
     DebugEventType.hit,
     DebugEventType.miss,
+    DebugEventType.world,
+    DebugEventType.speed,
+    DebugEventType.system,
+    DebugEventType.run,
   };
 
   void toggleFreeze() {
     debugFrozen = !debugFrozen;
-    log('DEBUG freeze=${debugFrozen ? "ON" : "OFF"}');
+    logEvent(DebugEventType.system, 'DEBUG freeze=${debugFrozen ? "ON" : "OFF"}');
   }
 
   void clearLogs() {
     debugLogs.clear();
-    log('DEBUG logs cleared');
+    logEvent(DebugEventType.system, 'DEBUG logs cleared');
   }
 
   // -----------------------------
-  // RUN END STATE (NEW)
+  // RUN END STATE
   // -----------------------------
   bool isGameOver = false;
   String? endReason;
@@ -67,9 +79,24 @@ class GameState {
   // -----------------------------
   // LOGGING
   // -----------------------------
+
+  /// Legacy log API (kept to avoid breaking any existing call sites).
+  /// Prefer logEvent() going forward.
   void log(String message) {
     debugLogs.add(message);
     // ignore: avoid_print
     print(message);
+  }
+
+  /// Typed + filter-aware logger.
+  /// This restores the "telemetry channels" we had before (TAP/MISS/WORLD/SPEED/SYSTEM...).
+  void logEvent(DebugEventType type, String message) {
+    if (debugFrozen) return;
+    if (!enabledFilters.contains(type)) return;
+
+    final line = '${type.name.toUpperCase()} $message';
+    debugLogs.add(line);
+    // ignore: avoid_print
+    print(line);
   }
 }
