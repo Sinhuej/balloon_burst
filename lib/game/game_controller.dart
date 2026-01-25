@@ -27,6 +27,7 @@ class GameController {
     _escapeCount = 0;
     _missStreak = 0;
     gameState.resetRun();
+    gameState.logEvent(DebugEventType.run, 'RUN reset');
   }
 
   /// Register player input
@@ -36,8 +37,13 @@ class GameController {
     if (hit) {
       _missStreak = 0;
       gameState.tapPulse = true;
+      gameState.logEvent(DebugEventType.tap, 'HIT');
     } else {
       _missStreak++;
+      gameState.logEvent(
+        DebugEventType.tap,
+        'MISS missStreak=$_missStreak',
+      );
     }
 
     _checkFail();
@@ -61,8 +67,15 @@ class GameController {
 
     if (escapedThisFrame > 0) {
       _escapeCount += escapedThisFrame;
-      momentum.registerTap(hit: false);
       _missStreak += escapedThisFrame;
+
+      momentum.registerTap(hit: false);
+
+      gameState.logEvent(
+        DebugEventType.run,
+        'ESCAPE count=$_escapeCount escapedThisFrame=$escapedThisFrame missStreak=$_missStreak',
+      );
+
       _checkFail();
     }
   }
@@ -73,11 +86,17 @@ class GameController {
     if (_escapeCount >= maxEscapesBeforeFail) {
       gameState.isGameOver = true;
       gameState.endReason = 'escape';
-      gameState.log('RUN END: too many escapes');
+      gameState.logEvent(
+        DebugEventType.run,
+        'RUN END reason=escape escapes=$_escapeCount',
+      );
     } else if (_missStreak >= maxMissStreakBeforeFail) {
       gameState.isGameOver = true;
       gameState.endReason = 'miss_streak';
-      gameState.log('RUN END: miss streak');
+      gameState.logEvent(
+        DebugEventType.run,
+        'RUN END reason=miss_streak missStreak=$_missStreak',
+      );
     }
   }
 }
