@@ -64,6 +64,12 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
+    // 🔒 HARD FREEZE: stop simulation after run end
+    if (_controller.isEnded) {
+      _lastTime = elapsed; // prevent dt explosion
+      return;
+    }
+
     final dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
