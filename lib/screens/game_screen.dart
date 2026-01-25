@@ -33,8 +33,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -70,7 +69,6 @@ class _GameScreenState extends State<GameScreen>
     final dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
-
     _lastTime = elapsed;
 
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
@@ -89,10 +87,16 @@ class _GameScreenState extends State<GameScreen>
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
+    // ✅ Escape removal + counting (Sparkles rules: 3 escapes ends run)
+    int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       if (_balloons[i].y < -balloonRadius) {
+        escapedThisTick++;
         _balloons.removeAt(i);
       }
+    }
+    if (escapedThisTick > 0) {
+      _controller.registerEscapes(escapedThisTick);
     }
 
     _controller.update(_balloons, dt);
