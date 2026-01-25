@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -12,7 +10,6 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
-// ✅ FIXED IMPORT PATHS
 import 'game/effects/world_surge_pulse.dart';
 import 'game/input/tap_handler.dart';
 import 'game/render/game_canvas.dart';
@@ -33,7 +30,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -72,8 +70,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _lastTime = elapsed;
 
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
-    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
+    _fps = (_fps == 0.0)
+        ? instFps
+        : (_fps * 0.9 + instFps * 0.1);
 
+    // Spawn balloons
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -81,13 +82,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       viewportHeight: _lastSize.height,
     );
 
+    // Move balloons upward
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
-
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    // ✅ Escape removal + counting (Sparkles rules: 3 escapes ends run)
+    // Escape handling (Sparkles rule: 3 escapes ends run)
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       if (_balloons[i].y < -balloonRadius) {
@@ -104,6 +105,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleTap(TapDownDetails details) {
+    // 🔒 HARD STOP: no input after run ends
+    if (_controller.isEnded) return;
+
     TapHandler.handleTap(
       details: details,
       lastSize: _lastSize,
