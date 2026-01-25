@@ -39,9 +39,6 @@ class BalloonSpawner {
   // How much "ramp" happens inside a world
   static const double _maxWorldRamp = 0.20;
 
-  // Miss slowdown / penalty tuning
-  static const double _maxMissSlowdown = 0.25;
-
   int get currentWorld {
     if (totalPops >= world4Pops) return 4;
     if (totalPops >= world3Pops) return 3;
@@ -76,29 +73,24 @@ class BalloonSpawner {
     return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
   }
 
-  /// 1.0 means no penalty. Lower means more penalty.
+  /// Retained for HUD / telemetry only.
+  /// Does NOT affect speed or difficulty.
   double get accuracyModifier {
     if (recentMisses <= 0) return 1.0;
-
-    final penalty =
-        (recentMisses * 0.04).clamp(0.0, _maxMissSlowdown);
-
-    return (1.0 - penalty)
-        .clamp(1.0 - _maxMissSlowdown, 1.0);
+    return (1.0 - (recentMisses * 0.04)).clamp(0.75, 1.0);
   }
 
   /// Used by GameScreen to scale rise speed.
+  /// IMPORTANT: Misses DO NOT affect speed.
   double get speedMultiplier {
-    final worldMult =
-        worldSpeedMultiplier[currentWorld] ?? 1.0;
+    final worldMult = worldSpeedMultiplier[currentWorld] ?? 1.0;
     final ramp = 1.0 + (worldProgress * _maxWorldRamp);
-    return worldMult * ramp * accuracyModifier;
+    return worldMult * ramp;
   }
 
   /// Used by DebugScreen.
   double get spawnIntervalValue {
-    return worldSpawnInterval[currentWorld] ??
-        _baseSpawnInterval;
+    return worldSpawnInterval[currentWorld] ?? _baseSpawnInterval;
   }
 
   /// Call when a hit occurs.
