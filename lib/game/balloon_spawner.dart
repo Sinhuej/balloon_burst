@@ -157,9 +157,10 @@ class BalloonSpawner {
 
   // Reset spawner to a clean state for Replay.
   // Keep this minimal and safe: only touches fields this class already owns.
+
+
+  // Reset per-run counters only (safe for replay)
   void resetForNewRun() {
-    currentWorld = 1;
-    speedMultiplier = 1.0;
     recentHits = 0;
     recentMisses = 0;
   }
