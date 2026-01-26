@@ -33,7 +33,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -66,9 +67,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _onTick(Duration elapsed) {
-    // HARD FREEZE: no simulation after run end
+    // 🔒 HARD FREEZE after run end
     if (_controller.isEnded) {
-      _lastTime = elapsed; // prevent dt explosion
+      _lastTime = elapsed;
       return;
     }
 
@@ -80,7 +81,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    // Spawn
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -88,22 +88,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       viewportHeight: _lastSize.height,
     );
 
-    // Move upward
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
+
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    // Remove popped silently; count only unpopped escapes
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
 
+      // Remove popped balloons silently
       if (b.isPopped) {
         _balloons.removeAt(i);
         continue;
       }
 
+      // Count only unpopped escapes
       if (b.y < -balloonRadius) {
         escapedThisTick++;
         _balloons.removeAt(i);
@@ -115,7 +116,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     _controller.update(_balloons, dt);
-
     setState(() {});
   }
 
@@ -133,6 +133,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       balloonRadius: balloonRadius,
       hitForgiveness: hitForgiveness,
     );
+
+    // 🔑 Force overlay render on MISS-10 frame
+    if (_controller.isEnded) {
+      setState(() {});
+    }
   }
 
   void _handleLongPress() {
@@ -148,7 +153,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     widget.spawner.resetForNewRun();
     _controller.reset();
 
-    // Reset tick timing so dt is sane after overlay
+    // Reset ticker timing so replay starts instantly
     _lastTime = Duration.zero;
 
     setState(() {});
