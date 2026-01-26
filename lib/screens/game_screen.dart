@@ -50,6 +50,9 @@ class _GameScreenState extends State<GameScreen>
   // Gate: only count misses AFTER balloons exist
   bool _canCountMisses = false;
 
+  // Prevent repeated surge flashes per world
+  int _lastSurgedWorld = 0;
+
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
@@ -120,7 +123,20 @@ class _GameScreenState extends State<GameScreen>
     }
 
     _controller.update(_balloons, dt);
+
+    _maybeTriggerWorldSurge();
+
     setState(() {});
+  }
+
+  void _maybeTriggerWorldSurge() {
+    final world = widget.spawner.currentWorld;
+    final progress = widget.spawner.worldProgress;
+
+    if (progress >= 0.90 && world != _lastSurgedWorld) {
+      _surge.trigger();
+      _lastSurgedWorld = world;
+    }
   }
 
   void _handleTap(TapDownDetails details) {
@@ -152,14 +168,13 @@ class _GameScreenState extends State<GameScreen>
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
+    _lastSurgedWorld = 0;
 
     _controller.reset();
     widget.spawner.resetForNewRun();
 
-    // Prevent dt spikes
     _lastTime = Duration.zero;
 
-    // 🔑 Force immediate spawn (no synthetic delay)
     widget.spawner.update(
       dt: 0.0,
       tier: 0,
@@ -168,6 +183,19 @@ class _GameScreenState extends State<GameScreen>
     );
 
     setState(() {});
+  }
+
+  Color _backgroundForWorld(int world) {
+    switch (world) {
+      case 2:
+        return const Color(0xFF2E86DE);
+      case 3:
+        return const Color(0xFF6C2EB9);
+      case 4:
+        return const Color(0xFF0B0F2F);
+      default:
+        return const Color(0xFF0A0A0F);
+    }
   }
 
   @override
@@ -184,13 +212,16 @@ class _GameScreenState extends State<GameScreen>
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
 
+          final currentWorld = widget.spawner.currentWorld;
+          final nextWorld = currentWorld + 1;
+
           return Stack(
             children: [
               GameCanvas(
-                currentWorld: widget.spawner.currentWorld,
-                nextWorld: widget.spawner.currentWorld + 1,
-                backgroundColor: const Color(0xFF0A0A0F),
-                pulseColor: const Color(0xFF0A0A0F),
+                currentWorld: currentWorld,
+                nextWorld: nextWorld,
+                backgroundColor: _backgroundForWorld(currentWorld),
+                pulseColor: _backgroundForWorld(nextWorld),
                 surge: _surge,
                 balloons: _balloons,
                 gameState: widget.gameState,
