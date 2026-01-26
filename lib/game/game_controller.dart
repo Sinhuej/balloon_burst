@@ -112,4 +112,10 @@ class GameController {
     // NOTE (Option A): We do NOT change gameState.screenMode here.
     // UI/end-screen work comes next phase.
   }
+
+  bool get isEnded => _ended;
+  int get escapeCount => _escapeCount;
+  int get missCount => _missCount;
+  String? get endReason => _endReason;
+
 }

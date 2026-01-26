@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/game_controller.dart';
+import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
@@ -33,8 +33,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -67,19 +66,21 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
+    // HARD FREEZE: no simulation after run end
     if (_controller.isEnded) {
-      _lastTime = elapsed;
+      _lastTime = elapsed; // prevent dt explosion
       return;
     }
 
-    final dt = _lastTime == Duration.zero
+    final dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
     _lastTime = elapsed;
 
-    final instFps = dt > 0 ? 1.0 / dt : 0.0;
-    _fps = _fps == 0.0 ? instFps : (_fps * 0.9 + instFps * 0.1);
+    final instFps = dt > 0 ? (1.0 / dt) : 0.0;
+    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
+    // Spawn
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -87,12 +88,13 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
+    // Move upward
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
-
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
+    // Remove popped silently; count only unpopped escapes
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
@@ -113,6 +115,7 @@ class _GameScreenState extends State<GameScreen>
     }
 
     _controller.update(_balloons, dt);
+
     setState(() {});
   }
 
@@ -135,6 +138,20 @@ class _GameScreenState extends State<GameScreen>
   void _handleLongPress() {
     setState(() => _showHud = !_showHud);
     widget.onRequestDebug();
+  }
+
+  void _replay() {
+    // Clear visuals immediately
+    _balloons.clear();
+
+    // Reset systems
+    widget.spawner.resetForNewRun();
+    _controller.reset();
+
+    // Reset tick timing so dt is sane after overlay
+    _lastTime = Duration.zero;
+
+    setState(() {});
   }
 
   Color _backgroundForWorld(int world) {
@@ -193,14 +210,11 @@ class _GameScreenState extends State<GameScreen>
                 recentAccuracy: _recentAccuracy(),
                 recentMisses: widget.spawner.recentMisses,
               ),
+
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
-                  onReplay: () {
-                    widget.spawner.reset();
-                    _controller.reset();
-                    setState(() {});
-                  },
+                  onReplay: _replay,
                 ),
             ],
           );

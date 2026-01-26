@@ -154,4 +154,14 @@ class BalloonSpawner {
         return 'Dark Carnival';
     }
   }
+
+  // Reset spawner to a clean state for Replay.
+  // Keep this minimal and safe: only touches fields this class already owns.
+  void resetForNewRun() {
+    currentWorld = 1;
+    speedMultiplier = 1.0;
+    recentHits = 0;
+    recentMisses = 0;
+  }
+
 }
