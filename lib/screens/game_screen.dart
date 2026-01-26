@@ -33,8 +33,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -46,6 +45,9 @@ class _GameScreenState extends State<GameScreen>
 
   bool _showHud = false;
   double _fps = 0.0;
+
+  // ✅ Gate: only allow misses AFTER at least one balloon exists
+  bool _canCountMisses = false;
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
@@ -81,6 +83,7 @@ class _GameScreenState extends State<GameScreen>
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
+    // Spawn
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -88,23 +91,27 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
-    final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
+    // ✅ As soon as ANY balloon exists, allow misses.
+    if (!_canCountMisses && _balloons.isNotEmpty) {
+      _canCountMisses = true;
+    }
 
+    // Move upward
+    final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
+    // Remove popped silently; count only unpopped escapes
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
 
-      // Remove popped balloons silently
       if (b.isPopped) {
         _balloons.removeAt(i);
         continue;
       }
 
-      // Count only unpopped escapes
       if (b.y < -balloonRadius) {
         escapedThisTick++;
         _balloons.removeAt(i);
@@ -121,6 +128,9 @@ class _GameScreenState extends State<GameScreen>
 
   void _handleTap(TapDownDetails details) {
     if (_controller.isEnded) return;
+
+    // ✅ No misses (or hits) counted before balloons exist.
+    if (!_canCountMisses) return;
 
     TapHandler.handleTap(
       details: details,
@@ -148,6 +158,9 @@ class _GameScreenState extends State<GameScreen>
   void _replay() {
     // Clear visuals immediately
     _balloons.clear();
+
+    // Reset gate so taps don't count while spawner warms up
+    _canCountMisses = false;
 
     // Reset systems
     widget.spawner.resetForNewRun();
@@ -215,7 +228,6 @@ class _GameScreenState extends State<GameScreen>
                 recentAccuracy: _recentAccuracy(),
                 recentMisses: widget.spawner.recentMisses,
               ),
-
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
