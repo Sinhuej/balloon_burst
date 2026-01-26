@@ -84,7 +84,6 @@ class _GameScreenState extends State<GameScreen>
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    // Spawn
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -92,18 +91,15 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
-    // Enable misses once ANY balloon exists
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
     }
 
-    // Move balloons
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    // Escapes
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
@@ -157,40 +153,21 @@ class _GameScreenState extends State<GameScreen>
     _balloons.clear();
     _canCountMisses = false;
 
-    widget.spawner.resetForNewRun();
     _controller.reset();
+    widget.spawner.resetForNewRun();
 
-    // 🔑 Force immediate spawn without guessing constructors
+    // Prevent dt spikes
+    _lastTime = Duration.zero;
+
+    // 🔑 Force immediate spawn (no synthetic delay)
     widget.spawner.update(
-      dt: 0.25, // synthetic warm-up tick
+      dt: 0.0,
       tier: 0,
       balloons: _balloons,
       viewportHeight: _lastSize.height,
     );
 
-    _lastTime = Duration.zero;
     setState(() {});
-  }
-
-  Color _backgroundForWorld(int world) {
-    switch (world) {
-      case 2:
-        return const Color(0xFF2E86DE);
-      case 3:
-        return const Color(0xFF6C2EB9);
-      case 4:
-        return const Color(0xFF0B0F2F);
-      default:
-        return const Color(0xFF0A0A0F);
-    }
-  }
-
-  double _recentAccuracy() {
-    final hits = widget.spawner.recentHits;
-    final misses = widget.spawner.recentMisses;
-    final total = hits + misses;
-    if (total <= 0) return 1.0;
-    return hits / total;
   }
 
   @override
@@ -207,16 +184,13 @@ class _GameScreenState extends State<GameScreen>
         builder: (context, constraints) {
           _lastSize = constraints.biggest;
 
-          final currentWorld = widget.spawner.currentWorld;
-          final nextWorld = currentWorld + 1;
-
           return Stack(
             children: [
               GameCanvas(
-                currentWorld: currentWorld,
-                nextWorld: nextWorld,
-                backgroundColor: _backgroundForWorld(currentWorld),
-                pulseColor: _backgroundForWorld(nextWorld),
+                currentWorld: widget.spawner.currentWorld,
+                nextWorld: widget.spawner.currentWorld + 1,
+                backgroundColor: const Color(0xFF0A0A0F),
+                pulseColor: const Color(0xFF0A0A0F),
                 surge: _surge,
                 balloons: _balloons,
                 gameState: widget.gameState,
@@ -225,7 +199,7 @@ class _GameScreenState extends State<GameScreen>
                 showHud: _showHud,
                 fps: _fps,
                 speedMultiplier: widget.spawner.speedMultiplier,
-                recentAccuracy: _recentAccuracy(),
+                recentAccuracy: 1.0,
                 recentMisses: widget.spawner.recentMisses,
               ),
               if (_controller.isEnded)

@@ -44,7 +44,9 @@ class BalloonSpawner {
     final targetInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
 
+    // Smoothly converge toward target interval
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
+
     _timer += dt;
 
     if (_timer >= spawnInterval) {
@@ -156,13 +158,13 @@ class BalloonSpawner {
   }
 
   // Reset spawner to a clean state for Replay.
-  // Keep this minimal and safe: only touches fields this class already owns.
-
-
-  // Reset per-run counters only (safe for replay)
+  // Must reset ALL spawn-timing state to avoid replay stall.
   void resetForNewRun() {
+    _timer = 0.0;
+    _spawnCount = 0;
+    spawnInterval = worldSpawnInterval[1]!;
+
     recentHits = 0;
     recentMisses = 0;
   }
-
 }
