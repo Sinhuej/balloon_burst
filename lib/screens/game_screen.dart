@@ -50,9 +50,6 @@ class _GameScreenState extends State<GameScreen>
   // Gate: only count misses AFTER balloons exist
   bool _canCountMisses = false;
 
-  // Prevent repeated surge flashes per world
-  int _lastSurgedWorld = 0;
-
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
@@ -124,19 +121,16 @@ class _GameScreenState extends State<GameScreen>
 
     _controller.update(_balloons, dt);
 
-    _maybeTriggerWorldSurge();
+    // 🔑 Correct world surge trigger (engine-authoritative)
+    _surge.maybeTrigger(
+      totalPops: widget.spawner.totalPops,
+      currentWorld: widget.spawner.currentWorld,
+      world2Pops: BalloonSpawner.world2Pops,
+      world3Pops: BalloonSpawner.world3Pops,
+      world4Pops: BalloonSpawner.world4Pops,
+    );
 
     setState(() {});
-  }
-
-  void _maybeTriggerWorldSurge() {
-    final world = widget.spawner.currentWorld;
-    final progress = widget.spawner.worldProgress;
-
-    if (progress >= 0.90 && world != _lastSurgedWorld) {
-      _surge.trigger();
-      _lastSurgedWorld = world;
-    }
   }
 
   void _handleTap(TapDownDetails details) {
@@ -168,7 +162,6 @@ class _GameScreenState extends State<GameScreen>
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
-    _lastSurgedWorld = 0;
 
     _controller.reset();
     widget.spawner.resetForNewRun();
@@ -215,12 +208,16 @@ class _GameScreenState extends State<GameScreen>
           final currentWorld = widget.spawner.currentWorld;
           final nextWorld = currentWorld + 1;
 
+          final bgColor = _surge.showNextWorldColor
+              ? _backgroundForWorld(nextWorld)
+              : _backgroundForWorld(currentWorld);
+
           return Stack(
             children: [
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
-                backgroundColor: _backgroundForWorld(currentWorld),
+                backgroundColor: bgColor,
                 pulseColor: _backgroundForWorld(nextWorld),
                 surge: _surge,
                 balloons: _balloons,
