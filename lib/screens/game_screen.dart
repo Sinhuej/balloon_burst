@@ -47,7 +47,7 @@ class _GameScreenState extends State<GameScreen>
   bool _showHud = false;
   double _fps = 0.0;
 
-  // Gate: only count misses AFTER at least one balloon exists
+  // Gate: only count misses AFTER balloons exist
   bool _canCountMisses = false;
 
   static const double baseRiseSpeed = 120.0;
@@ -69,9 +69,6 @@ class _GameScreenState extends State<GameScreen>
     _ticker = createTicker(_onTick)..start();
   }
 
-  // ------------------------------------------------------------
-  // Tick
-  // ------------------------------------------------------------
   void _onTick(Duration elapsed) {
     // HARD FREEZE after run end
     if (_controller.isEnded) {
@@ -95,18 +92,18 @@ class _GameScreenState extends State<GameScreen>
       viewportHeight: _lastSize.height,
     );
 
-    // As soon as ANY balloon exists, allow misses
+    // Enable misses once ANY balloon exists
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
     }
 
-    // Move balloons upward
+    // Move balloons
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    // Remove popped; count only unpopped escapes
+    // Escapes
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
@@ -130,13 +127,8 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
-  // ------------------------------------------------------------
-  // Input
-  // ------------------------------------------------------------
   void _handleTap(TapDownDetails details) {
     if (_controller.isEnded) return;
-
-    // Ignore taps before balloons exist
     if (!_canCountMisses) return;
 
     TapHandler.handleTap(
@@ -151,7 +143,6 @@ class _GameScreenState extends State<GameScreen>
       hitForgiveness: hitForgiveness,
     );
 
-    // Force overlay render on terminal miss
     if (_controller.isEnded) {
       setState(() {});
     }
@@ -162,21 +153,6 @@ class _GameScreenState extends State<GameScreen>
     widget.onRequestDebug();
   }
 
-  // ------------------------------------------------------------
-  // Replay
-  // ------------------------------------------------------------
-  void _spawnStarterBalloon() {
-    if (_lastSize.height <= 0) return;
-
-    _balloons.add(
-      Balloon(
-        x: _lastSize.width * 0.5,
-        y: _lastSize.height + balloonRadius * 1.5,
-        radius: balloonRadius,
-      ),
-    );
-  }
-
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
@@ -184,16 +160,18 @@ class _GameScreenState extends State<GameScreen>
     widget.spawner.resetForNewRun();
     _controller.reset();
 
-    // Seed immediate visual feedback
-    _spawnStarterBalloon();
+    // 🔑 Force immediate spawn without guessing constructors
+    widget.spawner.update(
+      dt: 0.25, // synthetic warm-up tick
+      tier: 0,
+      balloons: _balloons,
+      viewportHeight: _lastSize.height,
+    );
 
     _lastTime = Duration.zero;
     setState(() {});
   }
 
-  // ------------------------------------------------------------
-  // UI helpers
-  // ------------------------------------------------------------
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
@@ -222,9 +200,6 @@ class _GameScreenState extends State<GameScreen>
     super.dispose();
   }
 
-  // ------------------------------------------------------------
-  // Build
-  // ------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
