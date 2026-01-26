@@ -13,6 +13,7 @@ import 'package:balloon_burst/engine/speed/speed_curve.dart';
 import 'game/effects/world_surge_pulse.dart';
 import 'game/input/tap_handler.dart';
 import 'game/render/game_canvas.dart';
+import 'package:balloon_burst/game/end/run_end_overlay.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -24,10 +25,10 @@ class GameScreen extends StatefulWidget {
     required this.gameState,
     required this.spawner,
     required this.onRequestDebug,
-  });
+  }]);
 
   @override
-  State<GameScreen> createState() => _GameScreenState();
+  State<GameScreen> createState() => _GameScreenState(]);
 }
 
 class _GameScreenState extends State<GameScreen>
@@ -50,17 +51,17 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   void initState() {
-    super.initState();
+    super.initState(]);
 
     _controller = GameController(
       momentum: MomentumController(),
       tier: TierController(),
       speed: SpeedCurve(),
       gameState: widget.gameState,
-    );
+    ]);
 
-    _surge = WorldSurgePulse(vsync: this);
-    _ticker = createTicker(_onTick)..start();
+    _surge = WorldSurgePulse(vsync: this]);
+    _ticker = createTicker(_onTick)..start(]);
   }
 
   void _onTick(Duration elapsed) {
@@ -78,7 +79,7 @@ class _GameScreenState extends State<GameScreen>
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0)
         ? instFps
-        : (_fps * 0.9 + instFps * 0.1);
+        : (_fps * 0.9 + instFps * 0.1]);
 
     // Spawn balloons
     widget.spawner.update(
@@ -86,12 +87,12 @@ class _GameScreenState extends State<GameScreen>
       tier: 0,
       balloons: _balloons,
       viewportHeight: _lastSize.height,
-    );
+    ]);
 
     // Move balloons upward
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
     for (int i = 0; i < _balloons.length; i++) {
-      _balloons[i] = _balloons[i].movedBy(-speed * dt);
+      _balloons[i] = _balloons[i].movedBy(-speed * dt]);
     }
 
     // Escape handling (Sparkles rule: 3 escapes ends run)
@@ -101,23 +102,23 @@ class _GameScreenState extends State<GameScreen>
 
       // Always remove popped balloons silently
       if (b.isPopped) {
-        _balloons.removeAt(i);
+        _balloons.removeAt(i]);
         continue;
       }
 
       // Only unpopped balloons can escape
       if (b.y < -balloonRadius) {
         escapedThisTick++;
-        _balloons.removeAt(i);
+        _balloons.removeAt(i]);
       }
     }
 
     if (escapedThisTick > 0) {
-      _controller.registerEscapes(escapedThisTick);
+      _controller.registerEscapes(escapedThisTick]);
     }
 
-    _controller.update(_balloons, dt);
-    setState(() {});
+    _controller.update(_balloons, dt]);
+    setState(() {}]);
   }
 
   void _handleTap(TapDownDetails details) {
@@ -134,24 +135,24 @@ class _GameScreenState extends State<GameScreen>
       surge: _surge,
       balloonRadius: balloonRadius,
       hitForgiveness: hitForgiveness,
-    );
+    ]);
   }
 
   void _handleLongPress() {
-    setState(() => _showHud = !_showHud);
-    widget.onRequestDebug();
+    setState(() => _showHud = !_showHud]);
+    widget.onRequestDebug(]);
   }
 
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF2E86DE);
+        return const Color(0xFF2E86DE]);
       case 3:
-        return const Color(0xFF6C2EB9);
+        return const Color(0xFF6C2EB9]);
       case 4:
-        return const Color(0xFF0B0F2F);
+        return const Color(0xFF0B0F2F]);
       default:
-        return const Color(0xFF0A0A0F);
+        return const Color(0xFF0A0A0F]);
     }
   }
 
@@ -165,9 +166,9 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   void dispose() {
-    _surge.dispose();
-    _ticker.dispose();
-    super.dispose();
+    _surge.dispose(]);
+    _ticker.dispose(]);
+    super.dispose(]);
   }
 
   @override
@@ -180,7 +181,8 @@ class _GameScreenState extends State<GameScreen>
           final currentWorld = widget.spawner.currentWorld;
           final nextWorld = currentWorld + 1;
 
-          return GameCanvas(
+          return Stack(children: [
+GameCanvas(
             currentWorld: currentWorld,
             nextWorld: nextWorld,
             backgroundColor: _backgroundForWorld(currentWorld),
@@ -195,9 +197,19 @@ class _GameScreenState extends State<GameScreen>
             speedMultiplier: widget.spawner.speedMultiplier,
             recentAccuracy: _recentAccuracy(),
             recentMisses: widget.spawner.recentMisses,
-          );
+          ),
+          if (_controller.isEnded)
+            RunEndOverlay(
+              state: _controller.runEndState,
+              onReplay: () {
+                widget.spawner.reset(]);
+                _controller.reset(]);
+                setState(() {}]);
+              },
+            ),
+          ]);
         },
       ),
-    );
+    ]);
   }
 }
