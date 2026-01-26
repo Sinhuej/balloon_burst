@@ -33,7 +33,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -46,7 +47,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _showHud = false;
   double _fps = 0.0;
 
-  // ✅ Gate: only allow misses AFTER at least one balloon exists
+  // Gate: only count misses AFTER at least one balloon exists
   bool _canCountMisses = false;
 
   static const double baseRiseSpeed = 120.0;
@@ -68,8 +69,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _ticker = createTicker(_onTick)..start();
   }
 
+  // ------------------------------------------------------------
+  // Tick
+  // ------------------------------------------------------------
   void _onTick(Duration elapsed) {
-    // 🔒 HARD FREEZE after run end
+    // HARD FREEZE after run end
     if (_controller.isEnded) {
       _lastTime = elapsed;
       return;
@@ -91,18 +95,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       viewportHeight: _lastSize.height,
     );
 
-    // ✅ As soon as ANY balloon exists, allow misses.
+    // As soon as ANY balloon exists, allow misses
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
     }
 
-    // Move upward
+    // Move balloons upward
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
-    // Remove popped silently; count only unpopped escapes
+    // Remove popped; count only unpopped escapes
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
@@ -126,10 +130,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() {});
   }
 
+  // ------------------------------------------------------------
+  // Input
+  // ------------------------------------------------------------
   void _handleTap(TapDownDetails details) {
     if (_controller.isEnded) return;
 
-    // ✅ No misses (or hits) counted before balloons exist.
+    // Ignore taps before balloons exist
     if (!_canCountMisses) return;
 
     TapHandler.handleTap(
@@ -144,7 +151,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       hitForgiveness: hitForgiveness,
     );
 
-    // 🔑 Force overlay render on MISS-10 frame
+    // Force overlay render on terminal miss
     if (_controller.isEnded) {
       setState(() {});
     }
@@ -155,23 +162,38 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     widget.onRequestDebug();
   }
 
-  void _replay() {
-    // Clear visuals immediately
-    _balloons.clear();
+  // ------------------------------------------------------------
+  // Replay
+  // ------------------------------------------------------------
+  void _spawnStarterBalloon() {
+    if (_lastSize.height <= 0) return;
 
-    // Reset gate so taps don't count while spawner warms up
+    _balloons.add(
+      Balloon(
+        x: _lastSize.width * 0.5,
+        y: _lastSize.height + balloonRadius * 1.5,
+        radius: balloonRadius,
+      ),
+    );
+  }
+
+  void _replay() {
+    _balloons.clear();
     _canCountMisses = false;
 
-    // Reset systems
     widget.spawner.resetForNewRun();
     _controller.reset();
 
-    // Reset ticker timing so replay starts instantly
-    _lastTime = Duration.zero;
+    // Seed immediate visual feedback
+    _spawnStarterBalloon();
 
+    _lastTime = Duration.zero;
     setState(() {});
   }
 
+  // ------------------------------------------------------------
+  // UI helpers
+  // ------------------------------------------------------------
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
@@ -200,6 +222,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // ------------------------------------------------------------
+  // Build
+  // ------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
