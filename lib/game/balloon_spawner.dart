@@ -158,12 +158,18 @@ class BalloonSpawner {
   }
 
   // Reset spawner to a clean state for Replay.
-  // Must reset ALL spawn-timing state to avoid replay stall.
+  // Replay = new run = World 1.
   void resetForNewRun() {
+    // Spawn timing
     _timer = 0.0;
     _spawnCount = 0;
     spawnInterval = worldSpawnInterval[1]!;
 
+    // Per-run progression (CRITICAL)
+    totalPops = 0;
+    _lastLoggedWorld = 1;
+
+    // Accuracy tracking
     recentHits = 0;
     recentMisses = 0;
   }
