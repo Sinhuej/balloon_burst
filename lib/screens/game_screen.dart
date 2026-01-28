@@ -165,6 +165,8 @@ class _GameScreenState extends State<GameScreen>
 
     _controller.reset();
     widget.spawner.resetForNewRun();
+    
+    _surge.reset(); // 🔑 Allow surge to replay on subsequent runs
 
     _lastTime = Duration.zero;
 

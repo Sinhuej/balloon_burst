@@ -4,8 +4,8 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
-/// World Surge Pulse v1.1
-/// - Fires 15 taps before world transition
+/// World Surge Pulse v1.2
+/// - Fires shortly before world transition
 /// - Fake-out flash: current → next → current
 /// - Vertical micro-shake
 class WorldSurgePulse {
@@ -34,6 +34,14 @@ class WorldSurgePulse {
     _shakeCtrl.dispose();
   }
 
+  /// 🔑 Reset surge state for a brand-new run (Retry)
+  void reset() {
+    _lastSurgeWorld = 0;
+    _invertColors = false;
+    _pulseCtrl.reset();
+    _shakeCtrl.reset();
+  }
+
   void maybeTrigger({
     required int totalPops,
     required int currentWorld,
@@ -41,12 +49,13 @@ class WorldSurgePulse {
     required int world3Pops,
     required int world4Pops,
   }) {
+    // Only fire once per world per run
     if (_lastSurgeWorld == currentWorld) return;
 
     final int? triggerAt = switch (currentWorld) {
-      1 => world2Pops - 15,
-      2 => world3Pops - 15,
-      3 => world4Pops - 15,
+      1 => world2Pops - 3,
+      2 => world3Pops - 4,
+      3 => world4Pops - 5,
       _ => null,
     };
 
@@ -62,7 +71,7 @@ class WorldSurgePulse {
         ..reset()
         ..forward();
 
-      // snap back to current color
+      // Snap back to current color when pulse completes
       _pulseCtrl.addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           _invertColors = false;
