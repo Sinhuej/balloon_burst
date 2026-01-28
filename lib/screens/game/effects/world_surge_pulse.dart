@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:balloon_burst/audio/audio_player.dart';
 
 /// World Surge Pulse v1.2
 /// - Fires shortly before world transition
@@ -61,6 +62,8 @@ class WorldSurgePulse {
 
     if (triggerAt != null && totalPops == triggerAt) {
       _lastSurgeWorld = currentWorld;
+
+      AudioPlayerService.playSurge(); // 🔊 anticipation cue
 
       _invertColors = true;
       _pulseCtrl
