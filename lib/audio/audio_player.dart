@@ -1,32 +1,48 @@
 import 'package:audioplayers/audioplayers.dart';
 
 class AudioPlayerService {
-  // Dedicated player for rapid tap feedback (never blocks)
-  static final AudioPlayer _popPlayer = AudioPlayer();
+  static final AudioContext _gameAudioContext = AudioContext(
+    android: AudioContextAndroid(
+      usageType: AndroidUsageType.game,
+      contentType: AndroidContentType.sonification,
+      audioFocus: AndroidAudioFocus.none, // 🔑 allow mixing
+    ),
+    iOS: AudioContextIOS(
+      category: AVAudioSessionCategory.ambient,
+      options: {
+        AVAudioSessionOptions.mixWithOthers,
+      },
+    ),
+  );
 
-  // Dedicated player for rare, important cues (surge)
-  static final AudioPlayer _surgePlayer = AudioPlayer();
+  // Rapid tap feedback (can overlap)
+  static final AudioPlayer _popPlayer = AudioPlayer()
+    ..setAudioContext(_gameAudioContext);
+
+  // Important anticipation cue (must not interrupt taps)
+  static final AudioPlayer _surgePlayer = AudioPlayer()
+    ..setAudioContext(_gameAudioContext);
 
   /// Play balloon pop sound (instant feedback)
   static Future<void> playPop() async {
     try {
-      await _popPlayer.stop();
+      // ❌ Do NOT stop — allow overlap for rapid taps
       await _popPlayer.play(
         AssetSource('audio/pop.mp3'),
         volume: 1.0,
       );
     } catch (_) {
-      // Audio failure should never block gameplay
+      // Never block gameplay on audio
     }
   }
 
-  /// Play world surge anticipation cue (once per surge)
+  /// Play world surge anticipation cue
   static Future<void> playSurge() async {
     try {
-      await _surgePlayer.stop();
+      await _surgePlayer.stop(); // ensure single surge instance
       await _surgePlayer.play(
         AssetSource('audio/surge.mp3'),
-        volume: 0.65, // subtle, felt-not-heard
+        volume: 1.0, // 🔊 full volume (file is subtle by design)
       );
     } catch (_) {
       // Fail silently
