@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:balloon_burst/game/balloon_type.dart';
 
 /// Balloon
 ///
@@ -20,6 +21,9 @@ class Balloon {
   /// Unique phase per balloon for deterministic motion.
   final double phase;
 
+  /// Balloon behavior type (Step 1)
+  final BalloonType type;
+
   const Balloon({
     required this.id,
     this.isPopped = false,
@@ -27,6 +31,7 @@ class Balloon {
     this.xOffset = 0.0,
     this.baseXOffset = 0.0,
     this.phase = 0.0,
+    this.type = BalloonType.standard,
   });
 
   Balloon pop() => Balloon(
@@ -36,6 +41,7 @@ class Balloon {
         xOffset: xOffset,
         baseXOffset: baseXOffset,
         phase: phase,
+        type: type,
       );
 
   Balloon movedBy(double dy) => Balloon(
@@ -45,6 +51,7 @@ class Balloon {
         xOffset: xOffset,
         baseXOffset: baseXOffset,
         phase: phase,
+        type: type,
       );
 
   Balloon withXOffset(double newX) => Balloon(
@@ -54,6 +61,7 @@ class Balloon {
         xOffset: newX,
         baseXOffset: baseXOffset,
         phase: phase,
+        type: type,
       );
 
   /// Rising Worlds spawn helper
@@ -63,6 +71,7 @@ class Balloon {
     required int total,
     required int tier,
     required double viewportHeight,
+    BalloonType type = BalloonType.standard,
   }) {
     final rand = Random(index * 997 + tier * 7919);
 
@@ -85,6 +94,7 @@ class Balloon {
       xOffset: baseX,
       baseXOffset: baseX,
       phase: phase,
+      type: type,
     );
   }
 }

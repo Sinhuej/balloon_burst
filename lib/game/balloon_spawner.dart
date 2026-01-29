@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/game/balloon_type.dart';
 
 class BalloonSpawner {
   double _timer = 0.0;
   int _spawnCount = 0;
+  final Random _rng = Random();
 
   double spawnInterval = 1.2;
 
@@ -44,13 +46,13 @@ class BalloonSpawner {
     final targetInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
 
-    // Smoothly converge toward target interval
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
-
     _timer += dt;
 
     if (_timer >= spawnInterval) {
       _timer = 0.0;
+
+      final type = _chooseBalloonType();
 
       balloons.add(
         Balloon.spawnAt(
@@ -58,11 +60,27 @@ class BalloonSpawner {
           total: _spawnCount + 1,
           tier: tier,
           viewportHeight: viewportHeight,
+          type: type,
         ),
       );
 
       _spawnCount++;
     }
+  }
+
+  BalloonType _chooseBalloonType() {
+    final entries = balloonTypeConfig.entries.toList();
+    final totalWeight =
+        entries.fold<double>(0, (sum, e) => sum + e.value.spawnWeight);
+
+    double roll = _rng.nextDouble() * totalWeight;
+
+    for (final e in entries) {
+      roll -= e.value.spawnWeight;
+      if (roll <= 0) return e.key;
+    }
+
+    return BalloonType.standard;
   }
 
   void registerPop(GameState gameState) {
@@ -157,19 +175,14 @@ class BalloonSpawner {
     }
   }
 
-  // Reset spawner to a clean state for Replay.
-  // Replay = new run = World 1.
   void resetForNewRun() {
-    // Spawn timing
     _timer = 0.0;
     _spawnCount = 0;
     spawnInterval = worldSpawnInterval[1]!;
 
-    // Per-run progression (CRITICAL)
     totalPops = 0;
     _lastLoggedWorld = 1;
 
-    // Accuracy tracking
     recentHits = 0;
     recentMisses = 0;
   }
