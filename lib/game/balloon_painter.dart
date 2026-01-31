@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:balloon_burst/game/balloon_type.dart';
 
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
@@ -8,7 +9,7 @@ class BalloonPainter extends CustomPainter {
 
   BalloonPainter(this.balloons, this.gameState);
 
-  static const double balloonRadius = 16.0;
+  static const double baseBalloonRadius = 16.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -67,26 +68,49 @@ class BalloonPainter extends CustomPainter {
       gameState.tapPulse = false;
     }
 
-    // Balloons
+    // ---- BALLOONS (Step 2: depth + scale + color) ----
+
     final centerX = size.width / 2;
 
-    for (final balloon in balloons) {
+    // Sort by visual depth (background → foreground)
+    final sorted = balloons.toList()
+      ..sort((a, b) =>
+          balloonTypeConfig[a.type]!.zLayer.compareTo(
+            balloonTypeConfig[b.type]!.zLayer,
+          ));
+
+    for (final balloon in sorted) {
       if (balloon.isPopped) continue;
 
-      final paint = Paint()
-        ..color = Colors.redAccent
-        ..style = PaintingStyle.fill;
+      final cfg = balloonTypeConfig[balloon.type]!;
+
+      final radius = baseBalloonRadius * cfg.visualScale;
 
       final x = centerX + (balloon.xOffset * size.width * 0.5);
-
-      // IMPORTANT: Balloon.y is the circle center y.
       final y = balloon.y;
+
+      final paint = Paint()
+        ..color = _colorForWorld(gameState.currentWorld)
+        ..style = PaintingStyle.fill;
 
       canvas.drawCircle(
         Offset(x, y),
-        balloonRadius,
+        radius,
         paint,
       );
+    }
+  }
+
+  Color _colorForWorld(int world) {
+    switch (world) {
+      case 2:
+        return const Color(0xFF4DA3FF); // Sky Blue
+      case 3:
+        return const Color(0xFFB04DFF); // Neon Purple
+      case 4:
+        return const Color(0xFF9FA8DA); // Deep Space glow
+      default:
+        return const Color(0xFFE53935); // Carnival Red
     }
   }
 
