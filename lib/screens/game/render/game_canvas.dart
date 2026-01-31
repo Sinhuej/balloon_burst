@@ -85,7 +85,7 @@ class GameCanvas extends StatelessWidget {
                   child: Transform.translate(
                     offset: Offset(0, surge.shakeYOffset),
                     child: CustomPaint(
-                      painter: BalloonPainter(balloons, gameState),
+                      painter: BalloonPainter(balloons, gameState, currentWorld),
                     ),
                   ),
                 ),

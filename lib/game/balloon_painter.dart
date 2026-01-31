@@ -6,8 +6,9 @@ import 'package:balloon_burst/game/balloon_type.dart';
 class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
   final GameState gameState;
+  final int currentWorld;
 
-  BalloonPainter(this.balloons, this.gameState);
+  BalloonPainter(this.balloons, this.gameState, this.currentWorld);
 
   static const double baseBalloonRadius = 16.0;
 
@@ -90,7 +91,7 @@ class BalloonPainter extends CustomPainter {
       final y = balloon.y;
 
       final paint = Paint()
-        ..color = _colorForWorld(gameState.currentWorld)
+        ..color = _colorForWorld(currentWorld)
         ..style = PaintingStyle.fill;
 
       canvas.drawCircle(
