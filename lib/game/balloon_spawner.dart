@@ -45,7 +45,7 @@ class BalloonSpawner {
     required double dt,
     required int tier,
     required List<Balloon> balloons,
-    required double iewportHeight,
+    required double v iewportHeight,
   }) {
     final targetInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
