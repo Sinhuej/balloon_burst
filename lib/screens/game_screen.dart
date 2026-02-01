@@ -33,8 +33,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -95,22 +94,25 @@ class _GameScreenState extends State<GameScreen>
       _canCountMisses = true;
     }
 
+    // Move ALL balloons (including popped ones) upward until they leave screen.
     final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
     for (int i = 0; i < _balloons.length; i++) {
       _balloons[i] = _balloons[i].movedBy(-speed * dt);
     }
 
     int escapedThisTick = 0;
+
+    // Removal rule:
+    // - Do NOT remove popped balloons immediately (prevents mid-screen "respawn").
+    // - Remove ANY balloon only when it leaves the top.
+    // - Count escapes ONLY for balloons that were NOT popped.
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
 
-      if (b.isPopped) {
-        _balloons.removeAt(i);
-        continue;
-      }
-
       if (b.y < -balloonRadius) {
-        escapedThisTick++;
+        if (!b.isPopped) {
+          escapedThisTick++;
+        }
         _balloons.removeAt(i);
       }
     }
@@ -165,7 +167,7 @@ class _GameScreenState extends State<GameScreen>
 
     _controller.reset();
     widget.spawner.resetForNewRun();
-    
+
     _surge.reset(); // 🔑 Allow surge to replay on subsequent runs
 
     _lastTime = Duration.zero;
