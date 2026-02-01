@@ -40,14 +40,21 @@ class BalloonSpawner {
   static const double maxWorldRamp = 0.10;
   static const double maxMissSlowdown = 0.05;
 
-  // Burst behavior
+  // Vertical stacking on entry (fine to keep)
   static const double burstSpacingY = 26.0;
 
   // Cluster feel (tune these)
-  // 0.15 = tight, 0.22 = looser
-  static const double clusterSpread = 0.18;
+  // Internal cluster spacing (between balloons inside the same cluster)
+  static const double clusterSpread = 0.12; // try 0.10..0.16 with big counts
   static const double clusterJitter = 0.02; // tiny randomness per balloon
-  static const double xClamp = 0.48;        // avoid extreme edges
+
+  // How far across the bottom clusters can originate (xOffset space)
+  // Bigger = more left/right starts.
+  static const double clusterOriginRangeWorld1 = 0.46;
+  static const double clusterOriginRangeWorld2Plus = 0.52;
+
+  // Clamp overall xOffset so balloons don't hug edges too hard
+  static const double xClamp = 0.58;
 
   void update({
     required double dt,
@@ -72,18 +79,22 @@ class BalloonSpawner {
     if (_timer < spawnInterval) return;
     _timer = 0.0;
 
-    // ✅ World-scaled cluster frequency:
-    // World 1 gets more clusters than before, but Worlds 2–4 scale up proportionally.
+    // ✅ Frequency of clusters by world (World 1 gets more than before, scales up)
     final double burstChance = _burstChanceForWorld(currentWorld);
 
     final bool doBurst = _rng.nextDouble() < burstChance;
     final int count = doBurst ? _burstCountForWorld(currentWorld) : 1;
+
     final List<BalloonType> types = _chooseTypesForGroup(count);
 
-    // ✅ Variable spawning points across the bottom:
-    // A shared origin per cluster, with per-balloon offsets + jitter.
-    final double clusterCenterX = _clusterCenterXForWorld(currentWorld);
+    // ✅ Choose a cluster origin across the bottom (not just near center)
+    final double originRange = (currentWorld <= 1)
+        ? clusterOriginRangeWorld1
+        : clusterOriginRangeWorld2Plus;
 
+    final double clusterCenterX = (_rng.nextDouble() * 2 - 1) * originRange;
+
+    // Offsets that stay centered for any count (2..6)
     final List<double> xOffsets = _xOffsetsForCount(count);
 
     _waveActive = true;
@@ -92,8 +103,7 @@ class BalloonSpawner {
       final int index = _spawnCount;
       _spawnCount++;
 
-      final double spawnY =
-          viewportHeight + burstSpacingY * (count - 1 - i);
+      final double spawnY = viewportHeight + burstSpacingY * (count - 1 - i);
 
       final double jitter = (_rng.nextDouble() * 2 - 1) * clusterJitter;
       final double x =
@@ -112,43 +122,53 @@ class BalloonSpawner {
     }
   }
 
-  // More clusters in World 1, scaled up in later worlds.
+  // ✅ Tune cluster frequency here
   double _burstChanceForWorld(int world) {
     switch (world) {
       case 1:
-        return 0.38; // was 0.35 overall; slightly more clusters in world 1
+        return 0.40; // more clusters than before
       case 2:
-        return 0.46;
+        return 0.50;
       case 3:
-        return 0.54;
-      case 4:
         return 0.58;
+      case 4:
+        return 0.62;
       default:
-        return 0.46;
+        return 0.50;
     }
   }
 
-  // Wider horizontal origins: clusters can start across the bottom, not just center.
-  double _clusterCenterXForWorld(int world) {
-    // Keep World 1 a bit more controlled than later worlds, but still varied.
-    final double range = (world <= 1) ? 0.40 : 0.46;
-    return (_rng.nextDouble() * 2 - 1) * range;
+  // ✅ Tune cluster size here (your requested targets)
+  int _burstCountForWorld(int world) {
+    switch (world) {
+      case 1:
+        return 3;
+      case 2:
+        return 4;
+      case 3:
+        return 5;
+      case 4:
+        return 6;
+      default:
+        return 4;
+    }
   }
 
+  // Centered offsets: [-k..+k] * clusterSpread (works for any count)
   List<double> _xOffsetsForCount(int count) {
     if (count <= 1) return const [0.0];
 
-    if (count == 2) {
-      return const [-clusterSpread * 0.5, clusterSpread * 0.5];
+    final double mid = (count - 1) / 2.0;
+    final List<double> out = <double>[];
+
+    for (int i = 0; i < count; i++) {
+      out.add((i - mid) * clusterSpread);
     }
 
-    // count == 3
-    return const [-clusterSpread, 0.0, clusterSpread];
-  }
-
-  int _burstCountForWorld(int world) {
-    if (world <= 1) return 2;
-    return (_rng.nextDouble() < 0.70) ? 2 : 3;
+    // Shuffle slightly so formations don't always look perfectly ordered
+    // (keeps "escaped carnival" vibe without changing overall shape)
+    out.shuffle(_rng);
+    return out;
   }
 
   List<BalloonType> _chooseTypesForGroup(int count) {
@@ -158,6 +178,7 @@ class BalloonSpawner {
 
     final List<BalloonType> out = List.filled(count, BalloonType.standard);
 
+    // Guarantee at least one standard
     out[0] = BalloonType.standard;
 
     bool hasLargeSlow = false;
