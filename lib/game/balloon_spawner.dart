@@ -51,16 +51,15 @@ class BalloonSpawner {
     required List<Balloon> balloons,
     required double viewportHeight,
   }) {
-    // 🔐 Lock wave until ALL spawned balloons are gone
+    // 🔒 Lock wave until the screen is completely clear
     if (_waveActive) {
-      final alive = balloons.where((b) => !b.isPopped).length;
-      if (alive >= _activeWaveCount) {
-        return;
-      }
-      _waveActive = false;
-      _activeWaveCount = 0;
-      _timer = 0.0;
+     if (balloons.isNotEmpty) {
+      return;
     }
+    _waveActive = false;
+    _activeWaveCount = 0;
+    _timer = 0.0;
+   }
 
     final targetInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
