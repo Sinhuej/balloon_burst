@@ -83,7 +83,7 @@ class Balloon {
     final spacing = max(40.0, 70.0 - tier * 3.0);
 
     // Spawn BELOW screen
-    final startY = viewportHeight + (index * spacing);
+    final startY = viewportHeight - (index * spacing);
 
     // Unique deterministic phase (0..2π)
     final phase = rand.nextDouble() * pi * 2;
