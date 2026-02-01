@@ -37,13 +37,8 @@ class BalloonSpawner {
   static const double maxWorldRamp = 0.10;
   static const double maxMissSlowdown = 0.05;
 
-  // Step 3: Burst spawning (Option A: occasional drama)
-  // - Sometimes spawn 2–3 balloons at once
-  // - Creates layered overlap moments
-  // - Fairness rules prevent "unavoidable" clusters
-  static const double burstChance = 0.35; // 35% burst, 65% single
-
-  // Spacing within a burst (in world units; affects how stacked they feel)
+  // Step 3A: Burst spawning (Option A — occasional drama)
+  static const double burstChance = 0.35;
   static const double burstSpacingY = 26.0;
 
   void update({
@@ -52,32 +47,31 @@ class BalloonSpawner {
     required List<Balloon> balloons,
     required double viewportHeight,
   }) {
-    final targetInterval = worldSpawnInterval[currentWorld] ?? spawnInterval;
+    final targetInterval =
+        worldSpawnInterval[currentWorld] ?? spawnInterval;
 
-    // Smoothly converge toward target interval
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
-
     _timer += dt;
 
     if (_timer >= spawnInterval) {
       _timer = 0.0;
 
       final bool doBurst = _rng.nextDouble() < burstChance;
-      final int count = doBurst ? _burstCountForWorld(currentWorld) : 1;
+      final int count =
+          doBurst ? _burstCountForWorld(currentWorld) : 1;
 
-      // Choose types for this spawn group with fairness guarantees.
-      final List<BalloonType> types = _chooseTypesForGroup(count);
+      final List<BalloonType> types =
+          _chooseTypesForGroup(count);
 
       for (int i = 0; i < count; i++) {
         final int index = _spawnCount;
 
-        // Spawn below screen with a slight extra offset so burst members
-        // are stacked (creates overlap / choice moments).
         final Balloon b = Balloon.spawnAt(
           index,
           total: index + 1,
           tier: tier,
-          viewportHeight: viewportHeight + (i * burstSpacingY),
+          viewportHeight:
+              viewportHeight + (i * burstSpacingY),
           type: types[i],
         );
 
@@ -88,50 +82,40 @@ class BalloonSpawner {
   }
 
   int _burstCountForWorld(int world) {
-    // World 1: mostly 2-bursts (teaches layering gently)
-    // World 2+: mix of 2 and 3
     if (world <= 1) return 2;
-
-    // 70% chance 2, 30% chance 3
     return (_rng.nextDouble() < 0.70) ? 2 : 3;
   }
 
   List<BalloonType> _chooseTypesForGroup(int count) {
-    // Fairness rules:
-    // - At least 1 standard
-    // - Max 1 foreground
-    // - Remaining slots can be background/standard based on weights
     if (count <= 1) {
       return [_chooseBalloonType()];
     }
 
-    final List<BalloonType> out = List.filled(count, BalloonType.standard);
+    final List<BalloonType> out =
+        List.filled(count, BalloonType.standard);
 
-    // Guarantee one standard somewhere (keeps run readable + tappable)
+    // Guarantee at least one standard
     out[0] = BalloonType.standard;
 
-    bool hasForeground = false;
+    bool hasLargeSlow = false;
 
     for (int i = 1; i < count; i++) {
       final BalloonType t = _chooseBalloonType();
 
-      // Clamp foreground to max 1 per group
-      if (t == BalloonType.foreground) {
-        if (hasForeground) {
+      if (t == BalloonType.largeSlow) {
+        if (hasLargeSlow) {
           out[i] = BalloonType.standard;
         } else {
-          out[i] = BalloonType.foreground;
-          hasForeground = true;
+          out[i] = BalloonType.largeSlow;
+          hasLargeSlow = true;
         }
       } else {
         out[i] = t;
       }
     }
 
-    // Shuffle so the guaranteed standard isn't always the first
     out.shuffle(_rng);
 
-    // Ensure at least one standard remains after shuffle (should always be true)
     if (!out.contains(BalloonType.standard)) {
       out[0] = BalloonType.standard;
     }
@@ -142,7 +126,7 @@ class BalloonSpawner {
   BalloonType _chooseBalloonType() {
     final entries = balloonTypeConfig.entries.toList();
     final totalWeight =
-        entries.fold<double>(0, (sum, e) => sum + e.value.spawnWeight);
+        entries.fold<double>(0, (s, e) => s + e.value.spawnWeight);
 
     double roll = _rng.nextDouble() * totalWeight;
 
@@ -211,7 +195,8 @@ class BalloonSpawner {
     }
 
     if (end <= start) return 1.0;
-    return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
+    return ((totalPops - start) / (end - start))
+        .clamp(0.0, 1.0);
   }
 
   double get accuracyModifier {
@@ -222,11 +207,13 @@ class BalloonSpawner {
             .clamp(0.0, 1.0);
 
     final slowdown = missFactor * maxMissSlowdown;
-    return (1.0 - slowdown).clamp(1.0 - maxMissSlowdown, 1.0);
+    return (1.0 - slowdown)
+        .clamp(1.0 - maxMissSlowdown, 1.0);
   }
 
   double get speedMultiplier {
-    final worldMult = worldSpeedMultiplier[currentWorld] ?? 1.0;
+    final worldMult =
+        worldSpeedMultiplier[currentWorld] ?? 1.0;
     final ramp = 1.0 + (worldProgress * maxWorldRamp);
     return worldMult * ramp * accuracyModifier;
   }
