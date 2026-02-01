@@ -5,7 +5,7 @@ class AudioPlayerService {
     android: AudioContextAndroid(
       usageType: AndroidUsageType.game,
       contentType: AndroidContentType.sonification,
-      audioFocus: AndroidAudioFocus.none, // 🔑 allow mixing
+      audioFocus: AndroidAudioFocus.none, // allow mixing
     ),
     iOS: AudioContextIOS(
       category: AVAudioSessionCategory.ambient,
@@ -15,19 +15,16 @@ class AudioPlayerService {
     ),
   );
 
-  // Rapid tap feedback (can overlap)
-  static final AudioPlayer _popPlayer = AudioPlayer()
-    ..setAudioContext(_gameAudioContext);
-
-  // Important anticipation cue (must not interrupt taps)
+  // 🔔 World surge cue (single instance, gated)
   static final AudioPlayer _surgePlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
-  /// Play balloon pop sound (instant feedback)
+  /// Balloon pop (rapid, overlapping, fire-and-forget)
   static Future<void> playPop() async {
     try {
-      // ❌ Do NOT stop — allow overlap for rapid taps
-      await _popPlayer.play(
+      final player = AudioPlayer();
+      await player.setAudioContext(_gameAudioContext);
+      await player.play(
         AssetSource('audio/pop.mp3'),
         volume: 1.0,
       );
@@ -36,13 +33,13 @@ class AudioPlayerService {
     }
   }
 
-  /// Play world surge anticipation cue
+  /// World transition anticipation cue
   static Future<void> playSurge() async {
     try {
-      await _surgePlayer.stop(); // ensure single surge instance
+      await _surgePlayer.stop(); // ensure only one surge at a time
       await _surgePlayer.play(
         AssetSource('audio/surge.mp3'),
-        volume: 1.0, // 🔊 full volume (file is subtle by design)
+        volume: 1.0,
       );
     } catch (_) {
       // Fail silently
