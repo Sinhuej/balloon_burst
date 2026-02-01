@@ -50,8 +50,8 @@ class BalloonSpawner {
 
   // How far across the bottom clusters can originate (xOffset space)
   // Bigger = more left/right starts.
-  static const double clusterOriginRangeWorld1 = 0.46;
-  static const double clusterOriginRangeWorld2Plus = 0.52;
+  static const double clusterOriginRangeWorld1 = 0.56;
+  static const double clusterOriginRangeWorld2Plus = 0.66;
 
   // Clamp overall xOffset so balloons don't hug edges too hard
   static const double xClamp = 0.58;
