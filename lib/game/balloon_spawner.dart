@@ -18,7 +18,6 @@ class BalloonSpawner {
 
   // 🔒 Wave control
   bool _waveActive = false;
-  int _activeWaveCount = 0;
 
   static const int world2Pops = 50;
   static const int world3Pops = 150;
@@ -45,62 +44,82 @@ class BalloonSpawner {
   static const double burstChance = 0.35;
   static const double burstSpacingY = 26.0;
 
+  // Cluster feel (tune these)
+  // 0.15 = tight, 0.22 = looser
+  static const double clusterSpread = 0.18;
+  static const double clusterCenterRange = 0.28; // keep cluster near center
+  static const double clusterJitter = 0.02;      // tiny randomness per balloon
+  static const double xClamp = 0.48;             // avoid extreme edges
+
   void update({
     required double dt,
     required int tier,
     required List<Balloon> balloons,
     required double viewportHeight,
   }) {
-    // 🔒 Lock wave until the screen is completely clear
-   if (_waveActive) {
-    final hasActiveBalloon = balloons.any((b) => !b.isPopped);
+    // 🔒 Lock wave until no ACTIVE balloons remain (popped balloons don't block)
+    if (_waveActive) {
+      final hasActiveBalloon = balloons.any((b) => !b.isPopped);
+      if (hasActiveBalloon) return;
 
-   if (hasActiveBalloon) {
-    return;
-   }
+      _waveActive = false;
+      _timer = 0.0;
+    }
 
-    _waveActive = false;
-    _timer = 0.0;
-   }
-
-    final targetInterval =
-        worldSpawnInterval[currentWorld] ?? spawnInterval;
+    final targetInterval = worldSpawnInterval[currentWorld] ?? spawnInterval;
 
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
     _timer += dt;
 
-    if (_timer >= spawnInterval) {
-      _timer = 0.0;
+    if (_timer < spawnInterval) return;
+    _timer = 0.0;
 
-      final bool doBurst = _rng.nextDouble() < burstChance;
-      final int count =
-          doBurst ? _burstCountForWorld(currentWorld) : 1;
+    final bool doBurst = _rng.nextDouble() < burstChance;
+    final int count = doBurst ? _burstCountForWorld(currentWorld) : 1;
+    final List<BalloonType> types = _chooseTypesForGroup(count);
 
-      final List<BalloonType> types =
-          _chooseTypesForGroup(count);
+    // Choose a cluster center (xOffset space, around 0)
+    final double clusterCenterX =
+        (_rng.nextDouble() * 2 - 1) * clusterCenterRange;
 
-      _waveActive = true;
-      _activeWaveCount = count;
+    // Precompute offsets so clusters "breathe" horizontally
+    final List<double> xOffsets = _xOffsetsForCount(count);
 
-      for (int i = 0; i < count; i++) {
-        final int index = _spawnCount;
+    _waveActive = true;
 
-        final double spawnY =
-            viewportHeight + burstSpacingY * (count - 1 - i);
+    for (int i = 0; i < count; i++) {
+      final int index = _spawnCount;
+      _spawnCount++;
 
-        final Balloon b = Balloon(
-          id: 'balloon_${_spawnCount++}',
-          y: spawnY,
-          xOffset: 0.0,
-          baseXOffset: 0.0,
-          phase: _rng.nextDouble() * pi * 2,
-          type: types[i],
-         );
+      final double spawnY =
+          viewportHeight + burstSpacingY * (count - 1 - i);
 
-        balloons.add(b);
-        _spawnCount++;
-      }
+      final double jitter = (_rng.nextDouble() * 2 - 1) * clusterJitter;
+      final double x =
+          (clusterCenterX + xOffsets[i] + jitter).clamp(-xClamp, xClamp);
+
+      final Balloon b = Balloon(
+        id: 'balloon_$index',
+        y: spawnY,
+        xOffset: x,
+        baseXOffset: x,
+        phase: _rng.nextDouble() * pi * 2,
+        type: types[i],
+      );
+
+      balloons.add(b);
     }
+  }
+
+  List<double> _xOffsetsForCount(int count) {
+    if (count <= 1) return const [0.0];
+
+    if (count == 2) {
+      return const [-clusterSpread * 0.5, clusterSpread * 0.5];
+    }
+
+    // count == 3
+    return const [-clusterSpread, 0.0, clusterSpread];
   }
 
   int _burstCountForWorld(int world) {
@@ -113,8 +132,7 @@ class BalloonSpawner {
       return [_chooseBalloonType()];
     }
 
-    final List<BalloonType> out =
-        List.filled(count, BalloonType.standard);
+    final List<BalloonType> out = List.filled(count, BalloonType.standard);
 
     out[0] = BalloonType.standard;
 
@@ -205,25 +223,21 @@ class BalloonSpawner {
         end = world2Pops;
     }
 
-    return ((totalPops - start) / (end - start))
-        .clamp(0.0, 1.0);
+    return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
   }
 
   double get accuracyModifier {
     if (recentMisses == 0) return 1.0;
 
     final missFactor =
-        (recentMisses / (recentMisses + recentHits + 1))
-            .clamp(0.0, 1.0);
+        (recentMisses / (recentMisses + recentHits + 1)).clamp(0.0, 1.0);
 
     final slowdown = missFactor * maxMissSlowdown;
-    return (1.0 - slowdown)
-        .clamp(1.0 - maxMissSlowdown, 1.0);
+    return (1.0 - slowdown).clamp(1.0 - maxMissSlowdown, 1.0);
   }
 
   double get speedMultiplier {
-    final worldMult =
-        worldSpeedMultiplier[currentWorld] ?? 1.0;
+    final worldMult = worldSpeedMultiplier[currentWorld] ?? 1.0;
     final ramp = 1.0 + (worldProgress * maxWorldRamp);
     return worldMult * ramp * accuracyModifier;
   }
@@ -252,6 +266,5 @@ class BalloonSpawner {
     recentMisses = 0;
 
     _waveActive = false;
-    _activeWaveCount = 0;
   }
 }

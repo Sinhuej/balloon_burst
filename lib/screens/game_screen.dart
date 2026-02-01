@@ -95,9 +95,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     // Move ALL balloons (including popped ones) upward until they leave screen.
-    final speed = baseRiseSpeed * widget.spawner.speedMultiplier;
     for (int i = 0; i < _balloons.length; i++) {
-      _balloons[i] = _balloons[i].movedBy(-speed * dt);
+     final b = _balloons[i];
+     final speed = baseRiseSpeed *
+      widget.spawner.speedMultiplier *
+      b.riseSpeedMultiplier;
+
+     _balloons[i] = b.movedBy(-speed * dt);
     }
 
     int escapedThisTick = 0;

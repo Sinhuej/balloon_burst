@@ -64,6 +64,14 @@ class Balloon {
         type: type,
       );
 
+  /// Micro speed variance per balloon.
+  /// Deterministic and stable: derived from phase.
+  /// Range ~[0.92 .. 1.08]
+  double get riseSpeedMultiplier {
+    final m = 1.0 + sin(phase) * 0.10; // 👈 TUNING KNOB
+    return m.clamp(0.92, 1.08);
+  }
+
   /// Rising Worlds spawn helper
   /// Balloons spawn BELOW the viewport and rise upward.
   static Balloon spawnAt(
@@ -76,8 +84,8 @@ class Balloon {
     final rand = Random(index * 997 + tier * 7919);
 
     // Horizontal spread grows with tier
-    final baseSpread = 0.3 + (tier * 0.03);
-    final baseX = (rand.nextDouble() * 2 - 1) * baseSpread;
+    final clusterSpread = 0.22; // 👈 TUNING KNOB
+    final baseX = (rand.nextDouble() * 2 - 1) * clusterSpread;
 
     // Vertical spacing compresses as tier rises
     final spacing = max(40.0, 70.0 - tier * 3.0);
