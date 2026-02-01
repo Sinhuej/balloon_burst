@@ -41,15 +41,13 @@ class BalloonSpawner {
   static const double maxMissSlowdown = 0.05;
 
   // Burst behavior
-  static const double burstChance = 0.35;
   static const double burstSpacingY = 26.0;
 
   // Cluster feel (tune these)
   // 0.15 = tight, 0.22 = looser
   static const double clusterSpread = 0.18;
-  static const double clusterCenterRange = 0.28; // keep cluster near center
-  static const double clusterJitter = 0.02;      // tiny randomness per balloon
-  static const double xClamp = 0.48;             // avoid extreme edges
+  static const double clusterJitter = 0.02; // tiny randomness per balloon
+  static const double xClamp = 0.48;        // avoid extreme edges
 
   void update({
     required double dt,
@@ -74,15 +72,18 @@ class BalloonSpawner {
     if (_timer < spawnInterval) return;
     _timer = 0.0;
 
+    // ✅ World-scaled cluster frequency:
+    // World 1 gets more clusters than before, but Worlds 2–4 scale up proportionally.
+    final double burstChance = _burstChanceForWorld(currentWorld);
+
     final bool doBurst = _rng.nextDouble() < burstChance;
     final int count = doBurst ? _burstCountForWorld(currentWorld) : 1;
     final List<BalloonType> types = _chooseTypesForGroup(count);
 
-    // Choose a cluster center (xOffset space, around 0)
-    final double clusterCenterX =
-        (_rng.nextDouble() * 2 - 1) * clusterCenterRange;
+    // ✅ Variable spawning points across the bottom:
+    // A shared origin per cluster, with per-balloon offsets + jitter.
+    final double clusterCenterX = _clusterCenterXForWorld(currentWorld);
 
-    // Precompute offsets so clusters "breathe" horizontally
     final List<double> xOffsets = _xOffsetsForCount(count);
 
     _waveActive = true;
@@ -109,6 +110,29 @@ class BalloonSpawner {
 
       balloons.add(b);
     }
+  }
+
+  // More clusters in World 1, scaled up in later worlds.
+  double _burstChanceForWorld(int world) {
+    switch (world) {
+      case 1:
+        return 0.38; // was 0.35 overall; slightly more clusters in world 1
+      case 2:
+        return 0.46;
+      case 3:
+        return 0.54;
+      case 4:
+        return 0.58;
+      default:
+        return 0.46;
+    }
+  }
+
+  // Wider horizontal origins: clusters can start across the bottom, not just center.
+  double _clusterCenterXForWorld(int world) {
+    // Keep World 1 a bit more controlled than later worlds, but still varied.
+    final double range = (world <= 1) ? 0.40 : 0.46;
+    return (_rng.nextDouble() * 2 - 1) * range;
   }
 
   List<double> _xOffsetsForCount(int count) {
