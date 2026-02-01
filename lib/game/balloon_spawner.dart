@@ -86,13 +86,14 @@ class BalloonSpawner {
         final double spawnY =
             viewportHeight + burstSpacingY * (count - 1 - i);
 
-        final Balloon b = Balloon.spawnAt(
-          index,
-          total: index + 1,
-          tier: tier,
-          viewportHeight: spawnY,
+        final Balloon b = Balloon(
+          id: 'balloon_${_spawnCount++}',
+          y: spawnY,
+          xOffset: 0.0,
+          baseXOffset: 0.0,
+          phase: _rng.nextDouble() * pi * 2,
           type: types[i],
-        );
+         );
 
         balloons.add(b);
         _spawnCount++;
