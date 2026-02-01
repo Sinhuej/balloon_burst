@@ -1,4 +1,4 @@
-import 'dart:math';
+	import 'dart:math';
 import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_type.dart';
@@ -45,7 +45,7 @@ class BalloonSpawner {
     required double dt,
     required int tier,
     required List<Balloon> balloons,
-    required double v iewportHeight,
+    required double viewportHeight,
   }) {
     final targetInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
