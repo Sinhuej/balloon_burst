@@ -45,7 +45,7 @@ class BalloonSpawner {
     required double dt,
     required int tier,
     required List<Balloon> balloons,
-    required double viewportHeight,
+    required double iewportHeight,
   }) {
     final targetInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
@@ -71,7 +71,7 @@ class BalloonSpawner {
           total: index + 1,
           tier: tier,
           viewportHeight:
-              viewportHeight + (i * burstSpacingY),
+            viewportHeight + burstSpacingY * (count - 1 - i),
           type: types[i],
         );
 
