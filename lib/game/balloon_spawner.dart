@@ -53,11 +53,15 @@ class BalloonSpawner {
   }) {
     // 🔒 Lock wave until the screen is completely clear
     if (_waveActive) {
-     if (balloons.isNotEmpty) {
-      return;
+     final hasBlockingBalloon = balloons.any(
+      (b) => !b.isPopped && b.y > waveClearY,
+     );
+
+    if (hasBlockingBalloon) {
+     return;
     }
+
     _waveActive = false;
-    _activeWaveCount = 0;
     _timer = 0.0;
    }
 
