@@ -1,4 +1,4 @@
-	import 'dart:math';
+import 'dart:math';
 import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_type.dart';
@@ -15,6 +15,12 @@ class BalloonSpawner {
   int recentHits = 0;
 
   int _lastLoggedWorld = 1;
+
+  // Wave gating:
+  // After we spawn a group (single or burst), do NOT spawn again until
+  // all active balloons are gone. This prevents mid-screen "respawn"
+  // and creates clear phase-based waves.
+  bool _waveActive = false;
 
   static const int world2Pops = 50;
   static const int world3Pops = 150;
@@ -47,37 +53,55 @@ class BalloonSpawner {
     required List<Balloon> balloons,
     required double viewportHeight,
   }) {
-    final targetInterval =
-        worldSpawnInterval[currentWorld] ?? spawnInterval;
+    // If a wave is active, unlock ONLY when no active balloons remain.
+    // (GameScreen removes popped balloons; escapes remove balloons too.)
+    if (_waveActive) {
+      final hasActive = balloons.any((b) => !b.isPopped);
+      if (!hasActive) {
+        _waveActive = false;
+        _timer = 0.0; // clean restart for next wave timing
+      } else {
+        return; // wave still in progress: no spawning, no timer advance
+      }
+    }
 
+    final targetInterval = worldSpawnInterval[currentWorld] ?? spawnInterval;
+
+    // Smoothly converge toward target interval
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
+
     _timer += dt;
 
     if (_timer >= spawnInterval) {
       _timer = 0.0;
 
       final bool doBurst = _rng.nextDouble() < burstChance;
-      final int count =
-          doBurst ? _burstCountForWorld(currentWorld) : 1;
+      final int count = doBurst ? _burstCountForWorld(currentWorld) : 1;
 
-      final List<BalloonType> types =
-          _chooseTypesForGroup(count);
+      final List<BalloonType> types = _chooseTypesForGroup(count);
 
       for (int i = 0; i < count; i++) {
         final int index = _spawnCount;
+
+        // Anchor the entire group below the viewport.
+        // Use a small per-balloon offset so the group enters as a stack.
+        final double burstViewportHeight =
+            viewportHeight + burstSpacingY * (count - 1 - i);
 
         final Balloon b = Balloon.spawnAt(
           index,
           total: index + 1,
           tier: tier,
-          viewportHeight:
-            viewportHeight + burstSpacingY * (count - 1 - i),
+          viewportHeight: burstViewportHeight,
           type: types[i],
         );
 
         balloons.add(b);
         _spawnCount++;
       }
+
+      // Lock until this wave is cleared
+      _waveActive = true;
     }
   }
 
@@ -91,8 +115,7 @@ class BalloonSpawner {
       return [_chooseBalloonType()];
     }
 
-    final List<BalloonType> out =
-        List.filled(count, BalloonType.standard);
+    final List<BalloonType> out = List.filled(count, BalloonType.standard);
 
     // Guarantee at least one standard
     out[0] = BalloonType.standard;
@@ -195,25 +218,21 @@ class BalloonSpawner {
     }
 
     if (end <= start) return 1.0;
-    return ((totalPops - start) / (end - start))
-        .clamp(0.0, 1.0);
+    return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
   }
 
   double get accuracyModifier {
     if (recentMisses == 0) return 1.0;
 
     final missFactor =
-        (recentMisses / (recentMisses + recentHits + 1))
-            .clamp(0.0, 1.0);
+        (recentMisses / (recentMisses + recentHits + 1)).clamp(0.0, 1.0);
 
     final slowdown = missFactor * maxMissSlowdown;
-    return (1.0 - slowdown)
-        .clamp(1.0 - maxMissSlowdown, 1.0);
+    return (1.0 - slowdown).clamp(1.0 - maxMissSlowdown, 1.0);
   }
 
   double get speedMultiplier {
-    final worldMult =
-        worldSpeedMultiplier[currentWorld] ?? 1.0;
+    final worldMult = worldSpeedMultiplier[currentWorld] ?? 1.0;
     final ramp = 1.0 + (worldProgress * maxWorldRamp);
     return worldMult * ramp * accuracyModifier;
   }
@@ -241,5 +260,7 @@ class BalloonSpawner {
 
     recentHits = 0;
     recentMisses = 0;
+
+    _waveActive = false;
   }
 }
