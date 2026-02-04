@@ -28,17 +28,11 @@ class GameState {
   // 🔑 DEBUG LOG FORWARDING
   // -------------------------------
 
-  /// Expose debug logs
   List<String> get debugLogs => DebugLog.instance.logs;
-
-  /// Expose freeze state
   bool get debugFrozen => DebugLog.instance.debugFrozen;
-
-  /// Expose enabled filters
   Set<DebugEventType> get enabledFilters =>
       DebugLog.instance.enabledFilters;
 
-  /// Forward log call
   void log(
     String message, {
     DebugEventType type = DebugEventType.system,
