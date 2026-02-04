@@ -1,4 +1,4 @@
-import 'dart:collection';
+import 'package:balloon_burst/debug/debug_log.dart';
 
 /// App-level screen modes
 enum ScreenMode {
@@ -33,46 +33,23 @@ class GameState {
   ScreenMode screenMode = ScreenMode.game;
 
   // -------------------------------
-  // TJ Debug Log System (TapRush-grade)
+  // Debug API (FORWARDER ONLY)
   // -------------------------------
-  static const int maxLogs = 300;
-
-  final ListQueue<String> _debugLogs = ListQueue();
-  bool debugFrozen = false;
-
-  final Set<DebugEventType> enabledFilters = {
-    DebugEventType.tap,
-    DebugEventType.miss,
-    DebugEventType.world,
-    DebugEventType.speed,
-    DebugEventType.system,
-  };
-
-  List<String> get debugLogs => _debugLogs.toList();
-
   void log(
     String message, {
     DebugEventType type = DebugEventType.system,
   }) {
-    if (debugFrozen) return;
-    if (!enabledFilters.contains(type)) return;
-
-    if (_debugLogs.length >= maxLogs) {
-      _debugLogs.removeFirst();
-    }
-
-    _debugLogs.add(message);
+    DebugLog.instance.log(message, type: type);
   }
 
+  List<String> get debugLogs =>
+      DebugLog.instance.debugLogs;
+
   void clearLogs() {
-    _debugLogs.clear();
+    DebugLog.instance.clear();
   }
 
   void toggleFreeze() {
-    debugFrozen = !debugFrozen;
-    log(
-      debugFrozen ? 'SYSTEM: logging frozen' : 'SYSTEM: logging resumed',
-      type: DebugEventType.system,
-    );
+    DebugLog.instance.toggleFreeze();
   }
 }
