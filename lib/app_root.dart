@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'game/game_state.dart';
 import 'game/balloon_spawner.dart';
+import 'debug/debug_controller.dart';
+
 import 'screens/game_screen.dart';
 import 'screens/debug_screen.dart';
 import 'screens/blank_screen.dart';
@@ -16,13 +18,14 @@ class AppRoot extends StatefulWidget {
 class _AppRootState extends State<AppRoot> {
   final GameState _gameState = GameState();
   final BalloonSpawner _spawner = BalloonSpawner();
+  final DebugController _debug = DebugController();
 
   @override
   Widget build(BuildContext context) {
     switch (_gameState.screenMode) {
       case ScreenMode.debug:
         return DebugScreen(
-          gameState: _gameState,
+          debug: _debug,
           spawner: _spawner,
           onClose: () {
             setState(() {
@@ -32,7 +35,7 @@ class _AppRootState extends State<AppRoot> {
         );
 
       case ScreenMode.blank:
-        return BlankScreen();
+        return const BlankScreen();
 
       case ScreenMode.game:
       default:
