@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'package:balloon_burst/debug/debug_controller.dart';
-
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
@@ -35,12 +33,10 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
-  late final DebugController _debug;
 
   final List<Balloon> _balloons = [];
 
@@ -50,9 +46,8 @@ class _GameScreenState extends State<GameScreen>
   bool _showHud = false;
   double _fps = 0.0;
 
+  // Gate: only count misses AFTER balloons exist
   bool _canCountMisses = false;
-
-  int _frameCounter = 0;
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
@@ -62,8 +57,7 @@ class _GameScreenState extends State<GameScreen>
   void initState() {
     super.initState();
 
-    _debug = DebugController();
-    _debug.log('SYSTEM', 'DEBUG WIRED');
+    widget.gameState.log('SYSTEM: GAME WIRED', type: DebugEventType.system);
 
     _controller = GameController(
       momentum: MomentumController(),
@@ -77,16 +71,11 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
+    // HARD FREEZE after run end
     if (_controller.isEnded) {
       _lastTime = elapsed;
       return;
     }
-
-    _frameCounter++;
-    _debug.tick(_frameCounter);
-
-    // ✅ AUTHORITATIVE GAME FRAME CLOCK (FIX)
-    widget.gameState.framesSinceStart++;
 
     final dt = (_lastTime == Duration.zero)
         ? 0.016
@@ -105,42 +94,52 @@ class _GameScreenState extends State<GameScreen>
 
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
+      widget.gameState.log(
+        'SYSTEM: first balloons spawned',
+        type: DebugEventType.system,
+      );
     }
 
+    // Move ALL balloons upward until they leave screen.
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-      final speed = baseRiseSpeed *
-          widget.spawner.speedMultiplier *
-          b.riseSpeedMultiplier;
+      final speed =
+          baseRiseSpeed * widget.spawner.speedMultiplier * b.riseSpeedMultiplier;
       _balloons[i] = b.movedBy(-speed * dt);
     }
 
     int escapedThisTick = 0;
 
+    // Remove ONLY when leaving top; count escapes only for unpopped balloons.
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
       if (b.y < -balloonRadius) {
-        if (!b.isPopped) {
-          escapedThisTick++;
-        }
+        if (!b.isPopped) escapedThisTick++;
         _balloons.removeAt(i);
       }
     }
 
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
-      _debug.log('MISS', 'escaped=$escapedThisTick');
+      widget.gameState.log(
+        'MISS: escaped=$escapedThisTick',
+        type: DebugEventType.miss,
+      );
     }
 
     _controller.update(_balloons, dt);
 
-    if (_frameCounter % 120 == 0) {
-      _debug.log(
-        'SPEED',
-        widget.spawner.speedMultiplier.toStringAsFixed(2),
+    // Periodic speed sampling for Sparkles
+    if (widget.gameState.framesSinceStart % 120 == 0) {
+      widget.gameState.log(
+        'SPEED: mult=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
+        'interval=${widget.spawner.spawnInterval.toStringAsFixed(2)} '
+        'world=${widget.spawner.currentWorld}',
+        type: DebugEventType.speed,
       );
     }
 
+    // World surge trigger (engine-authoritative)
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
       currentWorld: widget.spawner.currentWorld,
@@ -184,10 +183,11 @@ class _GameScreenState extends State<GameScreen>
 
     _controller.reset();
     widget.spawner.resetForNewRun();
+
     _surge.reset();
 
-    _debug.clear();
-    _debug.log('SYSTEM', 'RUN RESET');
+    widget.gameState.clearLogs();
+    widget.gameState.log('SYSTEM: run reset', type: DebugEventType.system);
 
     _lastTime = Duration.zero;
 

@@ -1,4 +1,3 @@
-import 'package:balloon_burst/debug/debug_log.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
@@ -38,7 +37,10 @@ class GameController {
   void update(List<Balloon> balloons, double dt) {
     momentum.update(dt);
     tier.update(dt);
-    // SpeedCurve is stateless — no update()
+
+    // NOTE:
+    // SpeedCurve is currently used as a data/curve holder (no update/reset contract).
+    // If we want time-based speed curves later, we can add those methods to SpeedCurve.
     gameState.framesSinceStart++;
   }
 
@@ -96,7 +98,6 @@ class GameController {
 
     momentum.reset();
     tier.reset();
-    // SpeedCurve has no reset()
 
     gameState.log(
       'SYSTEM: run reset',
