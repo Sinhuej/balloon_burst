@@ -38,8 +38,7 @@ class GameController {
   void update(List<Balloon> balloons, double dt) {
     momentum.update(dt);
     tier.update(dt);
-    speed.update(dt);
-
+    // SpeedCurve is stateless — no update()
     gameState.framesSinceStart++;
   }
 
@@ -97,7 +96,7 @@ class GameController {
 
     momentum.reset();
     tier.reset();
-    speed.reset();
+    // SpeedCurve has no reset()
 
     gameState.log(
       'SYSTEM: run reset',
