@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'package:balloon_burst/debug/debug_controller.dart';
+
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
@@ -33,10 +35,12 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
+  late final DebugController _debug;
 
   final List<Balloon> _balloons = [];
 
@@ -46,8 +50,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _showHud = false;
   double _fps = 0.0;
 
-  // Gate: only count misses AFTER balloons exist
   bool _canCountMisses = false;
+
+  int _frameCounter = 0;
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
@@ -56,6 +61,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    _debug = DebugController();
+    _debug.log('SYSTEM', 'DEBUG WIRED');
 
     _controller = GameController(
       momentum: MomentumController(),
@@ -69,11 +77,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _onTick(Duration elapsed) {
-    // HARD FREEZE after run end
     if (_controller.isEnded) {
       _lastTime = elapsed;
       return;
     }
+
+    _frameCounter++;
+    _debug.tick(_frameCounter);
 
     final dt = (_lastTime == Duration.zero)
         ? 0.016
@@ -94,25 +104,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _canCountMisses = true;
     }
 
-    // Move ALL balloons (including popped ones) upward until they leave screen.
     for (int i = 0; i < _balloons.length; i++) {
-     final b = _balloons[i];
-     final speed = baseRiseSpeed *
-      widget.spawner.speedMultiplier *
-      b.riseSpeedMultiplier;
-
-     _balloons[i] = b.movedBy(-speed * dt);
+      final b = _balloons[i];
+      final speed = baseRiseSpeed *
+          widget.spawner.speedMultiplier *
+          b.riseSpeedMultiplier;
+      _balloons[i] = b.movedBy(-speed * dt);
     }
 
     int escapedThisTick = 0;
 
-    // Removal rule:
-    // - Do NOT remove popped balloons immediately (prevents mid-screen "respawn").
-    // - Remove ANY balloon only when it leaves the top.
-    // - Count escapes ONLY for balloons that were NOT popped.
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
-
       if (b.y < -balloonRadius) {
         if (!b.isPopped) {
           escapedThisTick++;
@@ -123,11 +126,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
+      _debug.log('MISS', 'escaped=$escapedThisTick');
     }
 
     _controller.update(_balloons, dt);
 
-    // 🔑 Correct world surge trigger (engine-authoritative)
+    if (_frameCounter % 120 == 0) {
+      _debug.log(
+        'SPEED',
+        widget.spawner.speedMultiplier.toStringAsFixed(2),
+      );
+    }
+
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
       currentWorld: widget.spawner.currentWorld,
@@ -171,8 +181,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _controller.reset();
     widget.spawner.resetForNewRun();
+    _surge.reset();
 
-    _surge.reset(); // 🔑 Allow surge to replay on subsequent runs
+    _debug.clear();
+    _debug.log('SYSTEM', 'RUN RESET');
 
     _lastTime = Duration.zero;
 
