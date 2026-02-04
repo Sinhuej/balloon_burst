@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'game/game_state.dart';
-import 'game/balloon_spawner.dart';
-import 'debug/debug_controller.dart';
+import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/game/balloon_spawner.dart';
 
-import 'screens/game_screen.dart';
-import 'screens/debug_screen.dart';
-import 'screens/blank_screen.dart';
+import 'package:balloon_burst/screens/game_screen.dart';
+import 'package:balloon_burst/screens/debug_screen.dart';
+
+import 'package:balloon_burst/debug/debug_controller.dart';
 
 class AppRoot extends StatefulWidget {
   const AppRoot({super.key});
@@ -18,35 +18,39 @@ class AppRoot extends StatefulWidget {
 class _AppRootState extends State<AppRoot> {
   final GameState _gameState = GameState();
   final BalloonSpawner _spawner = BalloonSpawner();
+
+  // Legacy – kept for now so nothing explodes
   final DebugController _debug = DebugController();
+
+  void _openDebug() {
+    setState(() {
+      _gameState.screenMode = ScreenMode.debug;
+    });
+  }
+
+  void _closeDebug() {
+    setState(() {
+      _gameState.screenMode = ScreenMode.game;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     switch (_gameState.screenMode) {
       case ScreenMode.debug:
         return DebugScreen(
-          debug: _debug,
+          gameState: _gameState,      // 🔑 THIS WAS MISSING
           spawner: _spawner,
-          onClose: () {
-            setState(() {
-              _gameState.screenMode = ScreenMode.game;
-            });
-          },
+          debug: _debug,              // still passed, but ignored internally
+          onClose: _closeDebug,
         );
-
-      case ScreenMode.blank:
-        return const BlankScreen();
 
       case ScreenMode.game:
       default:
         return GameScreen(
           gameState: _gameState,
           spawner: _spawner,
-          onRequestDebug: () {
-            setState(() {
-              _gameState.screenMode = ScreenMode.debug;
-            });
-          },
+          onRequestDebug: _openDebug,
         );
     }
   }
