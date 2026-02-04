@@ -46,7 +46,6 @@ class _GameScreenState extends State<GameScreen>
 
   bool _showHud = false;
   double _fps = 0.0;
-
   bool _canCountMisses = false;
 
   static const double baseRiseSpeed = 120.0;
@@ -104,7 +103,8 @@ class _GameScreenState extends State<GameScreen>
 
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-      final speed = baseRiseSpeed *
+      final speed =
+          baseRiseSpeed *
           widget.spawner.speedMultiplier *
           b.riseSpeedMultiplier;
       _balloons[i] = b.movedBy(-speed * dt);

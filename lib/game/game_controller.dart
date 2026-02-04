@@ -24,25 +24,16 @@ class GameController {
     required this.gameState,
   });
 
-  // -----------------------
-  // Getters (used by UI)
-  // -----------------------
   int get escapeCount => _escapeCount;
   int get missCount => _missCount;
   String get endReason => _endReason;
 
-  // -----------------------
-  // Core update loop
-  // -----------------------
   void update(List<Balloon> balloons, double dt) {
     momentum.update(dt);
     tier.update(dt);
     gameState.framesSinceStart++;
   }
 
-  // -----------------------
-  // Events
-  // -----------------------
   void registerEscapes(int count) {
     _escapeCount += count;
 
@@ -71,9 +62,6 @@ class GameController {
     }
   }
 
-  // -----------------------
-  // Run lifecycle
-  // -----------------------
   void endRun(String reason) {
     if (isEnded) return;
 
