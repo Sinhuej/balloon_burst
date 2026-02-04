@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/game/game_state.dart'
+    show GameState, DebugEventType;
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
@@ -202,19 +203,6 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
-  Color _backgroundForWorld(int world) {
-    switch (world) {
-      case 2:
-        return const Color(0xFF2E86DE);
-      case 3:
-        return const Color(0xFF6C2EB9);
-      case 4:
-        return const Color(0xFF0B0F2F);
-      default:
-        return const Color(0xFF0A0A0F);
-    }
-  }
-
   @override
   void dispose() {
     _surge.dispose();
@@ -264,5 +252,18 @@ class _GameScreenState extends State<GameScreen>
         },
       ),
     );
+  }
+
+  Color _backgroundForWorld(int world) {
+    switch (world) {
+      case 2:
+        return const Color(0xFF2E86DE);
+      case 3:
+        return const Color(0xFF6C2EB9);
+      case 4:
+        return const Color(0xFF0B0F2F);
+      default:
+        return const Color(0xFF0A0A0F);
+    }
   }
 }

@@ -1,4 +1,5 @@
-import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/game/game_state.dart'
+    show GameState, DebugEventType;
 import 'package:balloon_burst/gameplay/balloon.dart';
 
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
