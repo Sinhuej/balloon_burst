@@ -85,6 +85,9 @@ class _GameScreenState extends State<GameScreen>
     _frameCounter++;
     _debug.tick(_frameCounter);
 
+    // ✅ AUTHORITATIVE GAME FRAME CLOCK (FIX)
+    widget.gameState.framesSinceStart++;
+
     final dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
