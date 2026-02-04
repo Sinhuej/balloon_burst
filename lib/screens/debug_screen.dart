@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
+import 'package:balloon_burst/debug/debug_log.dart'; // ✅ REQUIRED
 
 class DebugScreen extends StatefulWidget {
   final GameState gameState;
