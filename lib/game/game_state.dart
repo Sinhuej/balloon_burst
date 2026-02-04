@@ -7,20 +7,7 @@ enum ScreenMode {
   blank,
 }
 
-/// Debug event categories
-enum DebugEventType {
-  tap,
-  miss,
-  world,
-  speed,
-  system,
-}
-
 /// Global game state shared across screens and systems
-///
-/// NOTE:
-/// GameState does NOT own debug state.
-/// It forwards all debug behavior to DebugLog.
 class GameState {
   // -------------------------------
   // Core runtime state
@@ -28,7 +15,7 @@ class GameState {
   int framesSinceStart = 0;
   bool tapPulse = false;
 
-  /// Updated by BalloonPainter every frame
+  /// Updated by renderer every frame
   double viewportHeight = 0.0;
 
   // -------------------------------
@@ -37,36 +24,25 @@ class GameState {
   ScreenMode screenMode = ScreenMode.game;
 
   // -------------------------------
-  // Debug API (FORWARDERS ONLY)
+  // Debug Log (delegated)
   // -------------------------------
+  DebugLog get _log => DebugLog.instance;
 
-  /// Write a debug log entry
+  bool get debugFrozen => _log.debugFrozen;
+  List<String> get debugLogs => _log.logs;
+
   void log(
     String message, {
     DebugEventType type = DebugEventType.system,
   }) {
-    DebugLog.instance.log(message, type: type);
+    _log.log(message, type: type);
   }
 
-  /// Read-only debug log lines
-  List<String> get debugLogs =>
-      DebugLog.instance.debugLogs;
-
-  /// Whether debug logging is frozen
-  bool get debugFrozen =>
-      DebugLog.instance.debugFrozen;
-
-  /// Enabled debug filters
-  Set<DebugEventType> get enabledFilters =>
-      DebugLog.instance.enabledFilters;
-
-  /// Clear all debug logs
   void clearLogs() {
-    DebugLog.instance.clear();
+    _log.clear();
   }
 
-  /// Toggle debug freeze state
   void toggleFreeze() {
-    DebugLog.instance.toggleFreeze();
+    _log.toggleFreeze();
   }
 }

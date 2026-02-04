@@ -1,16 +1,21 @@
 import 'dart:collection';
-import 'package:balloon_burst/game/game_state.dart';
 
-/// Centralized, persistent debug log system.
-/// Lives outside GameState so logs survive run resets.
+enum DebugEventType {
+  tap,
+  miss,
+  world,
+  speed,
+  system,
+}
+
 class DebugLog {
-  static final DebugLog instance = DebugLog._internal();
-  DebugLog._internal();
+  DebugLog._();
+  static final DebugLog instance = DebugLog._();
 
-  static const int maxLogs = 500;
+  static const int maxLogs = 300;
 
   final ListQueue<String> _logs = ListQueue();
-  bool frozen = false;
+  bool _debugFrozen = false;
 
   final Set<DebugEventType> enabledFilters = {
     DebugEventType.tap,
@@ -20,13 +25,16 @@ class DebugLog {
     DebugEventType.system,
   };
 
-  List<String> get debugLogs => _logs.toList();
+  // ✅ CI EXPECTS THIS
+  bool get debugFrozen => _debugFrozen;
+
+  List<String> get logs => _logs.toList();
 
   void log(
     String message, {
     DebugEventType type = DebugEventType.system,
   }) {
-    if (frozen) return;
+    if (_debugFrozen) return;
     if (!enabledFilters.contains(type)) return;
 
     if (_logs.length >= maxLogs) {
@@ -40,9 +48,9 @@ class DebugLog {
   }
 
   void toggleFreeze() {
-    frozen = !frozen;
+    _debugFrozen = !_debugFrozen;
     log(
-      frozen
+      _debugFrozen
           ? 'SYSTEM: logging frozen'
           : 'SYSTEM: logging resumed',
       type: DebugEventType.system,
