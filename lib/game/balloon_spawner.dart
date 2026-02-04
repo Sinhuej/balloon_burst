@@ -47,7 +47,7 @@ class BalloonSpawner {
   static const double clusterSpread = 0.12;
   static const double clusterJitter = 0.02;
 
-  // Horizontal spawn range (xOffset space)
+  // Horizontal spawn range
   static const double clusterOriginRangeWorld1 = 0.56;
   static const double clusterOriginRangeWorld2Plus = 0.66;
 
@@ -77,10 +77,8 @@ class BalloonSpawner {
     if (_timer < spawnInterval) return;
     _timer = 0.0;
 
-    // 🎯 Singles + clusters coexist
-    final double burstChance = _burstChanceForWorld(currentWorld);
-    final bool doBurst = _rng.nextDouble() < burstChance;
-    final int count = doBurst ? _burstCountForWorld(currentWorld) : 1;
+    // 🎪 Weighted group sizes (fewer singles, more chaos)
+    final int count = _pickGroupSizeForWorld(currentWorld);
 
     final List<BalloonType> types = _chooseTypesForGroup(count);
 
@@ -119,39 +117,47 @@ class BalloonSpawner {
     }
   }
 
-  // 🎲 Cluster frequency per world
-  double _burstChanceForWorld(int world) {
-    switch (world) {
-      case 1:
-        return 0.40;
-      case 2:
-        return 0.50;
-      case 3:
-        return 0.58;
-      case 4:
-        return 0.62;
-      default:
-        return 0.50;
-    }
-  }
+  // 🎈 Weighted cluster sizes per world
+  int _pickGroupSizeForWorld(int world) {
+    final roll = _rng.nextDouble();
 
-  // 🎈 Randomized cluster sizes (your rules)
-  int _burstCountForWorld(int world) {
     switch (world) {
       case 1:
-        return _rng.nextInt(2) + 2; // 2–3
-      case 2:
-        return _rng.nextInt(3) + 2; // 2–4
-      case 3:
-        return _rng.nextInt(4) + 2; // 2–5
-      case 4:
-        return _rng.nextInt(5) + 2; // 2–6
-      default:
+        // 1:25% | 2:40% | 3:35%
+        if (roll < 0.25) return 1;
+        if (roll < 0.65) return 2;
         return 3;
+
+      case 2:
+        // 1:20% | 2:30% | 3:30% | 4:20%
+        if (roll < 0.20) return 1;
+        if (roll < 0.50) return 2;
+        if (roll < 0.80) return 3;
+        return 4;
+
+      case 3:
+        // 1:15% | 2:25% | 3:30% | 4:20% | 5:10%
+        if (roll < 0.15) return 1;
+        if (roll < 0.40) return 2;
+        if (roll < 0.70) return 3;
+        if (roll < 0.90) return 4;
+        return 5;
+
+      case 4:
+        // 1:10% | 2:20% | 3:25% | 4:20% | 5:15% | 6:10%
+        if (roll < 0.10) return 1;
+        if (roll < 0.30) return 2;
+        if (roll < 0.55) return 3;
+        if (roll < 0.75) return 4;
+        if (roll < 0.90) return 5;
+        return 6;
+
+      default:
+        return 2;
     }
   }
 
-  // 👁 Perceptually wider bottom coverage
+  // Wider perceived bottom spread
   double _pickClusterOrigin(double range) {
     final t = _rng.nextDouble();
     final biased = pow(t, 0.65);
@@ -159,7 +165,6 @@ class BalloonSpawner {
     return biased * range * sign;
   }
 
-  // Centered horizontal offsets for any cluster size
   List<double> _xOffsetsForCount(int count) {
     if (count <= 1) return const [0.0];
 
