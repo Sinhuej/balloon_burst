@@ -40,20 +40,17 @@ class BalloonSpawner {
   static const double maxWorldRamp = 0.10;
   static const double maxMissSlowdown = 0.05;
 
-  // Vertical stacking on entry (fine to keep)
+  // Vertical stacking on entry
   static const double burstSpacingY = 26.0;
 
-  // Cluster feel (tune these)
-  // Internal cluster spacing (between balloons inside the same cluster)
-  static const double clusterSpread = 0.12; // try 0.10..0.16 with big counts
-  static const double clusterJitter = 0.02; // tiny randomness per balloon
+  // Cluster feel
+  static const double clusterSpread = 0.12;
+  static const double clusterJitter = 0.02;
 
-  // How far across the bottom clusters can originate (xOffset space)
-  // Bigger = more left/right starts.
+  // Horizontal spawn range (xOffset space)
   static const double clusterOriginRangeWorld1 = 0.56;
   static const double clusterOriginRangeWorld2Plus = 0.66;
 
-  // Clamp overall xOffset so balloons don't hug edges too hard
   static const double xClamp = 0.58;
 
   void update({
@@ -62,7 +59,7 @@ class BalloonSpawner {
     required List<Balloon> balloons,
     required double viewportHeight,
   }) {
-    // 🔒 Lock wave until no ACTIVE balloons remain (popped balloons don't block)
+    // 🔒 Lock wave until no ACTIVE balloons remain
     if (_waveActive) {
       final hasActiveBalloon = balloons.any((b) => !b.isPopped);
       if (hasActiveBalloon) return;
@@ -71,7 +68,8 @@ class BalloonSpawner {
       _timer = 0.0;
     }
 
-    final targetInterval = worldSpawnInterval[currentWorld] ?? spawnInterval;
+    final targetInterval =
+        worldSpawnInterval[currentWorld] ?? spawnInterval;
 
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
     _timer += dt;
@@ -79,35 +77,34 @@ class BalloonSpawner {
     if (_timer < spawnInterval) return;
     _timer = 0.0;
 
-    // ✅ Frequency of clusters by world (World 1 gets more than before, scales up)
+    // 🎯 Singles + clusters coexist
     final double burstChance = _burstChanceForWorld(currentWorld);
-
     final bool doBurst = _rng.nextDouble() < burstChance;
     final int count = doBurst ? _burstCountForWorld(currentWorld) : 1;
 
     final List<BalloonType> types = _chooseTypesForGroup(count);
 
-    // ✅ Choose a cluster origin across the bottom (not just near center)
-    final double originRange = (currentWorld <= 1)
-        ? clusterOriginRangeWorld1
-        : clusterOriginRangeWorld2Plus;
+    final double originRange =
+        (currentWorld <= 1)
+            ? clusterOriginRangeWorld1
+            : clusterOriginRangeWorld2Plus;
 
-    final double clusterCenterX = (_rng.nextDouble() * 2 - 1) * originRange;
-
-    // Offsets that stay centered for any count (2..6)
+    final double clusterCenterX = _pickClusterOrigin(originRange);
     final List<double> xOffsets = _xOffsetsForCount(count);
 
     _waveActive = true;
 
     for (int i = 0; i < count; i++) {
-      final int index = _spawnCount;
-      _spawnCount++;
+      final int index = _spawnCount++;
+      final double spawnY =
+          viewportHeight + burstSpacingY * (count - 1 - i);
 
-      final double spawnY = viewportHeight + burstSpacingY * (count - 1 - i);
+      final double jitter =
+          (_rng.nextDouble() * 2 - 1) * clusterJitter;
 
-      final double jitter = (_rng.nextDouble() * 2 - 1) * clusterJitter;
       final double x =
-          (clusterCenterX + xOffsets[i] + jitter).clamp(-xClamp, xClamp);
+          (clusterCenterX + xOffsets[i] + jitter)
+              .clamp(-xClamp, xClamp);
 
       final Balloon b = Balloon(
         id: 'balloon_$index',
@@ -122,11 +119,11 @@ class BalloonSpawner {
     }
   }
 
-  // ✅ Tune cluster frequency here
+  // 🎲 Cluster frequency per world
   double _burstChanceForWorld(int world) {
     switch (world) {
       case 1:
-        return 0.40; // more clusters than before
+        return 0.40;
       case 2:
         return 0.50;
       case 3:
@@ -138,35 +135,41 @@ class BalloonSpawner {
     }
   }
 
-  // ✅ Tune cluster size here (your requested targets)
+  // 🎈 Randomized cluster sizes (your rules)
   int _burstCountForWorld(int world) {
     switch (world) {
       case 1:
-        return 3;
+        return _rng.nextInt(2) + 2; // 2–3
       case 2:
-        return 4;
+        return _rng.nextInt(3) + 2; // 2–4
       case 3:
-        return 5;
+        return _rng.nextInt(4) + 2; // 2–5
       case 4:
-        return 6;
+        return _rng.nextInt(5) + 2; // 2–6
       default:
-        return 4;
+        return 3;
     }
   }
 
-  // Centered offsets: [-k..+k] * clusterSpread (works for any count)
+  // 👁 Perceptually wider bottom coverage
+  double _pickClusterOrigin(double range) {
+    final t = _rng.nextDouble();
+    final biased = pow(t, 0.65);
+    final sign = _rng.nextBool() ? 1.0 : -1.0;
+    return biased * range * sign;
+  }
+
+  // Centered horizontal offsets for any cluster size
   List<double> _xOffsetsForCount(int count) {
     if (count <= 1) return const [0.0];
 
     final double mid = (count - 1) / 2.0;
-    final List<double> out = <double>[];
+    final List<double> out = [];
 
     for (int i = 0; i < count; i++) {
       out.add((i - mid) * clusterSpread);
     }
 
-    // Shuffle slightly so formations don't always look perfectly ordered
-    // (keeps "escaped carnival" vibe without changing overall shape)
     out.shuffle(_rng);
     return out;
   }
@@ -176,9 +179,9 @@ class BalloonSpawner {
       return [_chooseBalloonType()];
     }
 
-    final List<BalloonType> out = List.filled(count, BalloonType.standard);
+    final List<BalloonType> out =
+        List.filled(count, BalloonType.standard);
 
-    // Guarantee at least one standard
     out[0] = BalloonType.standard;
 
     bool hasLargeSlow = false;
@@ -268,21 +271,25 @@ class BalloonSpawner {
         end = world2Pops;
     }
 
-    return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
+    return ((totalPops - start) / (end - start))
+        .clamp(0.0, 1.0);
   }
 
   double get accuracyModifier {
     if (recentMisses == 0) return 1.0;
 
     final missFactor =
-        (recentMisses / (recentMisses + recentHits + 1)).clamp(0.0, 1.0);
+        (recentMisses / (recentMisses + recentHits + 1))
+            .clamp(0.0, 1.0);
 
     final slowdown = missFactor * maxMissSlowdown;
-    return (1.0 - slowdown).clamp(1.0 - maxMissSlowdown, 1.0);
+    return (1.0 - slowdown)
+        .clamp(1.0 - maxMissSlowdown, 1.0);
   }
 
   double get speedMultiplier {
-    final worldMult = worldSpeedMultiplier[currentWorld] ?? 1.0;
+    final worldMult =
+        worldSpeedMultiplier[currentWorld] ?? 1.0;
     final ramp = 1.0 + (worldProgress * maxWorldRamp);
     return worldMult * ramp * accuracyModifier;
   }
