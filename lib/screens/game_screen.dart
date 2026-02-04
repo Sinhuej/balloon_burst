@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-
 import 'package:balloon_burst/game/game_state.dart'
-    show GameState, DebugEventType;
+    show GameState;
+import 'package:balloon_burst/debug/debug_log.dart'
+    show DebugEventType;
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
@@ -41,8 +42,7 @@ class _GameScreenState extends State<GameScreen>
   late final WorldSurgePulse _surge;
 
   final List<Balloon> _balloons = [];
-
-  Duration _lastTime = Duration.zero;
+                                                                  Duration _lastTime = Duration.zero;
   Size _lastSize = Size.zero;
 
   bool _showHud = false;
@@ -62,55 +62,39 @@ class _GameScreenState extends State<GameScreen>
       type: DebugEventType.system,
     );
 
-    _controller = GameController(
-      momentum: MomentumController(),
+    _controller = GameController(                                     momentum: MomentumController(),
       tier: TierController(),
       speed: SpeedCurve(),
       gameState: widget.gameState,
-    );
-
+    );                                                          
     _surge = WorldSurgePulse(vsync: this);
     _ticker = createTicker(_onTick)..start();
   }
 
-  void _onTick(Duration elapsed) {
-    if (_controller.isEnded) {
-      _lastTime = elapsed;
-      return;
+  void _onTick(Duration elapsed) {                                  if (_controller.isEnded) {
+      _lastTime = elapsed;                                            return;
     }
 
-    final dt = (_lastTime == Duration.zero)
-        ? 0.016
-        : (elapsed - _lastTime).inMicroseconds / 1e6;
-    _lastTime = elapsed;
-
-    final instFps = dt > 0 ? (1.0 / dt) : 0.0;
-    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
+    final dt = (_lastTime == Duration.zero)                             ? 0.016
+        : (elapsed - _lastTime).inMicroseconds / 1e6;               _lastTime = elapsed;
+                                                                    final instFps = dt > 0 ? (1.0 / dt) : 0.0;                      _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
     widget.spawner.update(
-      dt: dt,
-      tier: 0,
-      balloons: _balloons,
-      viewportHeight: _lastSize.height,
-    );
-
+      dt: dt,                                                         tier: 0,
+      balloons: _balloons,                                            viewportHeight: _lastSize.height,
+    );                                                          
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
-      widget.gameState.log(
-        'SYSTEM: first balloons spawned',
-        type: DebugEventType.system,
-      );
+      widget.gameState.log(                                             'SYSTEM: first balloons spawned',
+        type: DebugEventType.system,                                  );
     }
 
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-      final speed =
-          baseRiseSpeed *
-          widget.spawner.speedMultiplier *
-          b.riseSpeedMultiplier;
+      final speed =                                                       baseRiseSpeed *
+          widget.spawner.speedMultiplier *                                b.riseSpeedMultiplier;
       _balloons[i] = b.movedBy(-speed * dt);
-    }
-
+    }                                                           
     int escapedThisTick = 0;
 
     for (int i = _balloons.length - 1; i >= 0; i--) {
@@ -118,22 +102,17 @@ class _GameScreenState extends State<GameScreen>
       if (b.y < -balloonRadius) {
         if (!b.isPopped) escapedThisTick++;
         _balloons.removeAt(i);
-      }
-    }
+      }                                                             }
 
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
-      widget.gameState.log(
-        'MISS: escaped=$escapedThisTick',
+      widget.gameState.log(                                             'MISS: escaped=$escapedThisTick',
         type: DebugEventType.miss,
       );
     }
-
-    _controller.update(_balloons, dt);
-
-    if (widget.gameState.framesSinceStart % 120 == 0) {
-      widget.gameState.log(
-        'SPEED: mult=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
+                                                                    _controller.update(_balloons, dt);
+                                                                    if (widget.gameState.framesSinceStart % 120 == 0) {
+      widget.gameState.log(                                             'SPEED: mult=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
         'interval=${widget.spawner.spawnInterval.toStringAsFixed(2)} '
         'world=${widget.spawner.currentWorld}',
         type: DebugEventType.speed,
@@ -151,8 +130,7 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
-  void _handleTap(TapDownDetails details) {
-    if (_controller.isEnded) return;
+  void _handleTap(TapDownDetails details) {                         if (_controller.isEnded) return;
     if (!_canCountMisses) return;
 
     TapHandler.handleTap(
@@ -161,18 +139,12 @@ class _GameScreenState extends State<GameScreen>
       balloons: _balloons,
       gameState: widget.gameState,
       spawner: widget.spawner,
-      controller: _controller,
-      surge: _surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
+      controller: _controller,                                        surge: _surge,
+      balloonRadius: balloonRadius,                                   hitForgiveness: hitForgiveness,
     );
 
-    if (_controller.isEnded) {
-      setState(() {});
-    }
-  }
-
-  void _handleLongPress() {
+    if (_controller.isEnded) {                                        setState(() {});                                              }                                                             }
+                                                                  void _handleLongPress() {
     setState(() => _showHud = !_showHud);
     widget.onRequestDebug();
   }
@@ -208,8 +180,7 @@ class _GameScreenState extends State<GameScreen>
     _surge.dispose();
     _ticker.dispose();
     super.dispose();
-  }
-
+  }                                                             
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -244,8 +215,7 @@ class _GameScreenState extends State<GameScreen>
               ),
               if (_controller.isEnded)
                 RunEndOverlay(
-                  state: RunEndState.fromController(_controller),
-                  onReplay: _replay,
+                  state: RunEndState.fromController(_controller),                                                                                 onReplay: _replay,
                 ),
             ],
           );

@@ -1,5 +1,7 @@
 import 'package:balloon_burst/game/game_state.dart'
-    show GameState, DebugEventType;
+    show GameState;
+import 'package:balloon_burst/debug/debug_log.dart'
+    show DebugEventType;
 import 'package:balloon_burst/gameplay/balloon.dart';
 
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
@@ -21,10 +23,8 @@ class GameController {
   GameController({
     required this.momentum,
     required this.tier,
-    required this.speed,
-    required this.gameState,
-  });
-
+    required this.speed,                                            required this.gameState,
+  });                                                           
   int get escapeCount => _escapeCount;
   int get missCount => _missCount;
   String get endReason => _endReason;
@@ -75,10 +75,8 @@ class GameController {
     );
   }
 
-  void reset() {
-    isEnded = false;
-    _escapeCount = 0;
-    _missCount = 0;
+  void reset() {                                                    isEnded = false;
+    _escapeCount = 0;                                               _missCount = 0;
     _endReason = '';
 
     momentum.reset();
