@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:balloon_burst/debug/debug_log.dart';
 
 /// App-level screen modes
@@ -24,25 +25,32 @@ class GameState {
   ScreenMode screenMode = ScreenMode.game;
 
   // -------------------------------
-  // Debug Log (delegated)
+  // 🔑 DEBUG LOG FORWARDING
   // -------------------------------
-  DebugLog get _log => DebugLog.instance;
 
-  bool get debugFrozen => _log.debugFrozen;
-  List<String> get debugLogs => _log.logs;
+  /// Expose debug logs
+  List<String> get debugLogs => DebugLog.instance.logs;
 
+  /// Expose freeze state
+  bool get debugFrozen => DebugLog.instance.debugFrozen;
+
+  /// Expose enabled filters
+  Set<DebugEventType> get enabledFilters =>
+      DebugLog.instance.enabledFilters;
+
+  /// Forward log call
   void log(
     String message, {
     DebugEventType type = DebugEventType.system,
   }) {
-    _log.log(message, type: type);
+    DebugLog.instance.log(message, type: type);
   }
 
   void clearLogs() {
-    _log.clear();
+    DebugLog.instance.clear();
   }
 
   void toggleFreeze() {
-    _log.toggleFreeze();
+    DebugLog.instance.toggleFreeze();
   }
 }
