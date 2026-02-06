@@ -29,6 +29,11 @@ class GameController {
   int get missCount => _missCount;
   String get endReason => _endReason;
 
+  // -----------------------
+  // Telemetry (read-only)
+  // -----------------------
+  double get accuracy01 => momentum.accuracy01;
+
   void update(List<Balloon> balloons, double dt) {
     momentum.update(dt);
     tier.update(dt);
