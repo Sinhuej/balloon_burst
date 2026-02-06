@@ -6,6 +6,7 @@ enum DebugEventType {
   world,
   speed,
   system,
+  accuracy,
 }
 
 class DebugLog {
