@@ -238,7 +238,7 @@ class _GameScreenState extends State<GameScreen>
                 showHud: _showHud,
                 fps: _fps,
                 speedMultiplier: widget.spawner.speedMultiplier,
-                recentAccuracy: 1.0,
+                recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
               ),
               if (_controller.isEnded)
