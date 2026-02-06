@@ -24,6 +24,7 @@ class DebugLog {
     DebugEventType.world,
     DebugEventType.speed,
     DebugEventType.system,
+    DebugEventType.accuracy,
   };
 
   // ✅ CI EXPECTS THIS
