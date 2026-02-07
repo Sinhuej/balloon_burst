@@ -102,13 +102,19 @@ class _GameScreenState extends State<GameScreen>
       );
     }
 
-    for (int i = 0; i < _balloons.length; i++) {
-      final b = _balloons[i];
+    for (int idx = 0; idx < _balloons.length; idx++) {
+      final b = _balloons[idx];
       final speed = baseRiseSpeed *
           widget.spawner.speedMultiplier *
           b.riseSpeedMultiplier;
-      _balloons[i] = b.movedBy(-speed * dt);
-    }
+      final moved = b.movedBy(-speed * dt);
+
+      final driftX = moved.driftedX(
+       amplitude: 0.035, // 👈 small, safe start
+       frequency: 0.015,
+      );
+
+      _balloons[idx] = moved.withXOffset(driftX);
 
     int escapedThisTick = 0;
 

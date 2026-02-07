@@ -71,6 +71,14 @@ class Balloon {
     final m = 1.0 + sin(phase) * 0.10; // 👈 TUNING KNOB
     return m.clamp(0.92, 1.08);
   }
+ /// Horizontal drift based on vertical position.
+ /// Pure, deterministic, frame-rate independent.
+ double driftedX({
+  required double amplitude,
+  required double frequency,
+ }) {
+  return baseXOffset + sin(phase + y * frequency) * amplitude;
+}
 
   /// Rising Worlds spawn helper
   /// Balloons spawn BELOW the viewport and rise upward.
