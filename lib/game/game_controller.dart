@@ -54,19 +54,27 @@ class GameController {
   }
 
   void registerTap({required bool hit}) {
-    if (!hit) {
-      _missCount++;
+  // Always update momentum first (hit or miss)
+  momentum.registerTap(hit: hit);
 
-      gameState.log(
-        'MISS: count=$_missCount',
-        type: DebugEventType.miss,
-      );
+  // Always log current accuracy (if filter enabled)
+  gameState.log(
+    'ACCURACY: a01=${momentum.accuracy01.toStringAsFixed(3)}',
+    type: DebugEventType.accuracy,
+  );
 
-      if (_missCount >= 10) {
-        endRun('miss');
-      }
+  if (!hit) {
+    _missCount++;
+    gameState.log(
+      'MISS: count=$_missCount',
+      type: DebugEventType.miss,
+    );
+
+    if (_missCount >= 10) {
+      endRun('miss');
     }
   }
+}
 
   void endRun(String reason) {
     if (isEnded) return;

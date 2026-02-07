@@ -6,6 +6,7 @@ enum DebugEventType {
   world,
   speed,
   system,
+  accuracy,
 }
 
 class DebugLog {
@@ -23,7 +24,8 @@ class DebugLog {
     DebugEventType.world,
     DebugEventType.speed,
     DebugEventType.system,
-  };
+    DebugEventType.accuracy,  
+};
 
   // ✅ CI EXPECTS THIS
   bool get debugFrozen => _debugFrozen;
