@@ -115,6 +115,7 @@ class _GameScreenState extends State<GameScreen>
       );
 
       _balloons[idx] = moved.withXOffset(driftX);
+     }
 
     int escapedThisTick = 0;
 
