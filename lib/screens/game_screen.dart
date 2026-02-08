@@ -49,9 +49,13 @@ class _GameScreenState extends State<GameScreen>
   double _fps = 0.0;
   bool _canCountMisses = false;
 
+  // --- Gameplay constants ---
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
+
+  // --- Parallax v1 ---
+  double _bgParallaxY = 0.0;
 
   @override
   void initState() {
@@ -84,9 +88,19 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
     _lastTime = elapsed;
 
+    // --- FPS smoothing ---
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
+    // --- Background Parallax v1 (vertical only) ---
+    final parallaxSpeed =
+        widget.spawner.speedMultiplier * 6.0; // 👈 tuning knob
+    _bgParallaxY += parallaxSpeed * dt;
+    if (_bgParallaxY > 10000) {
+      _bgParallaxY = 0.0;
+    }
+
+    // --- Spawning ---
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -102,23 +116,25 @@ class _GameScreenState extends State<GameScreen>
       );
     }
 
+    // --- Balloon movement ---
     for (int idx = 0; idx < _balloons.length; idx++) {
       final b = _balloons[idx];
       final speed = baseRiseSpeed *
           widget.spawner.speedMultiplier *
           b.riseSpeedMultiplier;
+
       final moved = b.movedBy(-speed * dt);
 
       final driftX = moved.driftedX(
-       amplitude: 0.035, // 👈 small, safe start
-       frequency: 0.015,
+        amplitude: 0.035, // small, safe
+        frequency: 0.015,
       );
 
       _balloons[idx] = moved.withXOffset(driftX);
-     }
+    }
 
+    // --- Escapes ---
     int escapedThisTick = 0;
-
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
       if (b.y < -balloonRadius) {
@@ -135,8 +151,10 @@ class _GameScreenState extends State<GameScreen>
       );
     }
 
+    // --- Core update ---
     _controller.update(_balloons, dt);
 
+    // --- Telemetry ---
     if (widget.gameState.framesSinceStart % 120 == 0) {
       widget.gameState.log(
         'SPEED: mult=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
@@ -146,6 +164,7 @@ class _GameScreenState extends State<GameScreen>
       );
     }
 
+    // --- World surge ---
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
       currentWorld: widget.spawner.currentWorld,
@@ -186,6 +205,7 @@ class _GameScreenState extends State<GameScreen>
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
+    _bgParallaxY = 0.0;
 
     _controller.reset();
     widget.spawner.resetForNewRun();
@@ -232,21 +252,24 @@ class _GameScreenState extends State<GameScreen>
 
           return Stack(
             children: [
-              GameCanvas(
-                currentWorld: currentWorld,
-                nextWorld: nextWorld,
-                backgroundColor: bgColor,
-                pulseColor: _backgroundForWorld(nextWorld),
-                surge: _surge,
-                balloons: _balloons,
-                gameState: widget.gameState,
-                onTapDown: _handleTap,
-                onLongPress: _handleLongPress,
-                showHud: _showHud,
-                fps: _fps,
-                speedMultiplier: widget.spawner.speedMultiplier,
-                recentAccuracy: _controller.accuracy01,
-                recentMisses: widget.spawner.recentMisses,
+              Transform.translate(
+                offset: Offset(0, -_bgParallaxY),
+                child: GameCanvas(
+                  currentWorld: currentWorld,
+                  nextWorld: nextWorld,
+                  backgroundColor: bgColor,
+                  pulseColor: _backgroundForWorld(nextWorld),
+                  surge: _surge,
+                  balloons: _balloons,
+                  gameState: widget.gameState,
+                  onTapDown: _handleTap,
+                  onLongPress: _handleLongPress,
+                  showHud: _showHud,
+                  fps: _fps,
+                  speedMultiplier: widget.spawner.speedMultiplier,
+                  recentAccuracy: _controller.accuracy01,
+                  recentMisses: widget.spawner.recentMisses,
+                ),
               ),
               if (_controller.isEnded)
                 RunEndOverlay(
