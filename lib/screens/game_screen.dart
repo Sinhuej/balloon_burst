@@ -240,11 +240,6 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
-  void _handleTap(TapDownDetails details) {}
-  void _handleLongPress() => widget.onRequestDebug();
-  void _replay() {}
-}
-
 class _NoisePainter extends CustomPainter {
   final double phase;
   _NoisePainter(this.phase);
