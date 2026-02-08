@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -49,13 +50,13 @@ class _GameScreenState extends State<GameScreen>
   double _fps = 0.0;
   bool _canCountMisses = false;
 
-  // --- Gameplay constants ---
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
 
   // --- Parallax v1 ---
   double _bgParallaxY = 0.0;
+  double _noisePhase = 0.0;
 
   @override
   void initState() {
@@ -88,16 +89,13 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
     _lastTime = elapsed;
 
-    // FPS smoothing
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    // Background parallax (vertical only)
-    final parallaxSpeed = widget.spawner.speedMultiplier * 6.0;
-    _bgParallaxY += parallaxSpeed * dt;
-    if (_bgParallaxY > 10000) _bgParallaxY = 0.0;
+    // --- Parallax motion ---
+    _bgParallaxY += widget.spawner.speedMultiplier * 6.0 * dt;
+    _noisePhase += dt * 0.25;
 
-    // Spawning
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -113,9 +111,8 @@ class _GameScreenState extends State<GameScreen>
       );
     }
 
-    // Balloon movement
-    for (int idx = 0; idx < _balloons.length; idx++) {
-      final b = _balloons[idx];
+    for (int i = 0; i < _balloons.length; i++) {
+      final b = _balloons[i];
       final speed = baseRiseSpeed *
           widget.spawner.speedMultiplier *
           b.riseSpeedMultiplier;
@@ -127,38 +124,26 @@ class _GameScreenState extends State<GameScreen>
         frequency: 0.015,
       );
 
-      _balloons[idx] = moved.withXOffset(driftX);
+      _balloons[i] = moved.withXOffset(driftX);
     }
 
-    // Escapes
-    int escapedThisTick = 0;
+    int escaped = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
-      final b = _balloons[i];
-      if (b.y < -balloonRadius) {
-        if (!b.isPopped) escapedThisTick++;
+      if (_balloons[i].y < -balloonRadius) {
+        if (!_balloons[i].isPopped) escaped++;
         _balloons.removeAt(i);
       }
     }
 
-    if (escapedThisTick > 0) {
-      _controller.registerEscapes(escapedThisTick);
+    if (escaped > 0) {
+      _controller.registerEscapes(escaped);
       widget.gameState.log(
-        'MISS: escaped=$escapedThisTick',
+        'MISS: escaped=$escaped',
         type: DebugEventType.miss,
       );
     }
 
     _controller.update(_balloons, dt);
-
-    // Telemetry
-    if (widget.gameState.framesSinceStart % 120 == 0) {
-      widget.gameState.log(
-        'SPEED: mult=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
-        'interval=${widget.spawner.spawnInterval.toStringAsFixed(2)} '
-        'world=${widget.spawner.currentWorld}',
-        type: DebugEventType.speed,
-      );
-    }
 
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
@@ -171,55 +156,6 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
-  void _handleTap(TapDownDetails details) {
-    if (_controller.isEnded || !_canCountMisses) return;
-
-    TapHandler.handleTap(
-      details: details,
-      lastSize: _lastSize,
-      balloons: _balloons,
-      gameState: widget.gameState,
-      spawner: widget.spawner,
-      controller: _controller,
-      surge: _surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
-    );
-
-    if (_controller.isEnded) setState(() {});
-  }
-
-  void _handleLongPress() {
-    setState(() => _showHud = !_showHud);
-    widget.onRequestDebug();
-  }
-
-  void _replay() {
-    _balloons.clear();
-    _canCountMisses = false;
-    _bgParallaxY = 0.0;
-
-    _controller.reset();
-    widget.spawner.resetForNewRun();
-    _surge.reset();
-
-    widget.gameState.clearLogs();
-    widget.gameState.log(
-      'SYSTEM: run reset',
-      type: DebugEventType.system,
-    );
-
-    _lastTime = Duration.zero;
-    setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _surge.dispose();
-    _ticker.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,20 +166,38 @@ class _GameScreenState extends State<GameScreen>
           final currentWorld = widget.spawner.currentWorld;
           final nextWorld = currentWorld + 1;
 
-          final bgColor = _surge.showNextWorldColor
+          final baseColor = _surge.showNextWorldColor
               ? _backgroundForWorld(nextWorld)
               : _backgroundForWorld(currentWorld);
 
           return Stack(
             children: [
+              // --- PARALLAX BACKGROUND ---
               Transform.translate(
                 offset: Offset(0, -_bgParallaxY),
                 child: Container(
                   height: _lastSize.height * 2,
                   width: _lastSize.width,
-                  color: bgColor,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        baseColor,
+                        Color.lerp(baseColor, Colors.black, 0.25)!,
+                      ],
+                    ),
+                  ),
+                  child: Opacity(
+                    opacity: 0.08,
+                    child: CustomPaint(
+                      painter: _NoisePainter(_noisePhase),
+                    ),
+                  ),
                 ),
               ),
+
+              // --- GAMEPLAY LAYER ---
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -260,6 +214,7 @@ class _GameScreenState extends State<GameScreen>
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
               ),
+
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
@@ -284,4 +239,31 @@ class _GameScreenState extends State<GameScreen>
         return const Color(0xFF0A0A0F);
     }
   }
+
+  void _handleTap(TapDownDetails details) {}
+  void _handleLongPress() => widget.onRequestDebug();
+  void _replay() {}
+}
+
+class _NoisePainter extends CustomPainter {
+  final double phase;
+  _NoisePainter(this.phase);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white;
+    final rand = Random(42);
+
+    for (int i = 0; i < 120; i++) {
+      final y = (rand.nextDouble() * size.height + phase * 40) % size.height;
+      canvas.drawRect(
+        Rect.fromLTWH(0, y, size.width, 1),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _NoisePainter old) =>
+      old.phase != phase;
 }
