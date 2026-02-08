@@ -49,11 +49,14 @@ class _GameScreenState extends State<GameScreen>
   double _fps = 0.0;
   bool _canCountMisses = false;
 
+  // --- Gameplay constants ---
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
 
+  // --- Parallax v2 ---
   double _bgParallaxY = 0.0;
+  double _fogParallaxY = 0.0;
 
   @override
   void initState() {
@@ -86,14 +89,32 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
     _lastTime = elapsed;
 
+    // --- FPS smoothing ---
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    _bgParallaxY += widget.spawner.speedMultiplier * 6.0 * dt;
-    if (_bgParallaxY > _lastSize.height) {
-      _bgParallaxY = 0.0;
-    }
+    // --- Parallax v2 ---
+    final world = widget.spawner.currentWorld;
 
+    final baseSpeed = widget.spawner.speedMultiplier * 6.0;
+
+    final fogSpeedByWorld = {
+      1: 1.2,
+      2: 0.9,
+      3: 0.6,
+      4: 0.4,
+    };
+
+    final fogSpeed =
+        (fogSpeedByWorld[world] ?? 0.5) * widget.spawner.speedMultiplier;
+
+    _bgParallaxY += baseSpeed * dt;
+    _fogParallaxY += fogSpeed * dt;
+
+    if (_bgParallaxY > 10000) _bgParallaxY = 0.0;
+    if (_fogParallaxY > 10000) _fogParallaxY = 0.0;
+
+    // --- Spawning ---
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -109,6 +130,7 @@ class _GameScreenState extends State<GameScreen>
       );
     }
 
+    // --- Balloon movement ---
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       final speed = baseRiseSpeed *
@@ -116,22 +138,29 @@ class _GameScreenState extends State<GameScreen>
           b.riseSpeedMultiplier;
 
       final moved = b.movedBy(-speed * dt);
-      final driftX = moved.driftedX(amplitude: 0.035, frequency: 0.015);
+
+      final driftX = moved.driftedX(
+        amplitude: 0.035,
+        frequency: 0.015,
+      );
+
       _balloons[i] = moved.withXOffset(driftX);
     }
 
-    int escaped = 0;
+    // --- Escapes ---
+    int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
-      if (_balloons[i].y < -balloonRadius) {
-        if (!_balloons[i].isPopped) escaped++;
+      final b = _balloons[i];
+      if (b.y < -balloonRadius) {
+        if (!b.isPopped) escapedThisTick++;
         _balloons.removeAt(i);
       }
     }
 
-    if (escaped > 0) {
-      _controller.registerEscapes(escaped);
+    if (escapedThisTick > 0) {
+      _controller.registerEscapes(escapedThisTick);
       widget.gameState.log(
-        'MISS: escaped=$escaped',
+        'MISS: escaped=$escapedThisTick',
         type: DebugEventType.miss,
       );
     }
@@ -159,7 +188,8 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_controller.isEnded || !_canCountMisses) return;
+    if (_controller.isEnded) return;
+    if (!_canCountMisses) return;
 
     TapHandler.handleTap(
       details: details,
@@ -172,8 +202,6 @@ class _GameScreenState extends State<GameScreen>
       balloonRadius: balloonRadius,
       hitForgiveness: hitForgiveness,
     );
-
-    if (_controller.isEnded) setState(() {});
   }
 
   void _handleLongPress() {
@@ -185,6 +213,7 @@ class _GameScreenState extends State<GameScreen>
     _balloons.clear();
     _canCountMisses = false;
     _bgParallaxY = 0.0;
+    _fogParallaxY = 0.0;
 
     _controller.reset();
     widget.spawner.resetForNewRun();
@@ -202,8 +231,8 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   void dispose() {
-    _ticker.dispose();
     _surge.dispose();
+    _ticker.dispose();
     super.dispose();
   }
 
@@ -217,29 +246,45 @@ class _GameScreenState extends State<GameScreen>
           final currentWorld = widget.spawner.currentWorld;
           final nextWorld = currentWorld + 1;
 
-          final baseColor = _surge.showNextWorldColor
+          final bgColor = _surge.showNextWorldColor
               ? _backgroundForWorld(nextWorld)
               : _backgroundForWorld(currentWorld);
 
           return Stack(
             children: [
+              // --- BASE PARALLAX ---
               Transform.translate(
                 offset: Offset(0, -_bgParallaxY),
                 child: Container(
                   height: _lastSize.height * 2,
                   width: _lastSize.width,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        baseColor,
-                        Color.lerp(baseColor, Colors.black, 0.25)!,
-                      ],
+                  color: bgColor,
+                ),
+              ),
+
+              // --- FOG LAYER ---
+              IgnorePointer(
+                child: Transform.translate(
+                  offset: Offset(0, -_fogParallaxY),
+                  child: Container(
+                    height: _lastSize.height * 2,
+                    width: _lastSize.width,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withOpacity(0.06),
+                          Colors.white.withOpacity(0.02),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
+
+              // --- GAMEPLAY ---
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -256,6 +301,7 @@ class _GameScreenState extends State<GameScreen>
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
               ),
+
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
