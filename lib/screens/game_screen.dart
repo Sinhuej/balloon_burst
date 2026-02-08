@@ -274,8 +274,8 @@ class _GameScreenState extends State<GameScreen>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.white.withOpacity(0.06),
-                          Colors.white.withOpacity(0.02),
+                         bgColor.withOpacity(0.06),
+                         bgColor.withOpacity(0.02),
                           Colors.transparent,
                         ],
                       ),
