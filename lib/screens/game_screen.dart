@@ -188,12 +188,6 @@ class _GameScreenState extends State<GameScreen>
                       ],
                     ),
                   ),
-                  child: Opacity(
-                    opacity: 0.08,
-                    child: CustomPaint(
-                      painter: _NoisePainter(_noisePhase),
-                    ),
-                  ),
                 ),
               ),
 
@@ -240,10 +234,6 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
-class _NoisePainter extends CustomPainter {
-  final double phase;
-  _NoisePainter(this.phase);
-
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.white;
@@ -257,8 +247,3 @@ class _NoisePainter extends CustomPainter {
       );
     }
   }
-
-  @override
-  bool shouldRepaint(covariant _NoisePainter old) =>
-      old.phase != phase;
-}
