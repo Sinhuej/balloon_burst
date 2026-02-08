@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -54,9 +53,7 @@ class _GameScreenState extends State<GameScreen>
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
 
-  // --- Parallax v1 ---
   double _bgParallaxY = 0.0;
-  double _noisePhase = 0.0;
 
   @override
   void initState() {
@@ -92,9 +89,10 @@ class _GameScreenState extends State<GameScreen>
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    // --- Parallax motion ---
     _bgParallaxY += widget.spawner.speedMultiplier * 6.0 * dt;
-    _noisePhase += dt * 0.25;
+    if (_bgParallaxY > _lastSize.height) {
+      _bgParallaxY = 0.0;
+    }
 
     widget.spawner.update(
       dt: dt,
@@ -118,12 +116,7 @@ class _GameScreenState extends State<GameScreen>
           b.riseSpeedMultiplier;
 
       final moved = b.movedBy(-speed * dt);
-
-      final driftX = moved.driftedX(
-        amplitude: 0.035,
-        frequency: 0.015,
-      );
-
+      final driftX = moved.driftedX(amplitude: 0.035, frequency: 0.015);
       _balloons[i] = moved.withXOffset(driftX);
     }
 
@@ -145,6 +138,15 @@ class _GameScreenState extends State<GameScreen>
 
     _controller.update(_balloons, dt);
 
+    if (widget.gameState.framesSinceStart % 120 == 0) {
+      widget.gameState.log(
+        'SPEED: mult=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
+        'interval=${widget.spawner.spawnInterval.toStringAsFixed(2)} '
+        'world=${widget.spawner.currentWorld}',
+        type: DebugEventType.speed,
+      );
+    }
+
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
       currentWorld: widget.spawner.currentWorld,
@@ -154,6 +156,55 @@ class _GameScreenState extends State<GameScreen>
     );
 
     setState(() {});
+  }
+
+  void _handleTap(TapDownDetails details) {
+    if (_controller.isEnded || !_canCountMisses) return;
+
+    TapHandler.handleTap(
+      details: details,
+      lastSize: _lastSize,
+      balloons: _balloons,
+      gameState: widget.gameState,
+      spawner: widget.spawner,
+      controller: _controller,
+      surge: _surge,
+      balloonRadius: balloonRadius,
+      hitForgiveness: hitForgiveness,
+    );
+
+    if (_controller.isEnded) setState(() {});
+  }
+
+  void _handleLongPress() {
+    setState(() => _showHud = !_showHud);
+    widget.onRequestDebug();
+  }
+
+  void _replay() {
+    _balloons.clear();
+    _canCountMisses = false;
+    _bgParallaxY = 0.0;
+
+    _controller.reset();
+    widget.spawner.resetForNewRun();
+    _surge.reset();
+
+    widget.gameState.clearLogs();
+    widget.gameState.log(
+      'SYSTEM: run reset',
+      type: DebugEventType.system,
+    );
+
+    _lastTime = Duration.zero;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _surge.dispose();
+    super.dispose();
   }
 
   @override
@@ -172,7 +223,6 @@ class _GameScreenState extends State<GameScreen>
 
           return Stack(
             children: [
-              // --- PARALLAX BACKGROUND ---
               Transform.translate(
                 offset: Offset(0, -_bgParallaxY),
                 child: Container(
@@ -190,8 +240,6 @@ class _GameScreenState extends State<GameScreen>
                   ),
                 ),
               ),
-
-              // --- GAMEPLAY LAYER ---
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -208,7 +256,6 @@ class _GameScreenState extends State<GameScreen>
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
               ),
-
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
@@ -233,17 +280,4 @@ class _GameScreenState extends State<GameScreen>
         return const Color(0xFF0A0A0F);
     }
   }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white;
-    final rand = Random(42);
-
-    for (int i = 0; i < 120; i++) {
-      final y = (rand.nextDouble() * size.height + phase * 40) % size.height;
-      canvas.drawRect(
-        Rect.fromLTWH(0, y, size.width, 1),
-        paint,
-      );
-    }
-  }
+}
