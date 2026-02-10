@@ -56,27 +56,36 @@ class GameCanvas extends StatelessWidget {
           animation: surge.listenable,
           builder: (context, _) {
             // Decide which background color should be dominant
-            final Color effectiveBg = surge.showNextWorldColor
-                ? pulseColor
-                : backgroundColor;
+            final Color effectiveBg =
+                surge.showNextWorldColor ? pulseColor : backgroundColor;
+
+            // If GameScreen is doing parallax behind us, it will pass transparent here.
+            // In that case, we must NOT paint a base background, or we'll reveal
+            // scaffold/white during transitions.
+            final bool paintBaseBg = effectiveBg.opacity > 0.0;
+
+            // Pulse overlay color: opposite of effectiveBg (fade-back wash).
+            final Color pulseOverlayColor =
+                surge.showNextWorldColor ? backgroundColor : pulseColor;
+
+            final bool paintPulseOverlay = surge.isActive &&
+                surge.pulseOpacity > 0.0 &&
+                pulseOverlayColor.opacity > 0.0;
 
             return Stack(
               children: [
-                // Base background (can flip briefly to next world)
-                Positioned.fill(
-                  child: Container(color: effectiveBg),
-                ),
+                // Base background (ONLY if not transparent)
+                if (paintBaseBg)
+                  Positioned.fill(
+                    child: ColoredBox(color: effectiveBg),
+                  ),
 
                 // Pulse fade-back layer (subtle energy wash)
-                if (surge.isActive && surge.pulseOpacity > 0)
+                if (paintPulseOverlay)
                   Positioned.fill(
                     child: Opacity(
                       opacity: surge.pulseOpacity,
-                      child: Container(
-                        color: surge.showNextWorldColor
-                            ? backgroundColor
-                            : pulseColor,
-                      ),
+                      child: ColoredBox(color: pulseOverlayColor),
                     ),
                   ),
 
