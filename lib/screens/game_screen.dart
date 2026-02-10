@@ -34,8 +34,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -96,9 +95,10 @@ class _GameScreenState extends State<GameScreen>
     // --- Parallax v2 ---
     final world = widget.spawner.currentWorld;
 
+    // Base moves faster than fog. This is intentionally subtle.
     final baseSpeed = widget.spawner.speedMultiplier * 6.0;
 
-    final fogSpeedByWorld = {
+    final fogSpeedByWorld = <int, double>{
       1: 1.2,
       2: 0.9,
       3: 0.6,
@@ -110,9 +110,6 @@ class _GameScreenState extends State<GameScreen>
 
     _bgParallaxY += baseSpeed * dt;
     _fogParallaxY += fogSpeed * dt;
-
-    if (_bgParallaxY > 10000) _bgParallaxY = 0.0;
-    if (_fogParallaxY > 10000) _fogParallaxY = 0.0;
 
     // --- Spawning ---
     widget.spawner.update(
@@ -202,6 +199,11 @@ class _GameScreenState extends State<GameScreen>
       balloonRadius: balloonRadius,
       hitForgiveness: hitForgiveness,
     );
+
+    // If the tap ended the run, repaint immediately for overlay.
+    if (_controller.isEnded) {
+      setState(() {});
+    }
   }
 
   void _handleLongPress() {
@@ -226,6 +228,7 @@ class _GameScreenState extends State<GameScreen>
     );
 
     _lastTime = Duration.zero;
+
     setState(() {});
   }
 
@@ -234,6 +237,12 @@ class _GameScreenState extends State<GameScreen>
     _surge.dispose();
     _ticker.dispose();
     super.dispose();
+  }
+
+  double _wrapParallax(double y, double h) {
+    if (h <= 0) return 0.0;
+    final m = y % h;
+    return -m; // negative = scroll upward
   }
 
   @override
@@ -250,22 +259,28 @@ class _GameScreenState extends State<GameScreen>
               ? _backgroundForWorld(nextWorld)
               : _backgroundForWorld(currentWorld);
 
+          // Wrap offsets so the background NEVER runs off and reveals Scaffold (white).
+          final baseOffsetY = _wrapParallax(_bgParallaxY, _lastSize.height);
+          final fogOffsetY = _wrapParallax(_fogParallaxY, _lastSize.height);
+
           return Stack(
             children: [
-              // --- BASE PARALLAX ---
-              Transform.translate(
-                offset: Offset(0, -_bgParallaxY),
-                child: Container(
-                  height: _lastSize.height * 2,
-                  width: _lastSize.width,
-                  color: bgColor,
+              // --- BASE PARALLAX (IGNORE POINTERS) ---
+              IgnorePointer(
+                child: Transform.translate(
+                  offset: Offset(0, baseOffsetY),
+                  child: Container(
+                    height: _lastSize.height * 2,
+                    width: _lastSize.width,
+                    color: bgColor,
+                  ),
                 ),
               ),
 
-              // --- FOG LAYER ---
+              // --- FOG LAYER (IGNORE POINTERS) ---
               IgnorePointer(
                 child: Transform.translate(
-                  offset: Offset(0, -_fogParallaxY),
+                  offset: Offset(0, fogOffsetY),
                   child: Container(
                     height: _lastSize.height * 2,
                     width: _lastSize.width,
@@ -274,8 +289,8 @@ class _GameScreenState extends State<GameScreen>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                         bgColor.withOpacity(0.06),
-                         bgColor.withOpacity(0.02),
+                          bgColor.withOpacity(0.06),
+                          bgColor.withOpacity(0.02),
                           Colors.transparent,
                         ],
                       ),
