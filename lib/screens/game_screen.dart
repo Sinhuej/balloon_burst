@@ -34,7 +34,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -48,12 +49,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   double _fps = 0.0;
   bool _canCountMisses = false;
 
-  // --- Gameplay constants ---
+  // Gameplay constants
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
 
-  // --- Parallax v2 ---
+  // Parallax state
   double _bgParallaxY = 0.0;
   double _fogParallaxY = 0.0;
 
@@ -88,17 +89,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         : (elapsed - _lastTime).inMicroseconds / 1e6;
     _lastTime = elapsed;
 
-    // --- FPS smoothing ---
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    // --- Parallax v2 ---
     final world = widget.spawner.currentWorld;
-
-    // Base moves faster than fog. This is intentionally subtle.
     final baseSpeed = widget.spawner.speedMultiplier * 6.0;
 
-    final fogSpeedByWorld = <int, double>{
+    final fogSpeedByWorld = {
       1: 1.2,
       2: 0.9,
       3: 0.6,
@@ -111,7 +108,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _bgParallaxY += baseSpeed * dt;
     _fogParallaxY += fogSpeed * dt;
 
-    // --- Spawning ---
+    if (_bgParallaxY > _lastSize.height) {
+      _bgParallaxY -= _lastSize.height;
+    }
+    if (_fogParallaxY > _lastSize.height) {
+      _fogParallaxY -= _lastSize.height;
+    }
+
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -121,13 +124,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
-      widget.gameState.log(
-        'SYSTEM: first balloons spawned',
-        type: DebugEventType.system,
-      );
     }
 
-    // --- Balloon movement ---
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       final speed = baseRiseSpeed *
@@ -135,7 +133,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           b.riseSpeedMultiplier;
 
       final moved = b.movedBy(-speed * dt);
-
       final driftX = moved.driftedX(
         amplitude: 0.035,
         frequency: 0.015,
@@ -144,7 +141,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _balloons[i] = moved.withXOffset(driftX);
     }
 
-    // --- Escapes ---
     int escapedThisTick = 0;
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
@@ -164,15 +160,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _controller.update(_balloons, dt);
 
-    if (widget.gameState.framesSinceStart % 120 == 0) {
-      widget.gameState.log(
-        'SPEED: mult=${widget.spawner.speedMultiplier.toStringAsFixed(2)} '
-        'interval=${widget.spawner.spawnInterval.toStringAsFixed(2)} '
-        'world=${widget.spawner.currentWorld}',
-        type: DebugEventType.speed,
-      );
-    }
-
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
       currentWorld: widget.spawner.currentWorld,
@@ -185,8 +172,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_controller.isEnded) return;
-    if (!_canCountMisses) return;
+    if (_controller.isEnded || !_canCountMisses) return;
 
     TapHandler.handleTap(
       details: details,
@@ -199,11 +185,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       balloonRadius: balloonRadius,
       hitForgiveness: hitForgiveness,
     );
-
-    // If the tap ended the run, repaint immediately for overlay.
-    if (_controller.isEnded) {
-      setState(() {});
-    }
   }
 
   void _handleLongPress() {
@@ -222,13 +203,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _surge.reset();
 
     widget.gameState.clearLogs();
-    widget.gameState.log(
-      'SYSTEM: run reset',
-      type: DebugEventType.system,
-    );
-
     _lastTime = Duration.zero;
-
     setState(() {});
   }
 
@@ -237,12 +212,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _surge.dispose();
     _ticker.dispose();
     super.dispose();
-  }
-
-  double _wrapParallax(double y, double h) {
-    if (h <= 0) return 0.0;
-    final m = y % h;
-    return -m; // negative = scroll upward
   }
 
   @override
@@ -254,52 +223,80 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
           final currentWorld = widget.spawner.currentWorld;
           final nextWorld = currentWorld + 1;
-
           final bgColor = _surge.showNextWorldColor
               ? _backgroundForWorld(nextWorld)
               : _backgroundForWorld(currentWorld);
 
-          // Wrap offsets so the background NEVER runs off and reveals Scaffold (white).
-          final baseOffsetY = _wrapParallax(_bgParallaxY, _lastSize.height);
-          final fogOffsetY = _wrapParallax(_fogParallaxY, _lastSize.height);
-
           return Stack(
             children: [
-              // --- BASE PARALLAX (IGNORE POINTERS) ---
+              // BASE PARALLAX (double tiled)
               IgnorePointer(
-                child: Transform.translate(
-                  offset: Offset(0, baseOffsetY),
-                  child: Container(
-                    height: _lastSize.height * 2,
-                    width: _lastSize.width,
-                    color: bgColor,
-                  ),
-                ),
-              ),
-
-              // --- FOG LAYER (IGNORE POINTERS) ---
-              IgnorePointer(
-                child: Transform.translate(
-                  offset: Offset(0, fogOffsetY),
-                  child: Container(
-                    height: _lastSize.height * 2,
-                    width: _lastSize.width,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          bgColor.withOpacity(0.06),
-                          bgColor.withOpacity(0.02),
-                          Colors.transparent,
-                        ],
+                child: Stack(
+                  children: [
+                    Transform.translate(
+                      offset: Offset(0, -_bgParallaxY),
+                      child: Container(
+                        height: _lastSize.height,
+                        width: _lastSize.width,
+                        color: bgColor,
                       ),
                     ),
-                  ),
+                    Transform.translate(
+                      offset: Offset(0, -_bgParallaxY + _lastSize.height),
+                      child: Container(
+                        height: _lastSize.height,
+                        width: _lastSize.width,
+                        color: bgColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              // --- GAMEPLAY ---
+              // FOG PARALLAX (double tiled)
+              IgnorePointer(
+                child: Stack(
+                  children: [
+                    Transform.translate(
+                      offset: Offset(0, -_fogParallaxY),
+                      child: Container(
+                        height: _lastSize.height,
+                        width: _lastSize.width,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              bgColor.withOpacity(0.06),
+                              bgColor.withOpacity(0.02),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Transform.translate(
+                      offset: Offset(0, -_fogParallaxY + _lastSize.height),
+                      child: Container(
+                        height: _lastSize.height,
+                        width: _lastSize.width,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              bgColor.withOpacity(0.06),
+                              bgColor.withOpacity(0.02),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
