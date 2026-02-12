@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-/// LightningPainter (visual-only)
-/// - Single jagged bolt path (brand-recognizable)
-/// - Upper-left quadrant → mid-lower target
-/// - Slight randomization, same general diagonal direction
-/// - Thickness increases by world (progression)
-/// - Optional star specks ONLY for 3→4 transition (currentWorld == 3)
+/// TAPJUNKIE LightningPainter v1 (Brand Bolt)
+/// - Single iconic jagged bolt
+/// - Upper-left → mid-lower
+/// - World-based thickness progression
+/// - Subtle flicker life
+/// - 3-layer rendering (glow + body + core)
+/// - Star specks only on 3→4 transition
+
 class LightningPainter extends CustomPainter {
   final double t; // 0..1
   final int currentWorld;
@@ -24,71 +26,81 @@ class LightningPainter extends CustomPainter {
 
     final rand = Random(seed);
 
-    // Start upper-left (slightly off-screen)
     final start = Offset(
-      size.width * (0.10 + rand.nextDouble() * 0.12),
-      -size.height * (0.08 + rand.nextDouble() * 0.12),
+      size.width * (0.10 + rand.nextDouble() * 0.10),
+      -size.height * (0.12 + rand.nextDouble() * 0.08),
     );
 
-    // Target near center / mid-lower with small randomization
     final end = Offset(
-      size.width * (0.50 + (rand.nextDouble() - 0.5) * 0.18),
-      size.height * (0.60 + rand.nextDouble() * 0.18),
+      size.width * (0.48 + (rand.nextDouble() - 0.5) * 0.16),
+      size.height * (0.60 + rand.nextDouble() * 0.14),
     );
 
-    // Build a jagged path (single bolt)
-    // More segments = more "bolt" and less "straight line"
-    final segments = 14;
-    final path = Path()..moveTo(start.dx, start.dy);
+    final path = _buildJaggedPath(start, end, size, rand);
 
-    for (int i = 1; i <= segments; i++) {
-      final p = i / segments;
-      final lerp = Offset.lerp(start, end, p)!;
-
-      // Strongest jitter mid-bolt
-      final midBoost = 1.0 - (2.0 * (p - 0.5)).abs(); // 0..1..0
-
-      final jitterX = (rand.nextDouble() - 0.5) * size.width * 0.055 * midBoost;
-      final jitterY = (rand.nextDouble() - 0.5) * size.height * 0.014 * midBoost;
-
-      path.lineTo(lerp.dx + jitterX, lerp.dy + jitterY);
-    }
-
-    final alpha = _boltAlpha(t);
+    final flicker = 0.90 + rand.nextDouble() * 0.25;
+    final alpha = _boltAlpha(t) * flicker;
 
     final thickness = _thicknessForWorld(currentWorld);
 
-    // Brighter core + stronger glow reads as "lightning" on all backgrounds
-    final coreColor = const Color(0xFFF8FDFF).withOpacity(alpha);
-    final glowColor = const Color(0xFF7EC8FF).withOpacity(alpha * 0.35);
-
-    // Glow (wider)
+    // OUTER GLOW
     final glowPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = thickness * 3.6
+      ..strokeWidth = thickness * 3.2
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = glowColor;
+      ..color = const Color(0xFF7EC8FF).withOpacity(alpha * 0.25);
 
-    // Main bolt (core)
-    final boltPaint = Paint()
+    // MAIN BODY
+    final bodyPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = thickness
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = coreColor;
+      ..color = const Color(0xFFEAF4FF).withOpacity(alpha);
+
+    // INNER CORE (energy)
+    final corePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = thickness * 0.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = Colors.white.withOpacity(alpha * 1.2);
 
     canvas.drawPath(path, glowPaint);
-    canvas.drawPath(path, boltPaint);
+    canvas.drawPath(path, bodyPaint);
+    canvas.drawPath(path, corePaint);
 
-    // Star specks ONLY on 3→4 transition (currentWorld == 3)
     if (currentWorld == 3) {
       _drawStarSpecks(canvas, end, rand, alpha);
     }
   }
 
+  Path _buildJaggedPath(
+      Offset start, Offset end, Size size, Random rand) {
+    const segments = 12;
+    final path = Path()..moveTo(start.dx, start.dy);
+
+    for (int i = 1; i <= segments; i++) {
+      final p = i / segments;
+      final base = Offset.lerp(start, end, p)!;
+
+      final midBoost = 1.0 - (2.0 * (p - 0.5)).abs();
+
+      final jitterX =
+          (rand.nextDouble() - 0.5) * size.width * 0.07 * midBoost;
+
+      final jitterY =
+          (rand.nextDouble() - 0.5) * size.height * 0.025 * midBoost;
+
+      final point = Offset(base.dx + jitterX, base.dy + jitterY);
+      path.lineTo(point.dx, point.dy);
+    }
+
+    return path;
+  }
+
   double _boltAlpha(double t) {
-    // Fast in, then decay
     if (t < 0.08) {
       return (t / 0.08).clamp(0.0, 1.0);
     }
@@ -99,31 +111,31 @@ class LightningPainter extends CustomPainter {
   double _thicknessForWorld(int world) {
     switch (world) {
       case 1:
-        return 2.8;
+        return 2.5;
       case 2:
-        return 3.8;
+        return 3.5;
       case 3:
-        return 5.0;
+        return 4.8;
       default:
-        return 3.8;
+        return 3.5;
     }
   }
 
-  void _drawStarSpecks(Canvas canvas, Offset center, Random rand, double alpha) {
-    final speckCount = 16;
+  void _drawStarSpecks(
+      Canvas canvas, Offset center, Random rand, double alpha) {
     final speckPaint = Paint()
       ..color = Colors.white.withOpacity(alpha * 0.6);
 
-    for (int i = 0; i < speckCount; i++) {
+    for (int i = 0; i < 18; i++) {
       final angle = rand.nextDouble() * pi * 2;
-      final radius = rand.nextDouble() * 46.0;
+      final radius = rand.nextDouble() * 50.0;
+
       final p = Offset(
         center.dx + cos(angle) * radius,
         center.dy + sin(angle) * radius,
       );
 
-      final r = 0.9 + rand.nextDouble() * 2.2;
-      canvas.drawCircle(p, r, speckPaint);
+      canvas.drawCircle(p, 0.8 + rand.nextDouble() * 2.2, speckPaint);
     }
   }
 
