@@ -5,6 +5,7 @@ import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
 import '../effects/world_surge_pulse.dart';
+import '../effects/lightning_painter.dart';
 import '../debug/debug_hud.dart';
 
 class GameCanvas extends StatelessWidget {
@@ -55,12 +56,11 @@ class GameCanvas extends StatelessWidget {
         child: AnimatedBuilder(
           animation: surge.listenable,
           builder: (context, _) {
-            // Decide which background color should be dominant
             final Color effectiveBg =
                 surge.showNextWorldColor ? pulseColor : backgroundColor;
 
             // If GameScreen is doing parallax behind us, it will pass transparent here.
-            // In that case, we must NOT paint a base background, or we'll reveal
+            // In that case, we must NOT paint a base background, or we’ll reintroduce
             // scaffold/white during transitions.
             final bool paintBaseBg = effectiveBg.opacity > 0.0;
 
@@ -68,9 +68,11 @@ class GameCanvas extends StatelessWidget {
             final Color pulseOverlayColor =
                 surge.showNextWorldColor ? backgroundColor : pulseColor;
 
-            final bool paintPulseOverlay = surge.isActive &&
+            final bool paintPulseOverlay = surge.isPulseActive &&
                 surge.pulseOpacity > 0.0 &&
                 pulseOverlayColor.opacity > 0.0;
+
+            final bool lightningActive = surge.isLightningActive;
 
             return Stack(
               children: [
@@ -89,15 +91,54 @@ class GameCanvas extends StatelessWidget {
                     ),
                   ),
 
-                // Gameplay (balloons) ALWAYS on top
+                // Lightning pre-darken (psych bump)
+                if (lightningActive && surge.lightningDarkenOpacity > 0.0)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: surge.lightningDarkenOpacity,
+                        child: const ColoredBox(color: Colors.black),
+                      ),
+                    ),
+                  ),
+
+                // Lightning bolt (visual-only)
+                if (lightningActive && surge.lightningT > 0.0)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: LightningPainter(
+                          t: surge.lightningT,
+                          currentWorld: currentWorld,
+                          seed: surge.lightningSeed,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Gameplay (balloons) on top, with combined shake
                 Positioned.fill(
                   child: Transform.translate(
-                    offset: Offset(0, surge.shakeYOffset),
+                    offset: Offset(
+                      0,
+                      surge.shakeYOffset + surge.lightningShakeAmp,
+                    ),
                     child: CustomPaint(
                       painter: BalloonPainter(balloons, gameState, currentWorld),
                     ),
                   ),
                 ),
+
+                // “Illuminate” balloons briefly during strike without changing BalloonPainter
+                if (lightningActive && surge.lightningFlashOpacity > 0.0)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: surge.lightningFlashOpacity,
+                        child: const ColoredBox(color: Colors.white),
+                      ),
+                    ),
+                  ),
 
                 // Debug HUD (dev only)
                 if (showHud)
