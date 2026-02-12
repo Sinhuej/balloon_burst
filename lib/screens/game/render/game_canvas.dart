@@ -74,62 +74,78 @@ class GameCanvas extends StatelessWidget {
 
             final bool lightningActive = surge.isLightningActive;
 
+            // IMPORTANT:
+            // Shake should NOT affect gameplay (balloons), only atmosphere layers.
+            final double atmosphereShakeY =
+                surge.shakeYOffset + surge.lightningShakeAmp;
+
             return Stack(
               children: [
-                // Base background (ONLY if not transparent)
-                if (paintBaseBg)
-                  Positioned.fill(
-                    child: ColoredBox(color: effectiveBg),
-                  ),
-
-                // Pulse fade-back layer (subtle energy wash)
-                if (paintPulseOverlay)
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: surge.pulseOpacity,
-                      child: ColoredBox(color: pulseOverlayColor),
-                    ),
-                  ),
-
-                // Lightning pre-darken (psych bump)
-                if (lightningActive && surge.lightningDarkenOpacity > 0.0)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Opacity(
-                        opacity: surge.lightningDarkenOpacity,
-                        child: const ColoredBox(color: Colors.black),
-                      ),
-                    ),
-                  ),
-
-                // Lightning bolt (visual-only)
-                if (lightningActive && surge.lightningT > 0.0)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: LightningPainter(
-                          t: surge.lightningT,
-                          currentWorld: currentWorld,
-                          seed: surge.lightningSeed,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Gameplay (balloons) on top, with combined shake
+                // -----------------------------
+                // Atmosphere layer (SHAKEN)
+                // background + pulse + lightning
+                // -----------------------------
                 Positioned.fill(
                   child: Transform.translate(
-                    offset: Offset(
-                      0,
-                      surge.shakeYOffset + surge.lightningShakeAmp,
-                    ),
-                    child: CustomPaint(
-                      painter: BalloonPainter(balloons, gameState, currentWorld),
+                    offset: Offset(0, atmosphereShakeY),
+                    child: Stack(
+                      children: [
+                        // Base background (ONLY if not transparent)
+                        if (paintBaseBg)
+                          Positioned.fill(
+                            child: ColoredBox(color: effectiveBg),
+                          ),
+
+                        // Pulse fade-back layer (subtle energy wash)
+                        if (paintPulseOverlay)
+                          Positioned.fill(
+                            child: Opacity(
+                              opacity: surge.pulseOpacity,
+                              child: ColoredBox(color: pulseOverlayColor),
+                            ),
+                          ),
+
+                        // Lightning pre-darken (psych bump)
+                        if (lightningActive && surge.lightningDarkenOpacity > 0.0)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: Opacity(
+                                opacity: surge.lightningDarkenOpacity,
+                                child: const ColoredBox(color: Colors.black),
+                              ),
+                            ),
+                          ),
+
+                        // Lightning bolt (visual-only) — BELOW balloons
+                        if (lightningActive && surge.lightningT > 0.0)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: CustomPaint(
+                                painter: LightningPainter(
+                                  t: surge.lightningT,
+                                  currentWorld: currentWorld,
+                                  seed: surge.lightningSeed,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
 
-                // “Illuminate” balloons briefly during strike without changing BalloonPainter
+                // -----------------------------
+                // Gameplay layer (NOT SHAKEN)
+                // This preserves tap accuracy.
+                // -----------------------------
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: BalloonPainter(balloons, gameState, currentWorld),
+                  ),
+                ),
+
+                // Illuminate balloons briefly during strike (ABOVE balloons)
+                // Keep this unshaken so it doesn’t “slide” relative to taps.
                 if (lightningActive && surge.lightningFlashOpacity > 0.0)
                   Positioned.fill(
                     child: IgnorePointer(
@@ -140,7 +156,7 @@ class GameCanvas extends StatelessWidget {
                     ),
                   ),
 
-                // Debug HUD (dev only)
+                // Debug HUD (dev only) — topmost
                 if (showHud)
                   DebugHud(
                     fps: fps,
