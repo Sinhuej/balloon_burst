@@ -1,14 +1,13 @@
 import 'dart:math';
-
 import 'package:flutter/animation.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:balloon_burst/audio/audio_player.dart';
 
-/// World Surge Pulse v1.2
+/// World Surge Pulse v1.3
 /// - Fires shortly before world transition
 /// - Fake-out flash: current → next → current
 /// - Vertical micro-shake
+/// - Clean listener (no stacking)
 class WorldSurgePulse {
   final AnimationController _pulseCtrl;
   final AnimationController _shakeCtrl;
@@ -28,14 +27,20 @@ class WorldSurgePulse {
         _shakeCtrl = AnimationController(
           vsync: vsync,
           duration: const Duration(milliseconds: 120),
-        );
+        ) {
+    // Add ONE listener — ever.
+    _pulseCtrl.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _invertColors = false;
+      }
+    });
+  }
 
   void dispose() {
     _pulseCtrl.dispose();
     _shakeCtrl.dispose();
   }
 
-  /// 🔑 Reset surge state for a brand-new run (Retry)
   void reset() {
     _lastSurgeWorld = 0;
     _invertColors = false;
@@ -50,7 +55,6 @@ class WorldSurgePulse {
     required int world3Pops,
     required int world4Pops,
   }) {
-    // Only fire once per world per run
     if (_lastSurgeWorld == currentWorld) return;
 
     final int? triggerAt = switch (currentWorld) {
@@ -63,9 +67,10 @@ class WorldSurgePulse {
     if (triggerAt != null && totalPops == triggerAt) {
       _lastSurgeWorld = currentWorld;
 
-      AudioPlayerService.playSurge(); // 🔊 anticipation cue
+      AudioPlayerService.playSurge();
 
       _invertColors = true;
+
       _pulseCtrl
         ..reset()
         ..forward();
@@ -73,13 +78,6 @@ class WorldSurgePulse {
       _shakeCtrl
         ..reset()
         ..forward();
-
-      // Snap back to current color when pulse completes
-      _pulseCtrl.addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _invertColors = false;
-        }
-      });
     }
   }
 
