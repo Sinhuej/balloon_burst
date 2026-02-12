@@ -80,9 +80,15 @@ class _GameScreenState extends State<GameScreen>
 
   void _onTick(Duration elapsed) {
     if (_controller.isEnded) {
-      _lastTime = elapsed;
-      return;
-    }
+     _lastTime = elapsed;
+
+  // Ensure overlay renders once
+  if (mounted) {
+    setState(() {});
+  }
+
+  return;
+ }
 
     final dt = (_lastTime == Duration.zero)
         ? 0.016
