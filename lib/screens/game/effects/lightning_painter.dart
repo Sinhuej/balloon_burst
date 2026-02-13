@@ -1,13 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-/// TAPJUNKIE LightningPainter v1 (Brand Bolt)
-/// - Single iconic jagged bolt
-/// - Upper-left → mid-lower
-/// - World-based thickness progression
-/// - Subtle flicker life
-/// - 3-layer rendering (glow + body + core)
-/// - Star specks only on 3→4 transition
+/// TAPJUNKIE Lightning v2 — Brand Strike
+/// - Violent mid-bend
+/// - Thick commanding silhouette
+/// - 3-layer energy rendering
+/// - Thickness pulses slightly during strike
+/// - Star burst only on 3→4
 
 class LightningPainter extends CustomPainter {
   final double t; // 0..1
@@ -27,31 +26,34 @@ class LightningPainter extends CustomPainter {
     final rand = Random(seed);
 
     final start = Offset(
-      size.width * (0.10 + rand.nextDouble() * 0.10),
-      -size.height * (0.12 + rand.nextDouble() * 0.08),
+      size.width * (0.08 + rand.nextDouble() * 0.08),
+      -size.height * (0.14 + rand.nextDouble() * 0.08),
     );
 
     final end = Offset(
-      size.width * (0.48 + (rand.nextDouble() - 0.5) * 0.16),
-      size.height * (0.60 + rand.nextDouble() * 0.14),
+      size.width * (0.50 + (rand.nextDouble() - 0.5) * 0.22),
+      size.height * (0.62 + rand.nextDouble() * 0.18),
     );
 
-    final path = _buildJaggedPath(start, end, size, rand);
+    final path = _buildAggressivePath(start, end, size, rand);
 
-    final flicker = 0.90 + rand.nextDouble() * 0.25;
-    final alpha = _boltAlpha(t) * flicker;
+    final alpha = _boltAlpha(t);
 
-    final thickness = _thicknessForWorld(currentWorld);
+    final baseThickness = _thicknessForWorld(currentWorld);
 
-    // OUTER GLOW
-    final glowPaint = Paint()
+    // Pulse thickness slightly during strike
+    final pulseBoost = 1.0 + (sin(t * pi) * 0.35);
+    final thickness = baseThickness * pulseBoost;
+
+    // OUTER ENERGY HALO
+    final haloPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = thickness * 3.2
+      ..strokeWidth = thickness * 4.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = const Color(0xFF7EC8FF).withOpacity(alpha * 0.25);
+      ..color = const Color(0xFF5AB0FF).withOpacity(alpha * 0.22);
 
-    // MAIN BODY
+    // PRIMARY BODY
     final bodyPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = thickness
@@ -59,83 +61,84 @@ class LightningPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..color = const Color(0xFFEAF4FF).withOpacity(alpha);
 
-    // INNER CORE (energy)
+    // INNER CORE (hot white center)
     final corePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = thickness * 0.5
+      ..strokeWidth = thickness * 0.55
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = Colors.white.withOpacity(alpha * 1.2);
+      ..color = Colors.white.withOpacity(alpha * 1.4);
 
-    canvas.drawPath(path, glowPaint);
+    canvas.drawPath(path, haloPaint);
     canvas.drawPath(path, bodyPaint);
     canvas.drawPath(path, corePaint);
 
     if (currentWorld == 3) {
-      _drawStarSpecks(canvas, end, rand, alpha);
+      _drawStarBurst(canvas, end, rand, alpha);
     }
   }
 
-  Path _buildJaggedPath(
+  Path _buildAggressivePath(
       Offset start, Offset end, Size size, Random rand) {
-    const segments = 12;
+    const segments = 14;
     final path = Path()..moveTo(start.dx, start.dy);
 
     for (int i = 1; i <= segments; i++) {
       final p = i / segments;
       final base = Offset.lerp(start, end, p)!;
 
-      final midBoost = 1.0 - (2.0 * (p - 0.5)).abs();
+      // Strongest violence in the middle
+      final mid = 1.0 - (2.0 * (p - 0.5)).abs();
 
       final jitterX =
-          (rand.nextDouble() - 0.5) * size.width * 0.07 * midBoost;
+          (rand.nextDouble() - 0.5) * size.width * 0.12 * mid;
 
       final jitterY =
-          (rand.nextDouble() - 0.5) * size.height * 0.025 * midBoost;
+          (rand.nextDouble() - 0.5) * size.height * 0.04 * mid;
 
-      final point = Offset(base.dx + jitterX, base.dy + jitterY);
-      path.lineTo(point.dx, point.dy);
+      path.lineTo(base.dx + jitterX, base.dy + jitterY);
     }
 
     return path;
   }
 
   double _boltAlpha(double t) {
-    if (t < 0.08) {
-      return (t / 0.08).clamp(0.0, 1.0);
+    if (t < 0.06) {
+      return (t / 0.06).clamp(0.0, 1.0);
     }
-    final fade = (1.0 - ((t - 0.08) / 0.92)).clamp(0.0, 1.0);
+
+    final fade = (1.0 - ((t - 0.06) / 0.94)).clamp(0.0, 1.0);
     return fade * fade;
   }
 
   double _thicknessForWorld(int world) {
     switch (world) {
       case 1:
-        return 2.5;
+        return 3.5;
       case 2:
-        return 3.5;
+        return 5.0;
       case 3:
-        return 4.8;
+        return 7.5;
       default:
-        return 3.5;
+        return 5.0;
     }
   }
 
-  void _drawStarSpecks(
+  void _drawStarBurst(
       Canvas canvas, Offset center, Random rand, double alpha) {
-    final speckPaint = Paint()
-      ..color = Colors.white.withOpacity(alpha * 0.6);
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(alpha * 0.7);
 
-    for (int i = 0; i < 18; i++) {
+    for (int i = 0; i < 24; i++) {
       final angle = rand.nextDouble() * pi * 2;
-      final radius = rand.nextDouble() * 50.0;
+      final radius = rand.nextDouble() * 60;
 
       final p = Offset(
         center.dx + cos(angle) * radius,
         center.dy + sin(angle) * radius,
       );
 
-      canvas.drawCircle(p, 0.8 + rand.nextDouble() * 2.2, speckPaint);
+      canvas.drawCircle(p, 1.2 + rand.nextDouble() * 2.5, paint);
     }
   }
 
