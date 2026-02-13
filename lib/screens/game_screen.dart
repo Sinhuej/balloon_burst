@@ -332,16 +332,18 @@ class _GameScreenState extends State<GameScreen>
     );
   }
 
-  Color _backgroundForWorld(int world) {
-    switch (world) {
-      case 2:
-        return const Color(0xFF2E86DE);
-      case 3:
-        return const Color(0xFF6C2EB9);
-      case 4:
-        return const Color(0xFF0B0F2F);
-      default:
-        return const Color(0xFF0A0A0F);
-    }
+ Color _backgroundForWorld(int world) {
+  switch (world) {
+    case 1:
+      return const Color(0xFF6EC6FF); // Flat Sky Blue (World 1)
+    case 2:
+      return const Color(0xFF2E86DE); // Navy Blue
+    case 3:
+      return const Color(0xFF6C2EB9); // Royal Purple
+    case 4:
+      return const Color(0xFF0B0F2F); // Deep Space Indigo
+    default:
+      return const Color(0xFF6EC6FF);
   }
+ }
 }
