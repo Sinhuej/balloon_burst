@@ -14,6 +14,7 @@ import 'package:balloon_burst/engine/speed/speed_curve.dart';
 import 'package:balloon_burst/screens/game/render/game_canvas.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 import 'package:balloon_burst/screens/game/input/tap_handler.dart';
+import 'package:balloon_burst/screens/game/intro/carnival_intro_overlay.dart';
 
 import 'package:balloon_burst/game/end/run_end_overlay.dart';
 import 'package:balloon_burst/game/end/run_end_state.dart';
@@ -36,6 +37,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen>
     with TickerProviderStateMixin {
+
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -46,15 +48,14 @@ class _GameScreenState extends State<GameScreen>
   Size _lastSize = Size.zero;
 
   bool _showHud = false;
+  bool _showIntro = true;   // 👈 Intro auto-plays on fresh launch
   double _fps = 0.0;
   bool _canCountMisses = false;
 
-  // Gameplay constants
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
 
-  // Parallax state
   double _bgParallaxY = 0.0;
   double _fogParallaxY = 0.0;
 
@@ -80,15 +81,10 @@ class _GameScreenState extends State<GameScreen>
 
   void _onTick(Duration elapsed) {
     if (_controller.isEnded) {
-     _lastTime = elapsed;
-
-  // Ensure overlay renders once
-  if (mounted) {
-    setState(() {});
-  }
-
-  return;
- }
+      _lastTime = elapsed;
+      if (mounted) setState(() {});
+      return;
+    }
 
     final dt = (_lastTime == Duration.zero)
         ? 0.016
@@ -178,6 +174,7 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleTap(TapDownDetails details) {
+    if (_showIntro) return;  // 👈 Protect taps during intro
     if (_controller.isEnded || !_canCountMisses) return;
 
     TapHandler.handleTap(
@@ -194,6 +191,7 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleLongPress() {
+    if (_showIntro) return; // 👈 no HUD during intro
     setState(() => _showHud = !_showHud);
     widget.onRequestDebug();
   }
@@ -229,78 +227,16 @@ class _GameScreenState extends State<GameScreen>
 
           final currentWorld = widget.spawner.currentWorld;
           final nextWorld = currentWorld + 1;
+
           final bgColor = _surge.showNextWorldColor
               ? _backgroundForWorld(nextWorld)
               : _backgroundForWorld(currentWorld);
 
           return Stack(
             children: [
-              // BASE PARALLAX (double tiled)
-              IgnorePointer(
-                child: Stack(
-                  children: [
-                    Transform.translate(
-                      offset: Offset(0, -_bgParallaxY),
-                      child: Container(
-                        height: _lastSize.height,
-                        width: _lastSize.width,
-                        color: bgColor,
-                      ),
-                    ),
-                    Transform.translate(
-                      offset: Offset(0, -_bgParallaxY + _lastSize.height),
-                      child: Container(
-                        height: _lastSize.height,
-                        width: _lastSize.width,
-                        color: bgColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
 
-              // FOG PARALLAX (double tiled)
               IgnorePointer(
-                child: Stack(
-                  children: [
-                    Transform.translate(
-                      offset: Offset(0, -_fogParallaxY),
-                      child: Container(
-                        height: _lastSize.height,
-                        width: _lastSize.width,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              bgColor.withOpacity(0.06),
-                              bgColor.withOpacity(0.02),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Transform.translate(
-                      offset: Offset(0, -_fogParallaxY + _lastSize.height),
-                      child: Container(
-                        height: _lastSize.height,
-                        width: _lastSize.width,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              bgColor.withOpacity(0.06),
-                              bgColor.withOpacity(0.02),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                child: Container(color: bgColor),
               ),
 
               GameCanvas(
@@ -320,6 +256,14 @@ class _GameScreenState extends State<GameScreen>
                 recentMisses: widget.spawner.recentMisses,
               ),
 
+              if (_showIntro)
+                CarnivalIntroOverlay(
+                  onComplete: () {
+                    if (!mounted) return;
+                    setState(() => _showIntro = false);
+                  },
+                ),
+
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
@@ -332,18 +276,18 @@ class _GameScreenState extends State<GameScreen>
     );
   }
 
- Color _backgroundForWorld(int world) {
-  switch (world) {
-    case 1:
-      return const Color(0xFF6EC6FF); // Flat Sky Blue (World 1)
-    case 2:
-      return const Color(0xFF2E86DE); // Navy Blue
-    case 3:
-      return const Color(0xFF6C2EB9); // Royal Purple
-    case 4:
-      return const Color(0xFF0B0F2F); // Deep Space Indigo
-    default:
-      return const Color(0xFF6EC6FF);
+  Color _backgroundForWorld(int world) {
+    switch (world) {
+      case 1:
+        return const Color(0xFF6EC6FF);
+      case 2:
+        return const Color(0xFF2E86DE);
+      case 3:
+        return const Color(0xFF6C2EB9);
+      case 4:
+        return const Color(0xFF0B0F2F);
+      default:
+        return const Color(0xFF6EC6FF);
+    }
   }
- }
 }
