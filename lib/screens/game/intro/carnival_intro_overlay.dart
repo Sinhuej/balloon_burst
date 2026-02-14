@@ -1,60 +1,81 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 class CarnivalIntroOverlay extends StatefulWidget {
-  final VoidCallback onFinished;
+  final VoidCallback onComplete;
 
   const CarnivalIntroOverlay({
     super.key,
-    required this.onFinished,
+    required this.onComplete,
   });
 
   @override
-  State<CarnivalIntroOverlay> createState() => _CarnivalIntroOverlayState();
+  State<CarnivalIntroOverlay> createState() =>
+      _CarnivalIntroOverlayState();
 }
 
-class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
+class _CarnivalIntroOverlayState
+    extends State<CarnivalIntroOverlay>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
+
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _drop;
 
   @override
   void initState() {
     super.initState();
 
-    _ctrl = AnimationController(
+    _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
-    )..forward();
+      duration: const Duration(milliseconds: 2800),
+    );
 
-    _ctrl.addStatusListener((status) {
+    _fade = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.55, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    _drop = Tween<double>(begin: 0.0, end: 80.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.55, 1.0, curve: Curves.easeIn),
+      ),
+    );
+
+    _controller.forward();
+
+    _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        widget.onFinished();
+        widget.onComplete();
       }
     });
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final fade = 1.0 - _ctrl.value;
-    final dropOffset = _ctrl.value * 40.0;
-
     return IgnorePointer(
-      ignoring: true,
-      child: Opacity(
-        opacity: fade,
-        child: Transform.translate(
-          offset: Offset(0, dropOffset),
-          child: CustomPaint(
-            painter: _CarnivalPainter(),
-            size: Size.infinite,
-          ),
-        ),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Opacity(
+            opacity: _fade.value,
+            child: Transform.translate(
+              offset: Offset(0, _drop.value),
+              child: CustomPaint(
+                painter: _CarnivalPainter(),
+                size: Size.infinite,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -63,72 +84,41 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
 class _CarnivalPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final groundHeight = size.height * 0.18;
 
-    // ---- Green Curved Hill ----
+    final groundPaint = Paint()
+      ..color = const Color(0xFF2E7D32); // deep green
+
     final hillPath = Path()
-      ..moveTo(0, size.height)
+      ..moveTo(0, size.height * 0.85)
       ..quadraticBezierTo(
         size.width * 0.5,
-        size.height - groundHeight * 1.4,
+        size.height * 0.78,
         size.width,
-        size.height,
+        size.height * 0.85,
       )
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
 
-    final hillPaint = Paint()..color = const Color(0xFF2E7D32);
-    canvas.drawPath(hillPath, hillPaint);
+    canvas.drawPath(hillPath, groundPaint);
 
-    final silhouettePaint = Paint()..color = Colors.black;
+    final silhouette = Paint()
+      ..color = Colors.black;
 
-    final baseY = size.height - groundHeight;
-
-    // ---- Tent Peaks ----
-    _drawTent(canvas, size.width * 0.25, baseY, silhouettePaint);
-    _drawTent(canvas, size.width * 0.38, baseY, silhouettePaint);
-
-    // ---- Ferris Wheel ----
-    final wheelRadius = size.width * 0.08;
-    final wheelCenter = Offset(size.width * 0.65, baseY - wheelRadius);
-    canvas.drawCircle(wheelCenter, wheelRadius, silhouettePaint);
-
-    // ---- Balloon Machine (slightly left) ----
-    final machineRect = Rect.fromCenter(
-      center: Offset(size.width * 0.18, baseY - 25),
-      width: 40,
-      height: 50,
-    );
-    canvas.drawRect(machineRect, silhouettePaint);
-
-    // ---- Static Balloon Silhouettes ----
-    _drawBalloon(canvas, Offset(size.width * 0.16, baseY - 80), silhouettePaint);
-    _drawBalloon(canvas, Offset(size.width * 0.20, baseY - 110), silhouettePaint);
-    _drawBalloon(canvas, Offset(size.width * 0.23, baseY - 95), silhouettePaint);
-  }
-
-  void _drawTent(Canvas canvas, double x, double baseY, Paint paint) {
-    final path = Path()
-      ..moveTo(x - 30, baseY)
-      ..lineTo(x, baseY - 60)
-      ..lineTo(x + 30, baseY)
+    // Tent
+    final tentPath = Path()
+      ..moveTo(size.width * 0.15, size.height * 0.80)
+      ..lineTo(size.width * 0.22, size.height * 0.70)
+      ..lineTo(size.width * 0.29, size.height * 0.80)
       ..close();
 
-    canvas.drawPath(path, paint);
-  }
+    canvas.drawPath(tentPath, silhouette);
 
-  void _drawBalloon(Canvas canvas, Offset center, Paint paint) {
-    canvas.drawCircle(center, 12, paint);
-
-    final stringPaint = Paint()
-      ..color = Colors.black
-      ..strokeWidth = 1.5;
-
-    canvas.drawLine(
-      center + const Offset(0, 12),
-      center + const Offset(0, 28),
-      stringPaint,
+    // Ferris wheel
+    canvas.drawCircle(
+      Offset(size.width * 0.75, size.height * 0.75),
+      30,
+      silhouette,
     );
   }
 
