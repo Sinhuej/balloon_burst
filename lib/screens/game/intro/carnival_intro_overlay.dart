@@ -85,7 +85,7 @@ class _IntroPainter extends CustomPainter {
 
     final baseY = hillTopY + 2;
 
-    // TENT SIZES
+    // Tent sizing
     final smallHeight = h * 0.12;
     final bigHeight = h * 0.16;
 
@@ -96,35 +96,39 @@ class _IntroPainter extends CustomPainter {
     final rightCx = w * 0.76;
     final centerCx = w * 0.50;
 
-    // BACK TENTS
+    // Back tents
     _drawTent(canvas, leftCx, baseY, smallWidth, smallHeight);
     _drawTent(canvas, rightCx, baseY, smallWidth, smallHeight);
 
-    // FRONT TENT
+    // Front tent
     _drawTent(canvas, centerCx, baseY, bigWidth, bigHeight);
 
-    // -------- STRING LIGHTS FIXED --------
+    // -------- STRING LIGHTS CORRECTED --------
 
     final tentPeakY = baseY - bigHeight;
 
     final poleLeftX = w * 0.12;
     final poleRightX = w * 0.88;
 
-    // Taller poles
-    final poleTopY = tentPeakY - h * 0.08;
+    // Slightly above peak only
+    final poleTopY = tentPeakY - h * 0.04;
 
     final polePaint = Paint()
       ..color = const Color(0xFF2F4F4F)
       ..strokeWidth = 4;
 
-    canvas.drawLine(Offset(poleLeftX, baseY),
-        Offset(poleLeftX, poleTopY), polePaint);
+    canvas.drawLine(
+        Offset(poleLeftX, baseY),
+        Offset(poleLeftX, poleTopY),
+        polePaint);
 
-    canvas.drawLine(Offset(poleRightX, baseY),
-        Offset(poleRightX, poleTopY), polePaint);
+    canvas.drawLine(
+        Offset(poleRightX, baseY),
+        Offset(poleRightX, poleTopY),
+        polePaint);
 
-    // Droop lowest point JUST above peak
-    final sagY = tentPeakY - h * 0.01;
+    // Droop lowest point just above peak
+    final sagY = tentPeakY - h * 0.005;
 
     final midX = w * 0.5;
 
@@ -142,8 +146,8 @@ class _IntroPainter extends CustomPainter {
 
     // Glow bulbs
     final glowPaint = Paint()
-      ..color = const Color(0xFFFFE08A).withOpacity(0.30)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+      ..color = const Color(0xFFFFE08A).withOpacity(0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
 
     final bulbPaint = Paint()
       ..color = const Color(0xFFFFD36A);
@@ -153,14 +157,15 @@ class _IntroPainter extends CustomPainter {
     for (int i = 0; i < bulbCount; i++) {
       final t = i / (bulbCount - 1);
       final x = poleLeftX + (poleRightX - poleLeftX) * t;
-      final y = _quadBezierY(t,
-          poleLeftX, poleTopY,
-          midX, sagY,
-          poleRightX, poleTopY);
+      final y = _quadBezierY(
+        t,
+        poleLeftX, poleTopY,
+        midX, sagY,
+        poleRightX, poleTopY);
 
       final pos = Offset(x, y);
 
-      canvas.drawCircle(pos, 9, glowPaint);
+      canvas.drawCircle(pos, 10, glowPaint);
       canvas.drawCircle(pos, 4, bulbPaint);
     }
   }
@@ -207,7 +212,7 @@ class _IntroPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // FLAG — anchored directly to peak
+    // Flag — fully anchored to peak
     final flag = Path()
       ..moveTo(cx, topY)
       ..lineTo(cx - 7, topY + 14)
