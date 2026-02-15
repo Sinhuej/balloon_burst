@@ -16,6 +16,7 @@ class CarnivalIntroOverlay extends StatefulWidget {
 class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+  bool _fired = false;
 
   @override
   void initState() {
@@ -24,7 +25,8 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 3000),
     )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
+        if (status == AnimationStatus.completed && !_fired) {
+          _fired = true;
           widget.onComplete();
         }
       });
@@ -58,15 +60,14 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
 
           final y = lift + drop;
 
-          return Positioned.fill(
-            child: Opacity(
-              opacity: opacity,
-              child: Transform.translate(
-                offset: Offset(0, y),
-                child: const SizedBox.expand(
-                  child: CustomPaint(
-                    painter: _CarnivalPainter(),
-                  ),
+          // IMPORTANT: NO Positioned.* here (prevents gray screen / layout issues)
+          return Opacity(
+            opacity: opacity,
+            child: Transform.translate(
+              offset: Offset(0, y),
+              child: const SizedBox.expand(
+                child: CustomPaint(
+                  painter: _CarnivalPainter(),
                 ),
               ),
             ),
@@ -85,6 +86,7 @@ class _CarnivalPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
+    // Full paint: sky + grass + carnival
     final sky = Paint()..color = const Color(0xFF6EC6FF);
     final grass = Paint()..color = const Color(0xFF2E7D32);
 
@@ -104,6 +106,7 @@ class _CarnivalPainter extends CustomPainter {
 
     final baseY = hillTopY + 2.0;
 
+    // Tent layout (center tent in FRONT)
     final bigH = h * 0.16;
     final smallH = h * 0.12;
 
@@ -115,28 +118,28 @@ class _CarnivalPainter extends CustomPainter {
     final rightCx = w * 0.76;
 
     final tentRed = const Color(0xFF7D1E22).withOpacity(0.75);
-    final stripeWhite = const Color(0xFFFFFFFF).withOpacity(0.80);
+    final stripeWhite = const Color(0xFFFFFFFF).withOpacity(0.85);
 
-    // BACK TENTS FIRST
+    // Back tents first
     _drawTent(canvas, leftCx, baseY, smallW, smallH, tentRed, stripeWhite);
     _drawTent(canvas, rightCx, baseY, smallW, smallH, tentRed, stripeWhite);
 
-    // FRONT CENTER TENT
+    // Front center tent
     _drawTent(canvas, bigCx, baseY, bigW, bigH, tentRed, stripeWhite);
 
-    // LIGHTS
+    // Drooping lights (bulbs ON the wire)
     _drawLights(
       canvas,
       size,
       baseY: baseY,
-      leftX: w * 0.12,
-      rightX: w * 0.88,
+      leftX: w * 0.10,
+      rightX: w * 0.90,
       tentTopY: baseY - bigH,
     );
   }
 
-  void _drawTent(Canvas canvas, double cx, double baseY,
-      double width, double height, Color red, Color stripe) {
+  void _drawTent(Canvas canvas, double cx, double baseY, double width,
+      double height, Color red, Color stripe) {
     final half = width * 0.5;
     final topY = baseY - height;
 
@@ -149,6 +152,7 @@ class _CarnivalPainter extends CustomPainter {
 
     canvas.drawPath(body, Paint()..color = red);
 
+    // Stripes (brighter white)
     final stripePaint = Paint()..color = stripe;
 
     const count = 9;
@@ -170,6 +174,7 @@ class _CarnivalPainter extends CustomPainter {
       canvas.restore();
     }
 
+    // Flag topper (helps read as “tent”)
     final flag = Path()
       ..moveTo(cx, topY)
       ..lineTo(cx - 7, topY + 10)
@@ -182,48 +187,52 @@ class _CarnivalPainter extends CustomPainter {
     );
   }
 
-  void _drawLights(Canvas canvas, Size size,
-      {required double baseY,
-      required double leftX,
-      required double rightX,
-      required double tentTopY}) {
-
+  void _drawLights(
+    Canvas canvas,
+    Size size, {
+    required double baseY,
+    required double leftX,
+    required double rightX,
+    required double tentTopY,
+  }) {
     final h = size.height;
     final poleTopY = tentTopY - h * 0.04;
 
     final polePaint = Paint()
       ..color = Colors.black.withOpacity(0.25)
-      ..strokeWidth = 3;
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
 
     canvas.drawLine(Offset(leftX, baseY), Offset(leftX, poleTopY), polePaint);
-    canvas.drawLine(Offset(rightX, baseY), Offset(rightX, poleTopY), polePaint);
+    canvas.drawLine(
+        Offset(rightX, baseY), Offset(rightX, poleTopY), polePaint);
 
     final midX = (leftX + rightX) * 0.5;
-    final sagY = poleTopY + h * 0.08;
+    final sagY = poleTopY + h * 0.09;
 
     final wire = Path()
       ..moveTo(leftX, poleTopY)
       ..quadraticBezierTo(midX, sagY, rightX, poleTopY);
 
     final wirePaint = Paint()
-      ..color = Colors.black.withOpacity(0.25)
+      ..color = Colors.black.withOpacity(0.28)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.2;
 
     canvas.drawPath(wire, wirePaint);
 
+    // Glow improved (like your earlier “better glow”)
     final glow = Paint()
       ..color = const Color(0xFFFFE08A).withOpacity(0.35)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
-    final bulb = Paint()
-      ..color = const Color(0xFFFFD36A);
+    final bulb = Paint()..color = const Color(0xFFFFD36A);
 
     const bulbs = 14;
-
     for (int i = 0; i < bulbs; i++) {
       final t = i / (bulbs - 1);
 
+      // Quadratic Bezier point (bulbs sit ON the drooping wire)
       final x = (1 - t) * (1 - t) * leftX +
           2 * (1 - t) * t * midX +
           t * t * rightX;
@@ -232,8 +241,9 @@ class _CarnivalPainter extends CustomPainter {
           2 * (1 - t) * t * sagY +
           t * t * poleTopY;
 
-      canvas.drawCircle(Offset(x, y), 6, glow);
-      canvas.drawCircle(Offset(x, y), 3, bulb);
+      final p = Offset(x, y);
+      canvas.drawCircle(p, 6, glow);
+      canvas.drawCircle(p, 3, bulb);
     }
   }
 
