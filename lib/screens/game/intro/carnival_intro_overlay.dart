@@ -351,8 +351,8 @@ class _CarnivalPainter extends CustomPainter {
       ..color = color.withOpacity(0.65);
 
     final baseY = size.height * 0.88;
-    canvas.drawLine(center + const Offset(-10, wheelRadius * 0.75), Offset(center.dx - wheelRadius * 0.55, baseY), legPaint);
-    canvas.drawLine(center + const Offset(10, wheelRadius * 0.75), Offset(center.dx + wheelRadius * 0.55, baseY), legPaint);
+    canvas.drawLine(center + Offset(-10, wheelRadius * 0.75), Offset(center.dx - wheelRadius * 0.55, baseY), legPaint);
+    canvas.drawLine(center + Offset(10, wheelRadius * 0.75), Offset(center.dx + wheelRadius * 0.55, baseY), legPaint);
 
     // Small base bar
     canvas.drawLine(Offset(center.dx - wheelRadius * 0.62, baseY), Offset(center.dx + wheelRadius * 0.62, baseY), legPaint);
