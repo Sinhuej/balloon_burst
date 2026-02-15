@@ -50,14 +50,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   double _fps = 0.0;
   bool _canCountMisses = false;
 
-  // Gameplay constants
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
-
-  // Parallax state (currently unused in build, but kept for future layers)
-  double _bgParallaxY = 0.0;
-  double _fogParallaxY = 0.0;
 
   @override
   void initState() {
@@ -94,27 +89,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    final world = widget.spawner.currentWorld;
-    final baseSpeed = widget.spawner.speedMultiplier * 6.0;
-
-    final fogSpeedByWorld = {
-      1: 1.2,
-      2: 0.9,
-      3: 0.6,
-      4: 0.4,
-    };
-
-    final fogSpeed =
-        (fogSpeedByWorld[world] ?? 0.5) * widget.spawner.speedMultiplier;
-
-    _bgParallaxY += baseSpeed * dt;
-    _fogParallaxY += fogSpeed * dt;
-
-    if (_lastSize.height > 0) {
-      if (_bgParallaxY > _lastSize.height) _bgParallaxY -= _lastSize.height;
-      if (_fogParallaxY > _lastSize.height) _fogParallaxY -= _lastSize.height;
-    }
-
     widget.spawner.update(
       dt: dt,
       tier: 0,
@@ -128,9 +102,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
-      final speed = baseRiseSpeed *
-          widget.spawner.speedMultiplier *
-          b.riseSpeedMultiplier;
+      final speed =
+          baseRiseSpeed * widget.spawner.speedMultiplier * b.riseSpeedMultiplier;
 
       final moved = b.movedBy(-speed * dt);
       final driftX = moved.driftedX(
@@ -189,7 +162,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleLongPress() {
-    if (_showIntro) return; // No HUD during intro
+    if (_showIntro) return; // no HUD during intro
     setState(() => _showHud = !_showHud);
     widget.onRequestDebug();
   }
@@ -197,8 +170,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
-    _bgParallaxY = 0.0;
-    _fogParallaxY = 0.0;
 
     _controller.reset();
     widget.spawner.resetForNewRun();
@@ -232,21 +203,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
           return Stack(
             children: [
-              // Base background (safe, no input)
               IgnorePointer(
                 child: Container(color: bgColor),
               ),
 
-              // Carnival intro as WORLD layer (below gameplay)
-              if (_showIntro)
-                CarnivalIntroOverlay(
-                  onComplete: () {
-                    if (!mounted) return;
-                    setState(() => _showIntro = false);
-                  },
-                ),
-
-              // Gameplay layer (balloons + surge + lightning + HUD)
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -264,6 +224,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 recentMisses: widget.spawner.recentMisses,
               ),
 
+              if (_showIntro)
+                CarnivalIntroOverlay(
+                  onComplete: () {
+                    if (!mounted) return;
+                    setState(() => _showIntro = false);
+                  },
+                ),
+
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
@@ -279,13 +247,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 1:
-        return const Color(0xFF6EC6FF); // Flat Sky Blue
+        return const Color(0xFF6EC6FF); // Sky
       case 2:
-        return const Color(0xFF2E86DE); // Navy Blue
+        return const Color(0xFF2E86DE); // Navy
       case 3:
-        return const Color(0xFF6C2EB9); // Royal Purple
+        return const Color(0xFF6C2EB9); // Purple
       case 4:
-        return const Color(0xFF0B0F2F); // Deep Space Indigo
+        return const Color(0xFF0B0F2F); // Deep space
       default:
         return const Color(0xFF6EC6FF);
     }
