@@ -60,7 +60,7 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
               opacity: opacity,
               child: Transform.translate(
                 offset: Offset(0, y),
-                child: const SizedBox.expand(
+                child: SizedBox.expand(
                   child: CustomPaint(
                     painter: _CarnivalPainter(),
                   ),
