@@ -125,14 +125,39 @@ class _SkyGrassTentPainter extends CustomPainter {
     final half = width * 0.5;
     final topY = baseY - height;
 
-    final path = Path()
+    final body = Path()
       ..moveTo(cx - half, baseY)
       ..lineTo(cx - half * 0.78, topY + height * 0.28)
       ..quadraticBezierTo(cx, topY, cx + half * 0.78, topY + height * 0.28)
       ..lineTo(cx + half, baseY)
       ..close();
 
-    canvas.drawPath(path, paint);
+    // Draw tent body
+    canvas.drawPath(body, paint);
+
+    // ---------- SOLID WHITE STRIPES ----------
+    final stripePaint = Paint()
+      ..color = Colors.white;
+
+    const stripeCount = 7;
+
+    for (int i = 0; i < stripeCount; i++) {
+      final t = i / (stripeCount - 1);
+      final x = (cx - half) + (width * t);
+      final stripeWidth = width * 0.06;
+
+      final stripeRect = Rect.fromLTWH(
+        x - stripeWidth * 0.5,
+        topY + height * 0.22,
+        stripeWidth,
+        height * 0.78,
+      );
+
+      canvas.save();
+      canvas.clipPath(body);
+      canvas.drawRect(stripeRect, stripePaint);
+      canvas.restore();
+    }
   }
 
   @override
