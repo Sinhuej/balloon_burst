@@ -47,7 +47,7 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
         builder: (context, _) {
           return const SizedBox.expand(
             child: CustomPaint(
-              painter: _SkyGrassPainter(),
+              painter: _SkyGrassTentPainter(),
             ),
           );
         },
@@ -56,19 +56,19 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
   }
 }
 
-class _SkyGrassPainter extends CustomPainter {
-  const _SkyGrassPainter();
+class _SkyGrassTentPainter extends CustomPainter {
+  const _SkyGrassTentPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
-    // SKY
+    // ---------------- SKY ----------------
     final sky = Paint()..color = const Color(0xFF6EC6FF);
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), sky);
 
-    // GRASS HILL (matches your preferred soft arc)
+    // ---------------- GRASS HILL ----------------
     final grass = Paint()..color = const Color(0xFF2E7D32);
 
     final hillTopY = h * 0.86;
@@ -87,6 +87,43 @@ class _SkyGrassPainter extends CustomPainter {
       ..close();
 
     canvas.drawPath(hillPath, grass);
+
+    // ---------------- BACK TENTS (SOLID, NO STRIPES) ----------------
+
+    final tentPaint = Paint()
+      ..color = const Color(0xFF8A1C1F); // solid red (no opacity)
+
+    final baseY = hillTopY + 2;
+
+    final smallHeight = h * 0.12;
+    final smallWidth = w * 0.30;
+
+    final leftCx = w * 0.24;
+    final rightCx = w * 0.76;
+
+    _drawTent(canvas, leftCx, baseY, smallWidth, smallHeight, tentPaint);
+    _drawTent(canvas, rightCx, baseY, smallWidth, smallHeight, tentPaint);
+  }
+
+  void _drawTent(
+    Canvas canvas,
+    double cx,
+    double baseY,
+    double width,
+    double height,
+    Paint paint,
+  ) {
+    final half = width * 0.5;
+    final topY = baseY - height;
+
+    final path = Path()
+      ..moveTo(cx - half, baseY)
+      ..lineTo(cx - half * 0.78, topY + height * 0.28)
+      ..quadraticBezierTo(cx, topY, cx + half * 0.78, topY + height * 0.28)
+      ..lineTo(cx + half, baseY)
+      ..close();
+
+    canvas.drawPath(path, paint);
   }
 
   @override
