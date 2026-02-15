@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class CarnivalIntroOverlay extends StatefulWidget {
@@ -47,7 +48,7 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
         builder: (context, _) {
           return const SizedBox.expand(
             child: CustomPaint(
-              painter: _SkyGrassTentPainter(),
+              painter: _IntroPainter(),
             ),
           );
         },
@@ -56,8 +57,8 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
   }
 }
 
-class _SkyGrassTentPainter extends CustomPainter {
-  const _SkyGrassTentPainter();
+class _IntroPainter extends CustomPainter {
+  const _IntroPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -76,12 +77,7 @@ class _SkyGrassTentPainter extends CustomPainter {
 
     final hillPath = Path()
       ..moveTo(-w * 0.15, hillTopY)
-      ..quadraticBezierTo(
-        w * 0.5,
-        hillTopY - hillSag,
-        w * 1.15,
-        hillTopY,
-      )
+      ..quadraticBezierTo(w * 0.5, hillTopY - hillSag, w * 1.15, hillTopY)
       ..lineTo(w * 1.15, h)
       ..lineTo(-w * 0.15, h)
       ..close();
@@ -91,9 +87,7 @@ class _SkyGrassTentPainter extends CustomPainter {
     final baseY = hillTopY + 2;
 
     // ---------- BACK TENTS ----------
-    final backPaint = Paint()
-      ..color = const Color(0xFF7A1518);
-
+    final backPaint = Paint()..color = const Color(0xFF7A1518);
     final smallHeight = h * 0.12;
     final smallWidth = w * 0.30;
 
@@ -104,14 +98,70 @@ class _SkyGrassTentPainter extends CustomPainter {
     _drawTent(canvas, rightCx, baseY, smallWidth, smallHeight, backPaint);
 
     // ---------- FRONT BIG TENT ----------
-    final frontPaint = Paint()
-      ..color = const Color(0xFF8A1C1F);
-
+    final frontPaint = Paint()..color = const Color(0xFF8A1C1F);
     final bigHeight = h * 0.16;
     final bigWidth = w * 0.44;
     final bigCx = w * 0.50;
 
     _drawTent(canvas, bigCx, baseY, bigWidth, bigHeight, frontPaint);
+
+    // ---------- STRING LIGHT POLES ----------
+    final polePaint = Paint()
+      ..color = const Color(0xFF2F4F4F)
+      ..strokeWidth = 4;
+
+    final poleLeftX = w * 0.12;
+    final poleRightX = w * 0.88;
+
+    final poleTopY = hillTopY - h * 0.22;
+
+    canvas.drawLine(
+        Offset(poleLeftX, baseY),
+        Offset(poleLeftX, poleTopY),
+        polePaint);
+
+    canvas.drawLine(
+        Offset(poleRightX, baseY),
+        Offset(poleRightX, poleTopY),
+        polePaint);
+
+    // ---------- DROOPING WIRE ----------
+    final midX = w * 0.5;
+    final sagY = poleTopY + h * 0.07;
+
+    final wirePath = Path()
+      ..moveTo(poleLeftX, poleTopY)
+      ..quadraticBezierTo(midX, sagY, poleRightX, poleTopY);
+
+    final wirePaint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawPath(wirePath, wirePaint);
+
+    // ---------- BULBS (CONNECTED TO WIRE) ----------
+    final bulbPaint = Paint()..color = const Color(0xFFFFD36A);
+
+    const bulbCount = 13;
+
+    for (int i = 0; i < bulbCount; i++) {
+      final t = i / (bulbCount - 1);
+
+      final x = _lerp(poleLeftX, poleRightX, t);
+
+      final y = _quadBezierY(
+        t,
+        poleLeftX,
+        poleTopY,
+        midX,
+        sagY,
+        poleRightX,
+        poleTopY,
+      );
+
+      canvas.drawCircle(Offset(x, y), 4, bulbPaint);
+    }
   }
 
   void _drawTent(
@@ -132,13 +182,10 @@ class _SkyGrassTentPainter extends CustomPainter {
       ..lineTo(cx + half, baseY)
       ..close();
 
-    // Draw tent body
     canvas.drawPath(body, paint);
 
-    // ---------- SOLID WHITE STRIPES ----------
-    final stripePaint = Paint()
-      ..color = Colors.white;
-
+    // ---------- STRIPES ----------
+    final stripePaint = Paint()..color = Colors.white;
     const stripeCount = 7;
 
     for (int i = 0; i < stripeCount; i++) {
@@ -158,6 +205,34 @@ class _SkyGrassTentPainter extends CustomPainter {
       canvas.drawRect(stripeRect, stripePaint);
       canvas.restore();
     }
+
+    // ---------- FLAG TOPPER ----------
+    final flagPaint = Paint()..color = Colors.white;
+
+    final flag = Path()
+      ..moveTo(cx, topY - 6)
+      ..lineTo(cx - 6, topY + 6)
+      ..lineTo(cx + 6, topY + 6)
+      ..close();
+
+    canvas.drawPath(flag, flagPaint);
+  }
+
+  double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+  double _quadBezierY(
+    double t,
+    double x0,
+    double y0,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  ) {
+    final a = pow(1 - t, 2).toDouble();
+    final b = 2 * (1 - t) * t;
+    final c = t * t;
+    return a * y0 + b * y1 + c * y2;
   }
 
   @override
