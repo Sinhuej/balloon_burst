@@ -46,7 +46,7 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
         builder: (context, _) {
           return const SizedBox.expand(
             child: ColoredBox(
-              color: Colors.red,
+              color: Color(0xFF6EC6FF), // SKY BLUE
             ),
           );
         },
