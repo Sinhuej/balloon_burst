@@ -64,11 +64,11 @@ class _SkyGrassTentPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // ---------------- SKY ----------------
+    // ---------- SKY ----------
     final sky = Paint()..color = const Color(0xFF6EC6FF);
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), sky);
 
-    // ---------------- GRASS HILL ----------------
+    // ---------- GRASS ----------
     final grass = Paint()..color = const Color(0xFF2E7D32);
 
     final hillTopY = h * 0.86;
@@ -88,12 +88,11 @@ class _SkyGrassTentPainter extends CustomPainter {
 
     canvas.drawPath(hillPath, grass);
 
-    // ---------------- BACK TENTS (SOLID, NO STRIPES) ----------------
-
-    final tentPaint = Paint()
-      ..color = const Color(0xFF8A1C1F); // solid red (no opacity)
-
     final baseY = hillTopY + 2;
+
+    // ---------- BACK TENTS ----------
+    final backPaint = Paint()
+      ..color = const Color(0xFF7A1518);
 
     final smallHeight = h * 0.12;
     final smallWidth = w * 0.30;
@@ -101,8 +100,18 @@ class _SkyGrassTentPainter extends CustomPainter {
     final leftCx = w * 0.24;
     final rightCx = w * 0.76;
 
-    _drawTent(canvas, leftCx, baseY, smallWidth, smallHeight, tentPaint);
-    _drawTent(canvas, rightCx, baseY, smallWidth, smallHeight, tentPaint);
+    _drawTent(canvas, leftCx, baseY, smallWidth, smallHeight, backPaint);
+    _drawTent(canvas, rightCx, baseY, smallWidth, smallHeight, backPaint);
+
+    // ---------- FRONT BIG TENT ----------
+    final frontPaint = Paint()
+      ..color = const Color(0xFF8A1C1F);
+
+    final bigHeight = h * 0.16;
+    final bigWidth = w * 0.44;
+    final bigCx = w * 0.50;
+
+    _drawTent(canvas, bigCx, baseY, bigWidth, bigHeight, frontPaint);
   }
 
   void _drawTent(
