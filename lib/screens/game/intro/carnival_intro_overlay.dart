@@ -1,10 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-/// CarnivalIntroOverlay (Tap-safe)
-/// - Paints full sky + grass + carnival elements (overlay is self-contained)
-/// - 3-second intro
-/// - Slight upward lift + fade, then slight downward drift as it fades
 class CarnivalIntroOverlay extends StatefulWidget {
   final VoidCallback onComplete;
 
@@ -42,7 +38,7 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
     super.dispose();
   }
 
-  double _easeOutCubic(double x) => 1.0 - pow(1.0 - x, 3).toDouble();
+  double _easeOutCubic(double x) => 1 - pow(1 - x, 3).toDouble();
   double _easeInCubic(double x) => x * x * x;
 
   @override
@@ -51,26 +47,26 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
       child: AnimatedBuilder(
         animation: _ctrl,
         builder: (context, _) {
-          final double t = _ctrl.value.clamp(0.0, 1.0);
+          final t = _ctrl.value.clamp(0.0, 1.0);
 
           // Opacity: hold, then fade last ~0.60s
-          final double opacity =
+          final opacity =
               (t < 0.80) ? 1.0 : (1.0 - (t - 0.80) / 0.20).clamp(0.0, 1.0);
 
-          // Motion: slight lift early, then drift downward as it fades
-          final double lift =
-              -14.0 * _easeOutCubic((t / 0.30).clamp(0.0, 1.0));
-          final double drop =
-              24.0 * _easeInCubic(((t - 0.55) / 0.45).clamp(0.0, 1.0));
-          final double y = lift + drop;
+          // Motion: slight lift early, then drift down as it fades
+          final lift = -12.0 * _easeOutCubic((t / 0.30).clamp(0.0, 1.0));
+          final drop = 22.0 * _easeInCubic(((t - 0.55) / 0.45).clamp(0.0, 1.0));
+          final y = lift + drop;
 
-          return Opacity(
-            opacity: opacity,
-            child: Transform.translate(
-              offset: Offset(0, y),
-              child: const SizedBox.expand(
-                child: CustomPaint(
-                  painter: _CarnivalPainter(),
+          return Positioned.fill(
+            child: Opacity(
+              opacity: opacity,
+              child: Transform.translate(
+                offset: Offset(0, y),
+                child: SizedBox.expand(
+                  child: CustomPaint(
+                    painter: _CarnivalPainter(),
+                  ),
                 ),
               ),
             ),
@@ -82,177 +78,266 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
 }
 
 class _CarnivalPainter extends CustomPainter {
-  const _CarnivalPainter();
-
   @override
   void paint(Canvas canvas, Size size) {
-    final double w = size.width;
-    final double h = size.height;
+    final w = size.width;
+    final h = size.height;
 
-    // Full-screen sky + grass
-    final Paint sky = Paint()..color = const Color(0xFF6EC6FF);
-    final Paint grass = Paint()..color = const Color(0xFF2E7D32);
+    // --- COLORS (TapJunkie-safe) ---
+    final skyPaint = Paint()..color = const Color(0xFF6EC6FF);
+    final grassPaint = Paint()..color = const Color(0xFF2E7D32);
 
-    final double hillTopY = h * 0.86;
-    final double hillSag = h * 0.075;
+    // Muted carnival palette (not harsh black)
+    final tentRed = const Color(0xFF7D1E22).withOpacity(0.70);
+    final tentStripe = const Color(0xFFF5F5F5).withOpacity(0.40);
+    final tentEdge = Colors.black.withOpacity(0.10);
 
-    // SKY
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), sky);
+    // Background ferris (dim + behind)
+    final ferrisRim = Paint()
+      ..color = Colors.black.withOpacity(0.22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+    final ferrisSpoke = Paint()
+      ..color = Colors.black.withOpacity(0.14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    final ferrisCabin = Paint()..color = Colors.black.withOpacity(0.18);
 
-    // GRASS HILL (soft arc)
-    final Path hillPath = Path()
+    // Lights
+    final polePaint = Paint()
+      ..color = Colors.black.withOpacity(0.22)
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round;
+
+    final wirePaint = Paint()
+      ..color = Colors.black.withOpacity(0.22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+
+    final glowPaint = Paint()
+      ..color = const Color(0xFFFFE08A).withOpacity(0.24)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+
+    final bulbPaint = Paint()
+      ..color = const Color(0xFFFFD36A).withOpacity(0.95);
+
+    // --- LAYOUT ---
+    final hillTopY = h * 0.86;
+    final hillSag = h * 0.075;
+
+    // Stylized tent sizes (WIDE, not mountains)
+    final baseY = hillTopY + 2.0;
+    final bigH = h * 0.155;
+    final smallH = h * 0.120;
+
+    final bigW = w * 0.44;
+    final smallW = w * 0.30;
+
+    final bigCx = w * 0.50;
+    final leftCx = w * 0.24;
+    final rightCx = w * 0.76;
+
+    // --- 1) SKY ---
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), skyPaint);
+
+    // --- 2) GRASS HILL (soft arc) ---
+    final hillPath = Path()
       ..moveTo(-w * 0.15, hillTopY)
       ..quadraticBezierTo(w * 0.5, hillTopY - hillSag, w * 1.15, hillTopY)
       ..lineTo(w * 1.15, h)
       ..lineTo(-w * 0.15, h)
       ..close();
+    canvas.drawPath(hillPath, grassPaint);
 
-    canvas.drawPath(hillPath, grass);
+    // --- 3) FERRIS WHEEL (BACKGROUND, behind tents, partially hidden) ---
+    // Bigger + further right, and clipped so only upper portion shows.
+    final ferrisCenter = Offset(w * 0.84, baseY - bigH * 0.78);
+    final ferrisRadius = h * 0.17;
 
-    // TENTS (3 cluster)
-    _drawTent(canvas, w * 0.30, hillTopY, w * 0.22, h * 0.14);
-    _drawTent(canvas, w * 0.50, hillTopY, w * 0.30, h * 0.18);
-    _drawTent(canvas, w * 0.70, hillTopY, w * 0.22, h * 0.14);
+    canvas.save();
+    // Clip so the wheel is "behind the ground/tents"
+    // Anything below this line won't draw.
+    final clipY = baseY - bigH * 0.12;
+    canvas.clipRect(Rect.fromLTWH(0, 0, w, clipY));
 
-    // FERRIS WHEEL (background right)
-    _drawFerrisWheel(
+    canvas.drawCircle(ferrisCenter, ferrisRadius, ferrisRim);
+    canvas.drawCircle(ferrisCenter, ferrisRadius * 0.10, ferrisCabin);
+
+    const spokes = 12;
+    for (int i = 0; i < spokes; i++) {
+      final a = (i / spokes) * pi * 2;
+      final p = Offset(
+        ferrisCenter.dx + cos(a) * ferrisRadius,
+        ferrisCenter.dy + sin(a) * ferrisRadius,
+      );
+      canvas.drawLine(ferrisCenter, p, ferrisSpoke);
+
+      // Gondolas as dots around rim
+      if (i % 2 == 0) {
+        final g = Offset(
+          ferrisCenter.dx + cos(a) * ferrisRadius * 1.02,
+          ferrisCenter.dy + sin(a) * ferrisRadius * 1.02,
+        );
+        canvas.drawCircle(g, 3.0, ferrisCabin);
+      }
+    }
+
+    canvas.restore();
+
+    // --- 4) TENTS (MIDGROUND) ---
+    _drawTent(
       canvas,
-      Offset(w * 0.82, hillTopY - h * 0.16),
-      h * 0.12,
+      cx: leftCx,
+      baseY: baseY,
+      width: smallW,
+      height: smallH,
+      red: tentRed,
+      stripe: tentStripe,
+      edge: tentEdge,
     );
 
-    // STRING LIGHTS (lower than before; just above tent peaks)
-    _drawLights(canvas, size, hillTopY - h * 0.20);
+    _drawTent(
+      canvas,
+      cx: bigCx,
+      baseY: baseY,
+      width: bigW,
+      height: bigH,
+      red: tentRed,
+      stripe: tentStripe,
+      edge: tentEdge,
+    );
 
-    // BALLOON MACHINE (foreground center)
-    _drawMachine(canvas, size, hillTopY);
+    _drawTent(
+      canvas,
+      cx: rightCx,
+      baseY: baseY,
+      width: smallW,
+      height: smallH,
+      red: tentRed,
+      stripe: tentStripe,
+      edge: tentEdge,
+    );
+
+    // --- 5) STRING LIGHTS (anchored poles + droop into center) ---
+    final poleLeftX = w * 0.14;
+    final poleRightX = w * 0.86;
+
+    // Put poles around tent height, not in the sky
+    final tentTopY = baseY - bigH;
+    final poleTopY = tentTopY - h * 0.025;
+
+    // Poles
+    canvas.drawLine(Offset(poleLeftX, baseY), Offset(poleLeftX, poleTopY), polePaint);
+    canvas.drawLine(Offset(poleRightX, baseY), Offset(poleRightX, poleTopY), polePaint);
+
+    // Droop (lower in center)
+    final midX = (poleLeftX + poleRightX) * 0.5;
+    final sagY = poleTopY + h * 0.055; // visible droop
+
+    final wire = Path()
+      ..moveTo(poleLeftX, poleTopY)
+      ..quadraticBezierTo(midX, sagY, poleRightX, poleTopY);
+
+    canvas.drawPath(wire, wirePaint);
+
+    // Bulbs + glow
+    const bulbs = 14;
+    for (int i = 0; i < bulbs; i++) {
+      final p = i / (bulbs - 1);
+      final x = _lerp(poleLeftX, poleRightX, p);
+      final y = _quadBezierY(
+        x,
+        poleLeftX, poleTopY,
+        midX, sagY,
+        poleRightX, poleTopY,
+      );
+
+      final c = Offset(x, y);
+      canvas.drawCircle(c, 6.0, glowPaint);
+      canvas.drawCircle(c, 2.9, bulbPaint);
+    }
   }
 
-  void _drawTent(Canvas canvas, double cx, double baseY, double width, double height) {
-    final Paint red = Paint()
-      ..color = const Color(0xFF7D1E22).withOpacity(0.80);
+  void _drawTent(
+    Canvas canvas, {
+    required double cx,
+    required double baseY,
+    required double width,
+    required double height,
+    required Color red,
+    required Color stripe,
+    required Color edge,
+  }) {
+    final half = width * 0.5;
+    final topY = baseY - height;
 
-    final Paint stripe = Paint()
-      ..color = const Color(0xFFFFFFFF).withOpacity(0.45);
-
-    final double half = width / 2.0;
-    final double topY = baseY - height;
-
-    // More “tent-like” curve than a sharp triangle
-    final Path body = Path()
+    // Curved "big-top" body (wide + playful)
+    final body = Path()
       ..moveTo(cx - half, baseY)
-      ..lineTo(cx - half * 0.72, topY + height * 0.22)
-      ..quadraticBezierTo(cx, topY, cx + half * 0.72, topY + height * 0.22)
+      ..lineTo(cx - half * 0.78, topY + height * 0.28)
+      ..quadraticBezierTo(cx, topY, cx + half * 0.78, topY + height * 0.28)
       ..lineTo(cx + half, baseY)
       ..close();
 
-    canvas.drawPath(body, red);
+    // Fill
+    canvas.drawPath(body, Paint()..color = red);
 
-    // Vertical stripes clipped to tent body
-    const int stripeCount = 7;
-    for (int i = 0; i < stripeCount; i++) {
-      final double x = cx - half + (width * (i / (stripeCount - 1)));
-      final double stripeW = width * 0.055;
-
-      canvas.save();
-      canvas.clipPath(body);
-      canvas.drawRect(
-        Rect.fromLTWH(x - stripeW / 2, topY + height * 0.18, stripeW, height * 0.80),
-        stripe,
-      );
-      canvas.restore();
-    }
-  }
-
-  void _drawFerrisWheel(Canvas canvas, Offset center, double radius) {
-    final Paint rim = Paint()
-      ..color = Colors.black.withOpacity(0.35)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-
-    final Paint spoke = Paint()
-      ..color = Colors.black.withOpacity(0.25)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    canvas.drawCircle(center, radius, rim);
-
-    // Hub
-    canvas.drawCircle(center, radius * 0.10, Paint()..color = Colors.black.withOpacity(0.22));
-
-    // Spokes
-    const int spokes = 10;
-    for (int i = 0; i < spokes; i++) {
-      final double a = (i / spokes) * pi * 2.0;
-      final Offset p = Offset(center.dx + cos(a) * radius, center.dy + sin(a) * radius);
-      canvas.drawLine(center, p, spoke);
-
-      // Cabins as small dots
-      if (i % 2 == 0) {
-        final Offset c = Offset(center.dx + cos(a) * radius * 1.02, center.dy + sin(a) * radius * 1.02);
-        canvas.drawCircle(c, 2.6, Paint()..color = Colors.black.withOpacity(0.25));
-      }
-    }
-  }
-
-  void _drawLights(Canvas canvas, Size size, double y) {
-    final double w = size.width;
-
-    final Paint wire = Paint()
-      ..color = Colors.black.withOpacity(0.30)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2;
-
-    final Path path = Path()
-      ..moveTo(w * 0.20, y)
-      ..quadraticBezierTo(w * 0.50, y + 22, w * 0.80, y);
-
-    canvas.drawPath(path, wire);
-
-    final Paint glow = Paint()
-      ..color = const Color(0xFFFFE08A).withOpacity(0.25)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-
-    final Paint bulb = Paint()..color = const Color(0xFFFFD36A).withOpacity(0.95);
-
-    const int bulbs = 12;
-    for (int i = 0; i < bulbs; i++) {
-      final double t = i / (bulbs - 1);
-      final double x = w * 0.20 + (w * 0.60 * t);
-      final double bulbY = y + 18.0 * sin(pi * t); // gentle sag
-
-      final Offset c = Offset(x, bulbY);
-      canvas.drawCircle(c, 6.0, glow);
-      canvas.drawCircle(c, 3.0, bulb);
-    }
-  }
-
-  void _drawMachine(Canvas canvas, Size size, double baseY) {
-    final double w = size.width;
-    final double cx = w * 0.50;
-
-    final Paint body = Paint()
-      ..color = const Color(0xFF8A1C1F).withOpacity(0.95);
-
-    final RRect rect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(cx, baseY - 52),
-        width: w * 0.12,
-        height: 115,
-      ),
-      const Radius.circular(12),
-    );
-
-    canvas.drawRRect(rect, body);
-
-    // Small highlight so it doesn’t disappear into tents later
-    canvas.drawRRect(
-      rect,
+    // Subtle edge definition (helps it not look like mountains)
+    canvas.drawPath(
+      body,
       Paint()
-        ..color = Colors.white.withOpacity(0.10)
+        ..color = edge
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0,
     );
+
+    // Vertical stripes (clipped)
+    final stripePaint = Paint()..color = stripe;
+    const count = 8;
+    for (int i = 0; i < count; i++) {
+      final t = i / (count - 1);
+      final x = (cx - half) + (width * t);
+      final stripeW = width * 0.05;
+
+      final stripeRect = Rect.fromLTWH(
+        x - stripeW * 0.5,
+        topY + height * 0.22,
+        stripeW,
+        height * 0.78,
+      );
+
+      canvas.save();
+      canvas.clipPath(body);
+      canvas.drawRect(stripeRect, stripePaint);
+      canvas.restore();
+    }
+
+    // Little top flag
+    final flag = Path()
+      ..moveTo(cx, topY + height * 0.06)
+      ..lineTo(cx - 7, topY + height * 0.14)
+      ..lineTo(cx + 7, topY + height * 0.14)
+      ..close();
+    canvas.drawPath(flag, Paint()..color = stripe.withOpacity(0.55));
+  }
+
+  double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+  double _quadBezierY(
+    double x,
+    double x0,
+    double y0,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  ) {
+    // For gentle curves, linear t estimate is fine
+    final t = ((x - x0) / (x2 - x0)).clamp(0.0, 1.0);
+    final a = pow(1 - t, 2).toDouble();
+    final b = 2 * (1 - t) * t;
+    final c = t * t;
+    return a * y0 + b * y1 + c * y2;
   }
 
   @override
