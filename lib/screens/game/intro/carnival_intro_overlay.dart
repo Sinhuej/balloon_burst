@@ -21,7 +21,6 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
   @override
   void initState() {
     super.initState();
-
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
@@ -105,7 +104,7 @@ class _IntroPainter extends CustomPainter {
 
     _drawTent(canvas, bigCx, baseY, bigWidth, bigHeight, frontPaint);
 
-    // ---------- STRING LIGHT POLES ----------
+    // ---------- STRING LIGHTS (LOWER + SHORTER POLES) ----------
     final polePaint = Paint()
       ..color = const Color(0xFF2F4F4F)
       ..strokeWidth = 4;
@@ -113,7 +112,8 @@ class _IntroPainter extends CustomPainter {
     final poleLeftX = w * 0.12;
     final poleRightX = w * 0.88;
 
-    final poleTopY = hillTopY - h * 0.22;
+    // Shorter poles
+    final poleTopY = hillTopY - h * 0.12;
 
     canvas.drawLine(
         Offset(poleLeftX, baseY),
@@ -125,9 +125,9 @@ class _IntroPainter extends CustomPainter {
         Offset(poleRightX, poleTopY),
         polePaint);
 
-    // ---------- DROOPING WIRE ----------
+    // Lower droop — nearly touching tents
     final midX = w * 0.5;
-    final sagY = poleTopY + h * 0.07;
+    final sagY = hillTopY - h * 0.02;
 
     final wirePath = Path()
       ..moveTo(poleLeftX, poleTopY)
@@ -140,8 +140,13 @@ class _IntroPainter extends CustomPainter {
 
     canvas.drawPath(wirePath, wirePaint);
 
-    // ---------- BULBS (CONNECTED TO WIRE) ----------
-    final bulbPaint = Paint()..color = const Color(0xFFFFD36A);
+    // ---------- BULBS + GLOW ----------
+    final glowPaint = Paint()
+      ..color = const Color(0xFFFFE08A).withOpacity(0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+
+    final bulbPaint = Paint()
+      ..color = const Color(0xFFFFD36A);
 
     const bulbCount = 13;
 
@@ -149,18 +154,15 @@ class _IntroPainter extends CustomPainter {
       final t = i / (bulbCount - 1);
 
       final x = _lerp(poleLeftX, poleRightX, t);
+      final y = _quadBezierY(t,
+          poleLeftX, poleTopY,
+          midX, sagY,
+          poleRightX, poleTopY);
 
-      final y = _quadBezierY(
-        t,
-        poleLeftX,
-        poleTopY,
-        midX,
-        sagY,
-        poleRightX,
-        poleTopY,
-      );
+      final pos = Offset(x, y);
 
-      canvas.drawCircle(Offset(x, y), 4, bulbPaint);
+      canvas.drawCircle(pos, 8, glowPaint);
+      canvas.drawCircle(pos, 4, bulbPaint);
     }
   }
 
@@ -206,13 +208,13 @@ class _IntroPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // ---------- FLAG TOPPER ----------
+    // ---------- FLAG (TOUCHING PEAK) ----------
     final flagPaint = Paint()..color = Colors.white;
 
     final flag = Path()
-      ..moveTo(cx, topY - 6)
-      ..lineTo(cx - 6, topY + 6)
-      ..lineTo(cx + 6, topY + 6)
+      ..moveTo(cx, topY)
+      ..lineTo(cx - 6, topY + 12)
+      ..lineTo(cx + 6, topY + 12)
       ..close();
 
     canvas.drawPath(flag, flagPaint);
