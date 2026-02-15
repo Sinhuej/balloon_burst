@@ -35,9 +35,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
-
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -48,14 +46,16 @@ class _GameScreenState extends State<GameScreen>
   Size _lastSize = Size.zero;
 
   bool _showHud = false;
-  bool _showIntro = true;   // 👈 Intro auto-plays on fresh launch
+  bool _showIntro = true; // Intro auto-plays on fresh launch
   double _fps = 0.0;
   bool _canCountMisses = false;
 
+  // Gameplay constants
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
 
+  // Parallax state (currently unused in build, but kept for future layers)
   double _bgParallaxY = 0.0;
   double _fogParallaxY = 0.0;
 
@@ -110,11 +110,9 @@ class _GameScreenState extends State<GameScreen>
     _bgParallaxY += baseSpeed * dt;
     _fogParallaxY += fogSpeed * dt;
 
-    if (_bgParallaxY > _lastSize.height) {
-      _bgParallaxY -= _lastSize.height;
-    }
-    if (_fogParallaxY > _lastSize.height) {
-      _fogParallaxY -= _lastSize.height;
+    if (_lastSize.height > 0) {
+      if (_bgParallaxY > _lastSize.height) _bgParallaxY -= _lastSize.height;
+      if (_fogParallaxY > _lastSize.height) _fogParallaxY -= _lastSize.height;
     }
 
     widget.spawner.update(
@@ -174,7 +172,7 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_showIntro) return;  // 👈 Protect taps during intro
+    if (_showIntro) return; // Protect taps during intro
     if (_controller.isEnded || !_canCountMisses) return;
 
     TapHandler.handleTap(
@@ -191,7 +189,7 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _handleLongPress() {
-    if (_showIntro) return; // 👈 no HUD during intro
+    if (_showIntro) return; // No HUD during intro
     setState(() => _showHud = !_showHud);
     widget.onRequestDebug();
   }
@@ -234,11 +232,21 @@ class _GameScreenState extends State<GameScreen>
 
           return Stack(
             children: [
-
+              // Base background (safe, no input)
               IgnorePointer(
                 child: Container(color: bgColor),
               ),
 
+              // Carnival intro as WORLD layer (below gameplay)
+              if (_showIntro)
+                CarnivalIntroOverlay(
+                  onComplete: () {
+                    if (!mounted) return;
+                    setState(() => _showIntro = false);
+                  },
+                ),
+
+              // Gameplay layer (balloons + surge + lightning + HUD)
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -256,14 +264,6 @@ class _GameScreenState extends State<GameScreen>
                 recentMisses: widget.spawner.recentMisses,
               ),
 
-              if (_showIntro)
-                CarnivalIntroOverlay(
-                  onComplete: () {
-                    if (!mounted) return;
-                    setState(() => _showIntro = false);
-                  },
-                ),
-
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
@@ -279,13 +279,13 @@ class _GameScreenState extends State<GameScreen>
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 1:
-        return const Color(0xFF6EC6FF);
+        return const Color(0xFF6EC6FF); // Flat Sky Blue
       case 2:
-        return const Color(0xFF2E86DE);
+        return const Color(0xFF2E86DE); // Navy Blue
       case 3:
-        return const Color(0xFF6C2EB9);
+        return const Color(0xFF6C2EB9); // Royal Purple
       case 4:
-        return const Color(0xFF0B0F2F);
+        return const Color(0xFF0B0F2F); // Deep Space Indigo
       default:
         return const Color(0xFF6EC6FF);
     }
