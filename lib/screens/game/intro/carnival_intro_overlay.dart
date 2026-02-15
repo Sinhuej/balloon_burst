@@ -84,9 +84,8 @@ class _CarnivalIntroOverlayState
 class _CarnivalPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-
     final groundPaint = Paint()
-      ..color = const Color(0xFF2E7D32); // deep green
+      ..color = const Color(0xFF2E7D32);
 
     final hillPath = Path()
       ..moveTo(0, size.height * 0.85)
@@ -103,23 +102,97 @@ class _CarnivalPainter extends CustomPainter {
     canvas.drawPath(hillPath, groundPaint);
 
     final silhouette = Paint()
-      ..color = Colors.black;
+      ..color = const Color(0xFF111111);
 
-    // Tent
-    final tentPath = Path()
-      ..moveTo(size.width * 0.15, size.height * 0.80)
-      ..lineTo(size.width * 0.22, size.height * 0.70)
-      ..lineTo(size.width * 0.29, size.height * 0.80)
-      ..close();
+    // 🎪 Multiple Tent Peaks
+    void drawTent(double x, double width, double height) {
+      final path = Path()
+        ..moveTo(x, size.height * 0.85)
+        ..lineTo(x + width / 2, size.height * (0.85 - height))
+        ..lineTo(x + width, size.height * 0.85)
+        ..close();
+      canvas.drawPath(path, silhouette);
+    }
 
-    canvas.drawPath(tentPath, silhouette);
+    drawTent(size.width * 0.10, 80, 0.12);
+    drawTent(size.width * 0.22, 100, 0.15);
+    drawTent(size.width * 0.36, 70, 0.10);
 
-    // Ferris wheel
+    // 🎡 Ferris Wheel
+    final wheelCenter =
+        Offset(size.width * 0.78, size.height * 0.72);
+    const wheelRadius = 40.0;
+
+    canvas.drawCircle(wheelCenter, wheelRadius, silhouette);
+
+    final hubPaint = Paint()..color = const Color(0xFF222222);
+    canvas.drawCircle(wheelCenter, 6, hubPaint);
+
+    for (int i = 0; i < 8; i++) {
+      final angle = (i / 8) * 3.14159 * 2;
+      final spokeEnd = Offset(
+        wheelCenter.dx + wheelRadius * cos(angle),
+        wheelCenter.dy + wheelRadius * sin(angle),
+      );
+      canvas.drawLine(wheelCenter, spokeEnd, hubPaint);
+    }
+
+    // Ferris support legs
+    canvas.drawLine(
+        wheelCenter.translate(-15, wheelRadius),
+        Offset(wheelCenter.dx - 30, size.height * 0.85),
+        silhouette);
+
+    canvas.drawLine(
+        wheelCenter.translate(15, wheelRadius),
+        Offset(wheelCenter.dx + 30, size.height * 0.85),
+        silhouette);
+
+    // 🎈 Balloon Machine (left)
+    final machineBase = Rect.fromLTWH(
+      size.width * 0.05,
+      size.height * 0.78,
+      40,
+      50,
+    );
+
+    canvas.drawRect(machineBase, silhouette);
+
     canvas.drawCircle(
-      Offset(size.width * 0.75, size.height * 0.75),
-      30,
+      Offset(size.width * 0.07 + 20, size.height * 0.75),
+      20,
       silhouette,
     );
+
+    canvas.drawLine(
+      Offset(size.width * 0.09, size.height * 0.72),
+      Offset(size.width * 0.13, size.height * 0.65),
+      silhouette,
+    );
+
+    // 💡 String Lights
+    final lightsPath = Path()
+      ..moveTo(size.width * 0.1, size.height * 0.60)
+      ..quadraticBezierTo(
+        size.width * 0.5,
+        size.height * 0.55,
+        size.width * 0.9,
+        size.height * 0.60,
+      );
+
+    canvas.drawPath(lightsPath, hubPaint..strokeWidth = 2..style = PaintingStyle.stroke);
+
+    final lightPaint = Paint()
+      ..color = const Color(0xFF444444);
+
+    for (int i = 0; i <= 12; i++) {
+      final t = i / 12;
+      final dx = size.width * 0.1 +
+          (size.width * 0.8) * t;
+      final dy = size.height * 0.60 -
+          sin(t * 3.14159) * 20;
+      canvas.drawCircle(Offset(dx, dy), 3, lightPaint);
+    }
   }
 
   @override
