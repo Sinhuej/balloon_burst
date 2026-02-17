@@ -11,6 +11,8 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
+import 'package:balloon_burst/tj_engine/engine/tj_engine.dart'; // ✅ NEW
+
 import 'package:balloon_burst/screens/game/render/game_canvas.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 import 'package:balloon_burst/screens/game/input/tap_handler.dart';
@@ -37,7 +39,10 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
+
+  late final TJEngine _engine; // ✅ NEW (parallel engine instance)
   late final GameController _controller;
+
   late final WorldSurgePulse _surge;
 
   final List<Balloon> _balloons = [];
@@ -62,6 +67,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       'SYSTEM: GAME WIRED',
       type: DebugEventType.system,
     );
+
+    _engine = TJEngine(); // ✅ NEW (no behavior change)
 
     _controller = GameController(
       momentum: MomentumController(),
@@ -145,7 +152,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_showIntro) return; // Protect taps during intro
+    if (_showIntro) return;
     if (_controller.isEnded || !_canCountMisses) return;
 
     TapHandler.handleTap(
@@ -162,7 +169,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleLongPress() {
-    if (_showIntro) return; // no HUD during intro
+    if (_showIntro) return;
     setState(() => _showHud = !_showHud);
     widget.onRequestDebug();
   }
@@ -247,13 +254,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 1:
-        return const Color(0xFF6EC6FF); // Sky
+        return const Color(0xFF6EC6FF);
       case 2:
-        return const Color(0xFF2E86DE); // Navy
+        return const Color(0xFF2E86DE);
       case 3:
-        return const Color(0xFF6C2EB9); // Purple
+        return const Color(0xFF6C2EB9);
       case 4:
-        return const Color(0xFF0B0F2F); // Deep space
+        return const Color(0xFF0B0F2F);
       default:
         return const Color(0xFF6EC6FF);
     }
