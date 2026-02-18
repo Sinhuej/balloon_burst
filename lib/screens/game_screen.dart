@@ -145,7 +145,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
 
-      // 🔹 Mirror escape to engine
       _engine.runLifecycle.report(
         EscapeEvent(count: escapedThisTick),
       );
@@ -213,7 +212,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     widget.gameState.clearLogs();
     _lastTime = Duration.zero;
 
-    // 🔹 Restart engine run in parallel
     _engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
@@ -230,6 +228,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final summary = _engine.runLifecycle.latestSummary;
+
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -270,9 +270,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     setState(() => _showIntro = false);
                   },
                 ),
-              if (_controller.isEnded)
+              if (_controller.isEnded && summary != null)
                 RunEndOverlay(
-                  state: RunEndState.fromController(_controller),
+                  state: RunEndState.fromSummary(summary),
                   onReplay: _replay,
                 ),
             ],
