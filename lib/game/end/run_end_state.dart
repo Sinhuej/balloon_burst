@@ -1,10 +1,10 @@
-import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/tj_engine/engine/run/models/run_summary.dart';
 import 'package:balloon_burst/tj_engine/engine/run/models/run_state.dart';
 
 enum RunEndReason {
   miss,
   escape,
+  unknown,
 }
 
 class RunEndState {
@@ -18,37 +18,19 @@ class RunEndState {
     required this.escapes,
   });
 
-  /// ===============================================================
-  /// Legacy Constructor (Controller-based)
-  /// ===============================================================
-  factory RunEndState.fromController(GameController c) {
-    return RunEndState(
-      reason: c.endReason == 'escape'
-          ? RunEndReason.escape
-          : RunEndReason.miss,
-      misses: c.missCount,
-      escapes: c.escapeCount,
-    );
-  }
-
-  /// ===============================================================
-  /// New Engine-Based Constructor
-  /// ===============================================================
+  /// 🔹 Engine-owned summary conversion
   factory RunEndState.fromSummary(RunSummary summary) {
     RunEndReason mappedReason;
 
     switch (summary.endReason) {
-      case EndReason.escapeLimit:
+      case EndReason.miss:
+        mappedReason = RunEndReason.miss;
+        break;
+      case EndReason.escape:
         mappedReason = RunEndReason.escape;
         break;
-
-      case EndReason.missLimit:
-        mappedReason = RunEndReason.miss;
-        break;
-
       default:
-        // Fallback for now to preserve current UI behavior
-        mappedReason = RunEndReason.miss;
+        mappedReason = RunEndReason.unknown;
     }
 
     return RunEndState(
