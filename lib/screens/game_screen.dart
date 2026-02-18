@@ -13,6 +13,7 @@ import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 import 'package:balloon_burst/tj_engine/engine/run/models/run_state.dart';
+import 'package:balloon_burst/tj_engine/engine/run/models/run_event.dart';
 
 import 'package:balloon_burst/screens/game/render/game_canvas.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
@@ -71,7 +72,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _engine = TJEngine();
 
-    // 🔹 START ENGINE RUN (parallel tracking only)
     _engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
@@ -89,7 +89,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _onTick(Duration elapsed) {
     if (_controller.isEnded) {
-      // 🔹 END ENGINE RUN (parallel tracking only)
       if (_engine.runLifecycle.state == RunState.running) {
         _engine.runLifecycle.endRun(EndReason.unknown);
       }
@@ -145,6 +144,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
+
+      // 🔹 Mirror escape to engine
+      _engine.runLifecycle.report(
+        EscapeEvent(count: escapedThisTick),
+      );
+
       widget.gameState.log(
         'MISS: escaped=$escapedThisTick',
         type: DebugEventType.miss,
@@ -168,6 +173,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (_showIntro) return;
     if (_controller.isEnded || !_canCountMisses) return;
 
+    final missesBefore = _controller.missCount;
+
     TapHandler.handleTap(
       details: details,
       lastSize: _lastSize,
@@ -179,6 +186,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       balloonRadius: balloonRadius,
       hitForgiveness: hitForgiveness,
     );
+
+    final missesAfter = _controller.missCount;
+
+    if (missesAfter > missesBefore) {
+      _engine.runLifecycle.report(const MissEvent());
+    } else {
+      _engine.runLifecycle.report(const PopEvent(points: 1));
+    }
   }
 
   void _handleLongPress() {
@@ -197,6 +212,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     widget.gameState.clearLogs();
     _lastTime = Duration.zero;
+
+    // 🔹 Restart engine run in parallel
+    _engine.runLifecycle.startRun(
+      runId: DateTime.now().millisecondsSinceEpoch.toString(),
+    );
+
     setState(() {});
   }
 
@@ -226,7 +247,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               IgnorePointer(
                 child: Container(color: bgColor),
               ),
-
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -243,7 +263,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
               ),
-
               if (_showIntro)
                 CarnivalIntroOverlay(
                   onComplete: () {
@@ -251,7 +270,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     setState(() => _showIntro = false);
                   },
                 ),
-
               if (_controller.isEnded)
                 RunEndOverlay(
                   state: RunEndState.fromController(_controller),
