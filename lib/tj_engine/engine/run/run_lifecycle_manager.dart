@@ -5,28 +5,6 @@ import 'models/run_event.dart';
 import 'models/run_status_snapshot.dart';
 import 'models/run_summary.dart';
 
-/// ===============================================================
-/// SYSTEM: RunLifecycleManager
-/// ===============================================================
-///
-/// PURPOSE:
-/// Authoritative engine-owned controller for a single gameplay run.
-///
-/// RESPONSIBILITIES:
-/// - Start a run
-/// - End a run
-/// - Track run statistics
-/// - Generate RunSummary
-/// - Provide live RunStatusSnapshot
-///
-/// IMPORTANT:
-/// This file must remain pure Dart.
-/// No Flutter imports.
-/// No game-specific imports.
-///
-/// This manager is NOT yet wired to BalloonBurst.
-/// Integration comes in later phases.
-/// ===============================================================
 class RunLifecycleManager {
   RunState _state = RunState.idle;
 
@@ -45,16 +23,11 @@ class RunLifecycleManager {
   double _accuracy01 = 1.0;
 
   EndReason? _endReason;
-
   RunSummary? _latestSummary;
 
   RunState get state => _state;
-
   RunSummary? get latestSummary => _latestSummary;
 
-  /// ============================================================
-  /// Start a new run.
-  /// ============================================================
   void startRun({required String runId}) {
     if (_state == RunState.running) return;
 
@@ -79,6 +52,7 @@ class RunLifecycleManager {
 
   /// ============================================================
   /// Report gameplay event.
+  /// Engine now enforces fail limits.
   /// ============================================================
   void report(RunEvent event) {
     if (_state != RunState.running) return;
@@ -86,24 +60,41 @@ class RunLifecycleManager {
     if (event is PopEvent) {
       _pops++;
       _score += event.points;
-    } else if (event is MissEvent) {
+    }
+
+    else if (event is MissEvent) {
       _misses++;
-    } else if (event is EscapeEvent) {
+
+      // 🔹 Miss fail rule
+      if (_misses >= 10) {
+        endRun(EndReason.missLimit);
+        return;
+      }
+    }
+
+    else if (event is EscapeEvent) {
       _escapes += event.count;
-    } else if (event is WorldTransitionEvent) {
+
+      // 🔹 Escape fail rule
+      if (_escapes >= 3) {
+        endRun(EndReason.escapeLimit);
+        return;
+      }
+    }
+
+    else if (event is WorldTransitionEvent) {
       _currentWorldLevel = event.newWorldLevel;
       if (_currentWorldLevel > _maxWorldLevelReached) {
         _maxWorldLevelReached = _currentWorldLevel;
       }
-    } else if (event is ScoreDeltaEvent) {
+    }
+
+    else if (event is ScoreDeltaEvent) {
       _score += event.delta;
       if (_score < 0) _score = 0;
     }
   }
 
-  /// ============================================================
-  /// End the current run.
-  /// ============================================================
   void endRun(EndReason reason) {
     if (_state != RunState.running) return;
 
@@ -130,9 +121,6 @@ class RunLifecycleManager {
     );
   }
 
-  /// ============================================================
-  /// Live snapshot of run state.
-  /// ============================================================
   RunStatusSnapshot getSnapshot() {
     final now = DateTime.now();
     final start = _startTime ?? now;
