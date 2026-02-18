@@ -39,12 +39,12 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
 
   late final TJEngine _engine;
   late final GameController _controller;
-
   late final WorldSurgePulse _surge;
 
   final List<Balloon> _balloons = [];
@@ -60,6 +60,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
+
+  bool get _isRunEnded =>
+      _engine.runLifecycle.state == RunState.ended;
 
   @override
   void initState() {
@@ -88,11 +91,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _onTick(Duration elapsed) {
-    if (_controller.isEnded) {
-      if (_engine.runLifecycle.state == RunState.running) {
-        _engine.runLifecycle.endRun(EndReason.unknown);
-      }
-
+    if (_isRunEnded) {
       _lastTime = elapsed;
       if (mounted) setState(() {});
       return;
@@ -121,8 +120,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final b = _balloons[i];
       final speed =
           baseRiseSpeed *
-          widget.spawner.speedMultiplier *
-          b.riseSpeedMultiplier;
+              widget.spawner.speedMultiplier *
+              b.riseSpeedMultiplier;
 
       final moved = b.movedBy(-speed * dt);
       final driftX = moved.driftedX(
@@ -144,14 +143,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
-
       _engine.runLifecycle.report(
         EscapeEvent(count: escapedThisTick),
-      );
-
-      widget.gameState.log(
-        'MISS: escaped=$escapedThisTick',
-        type: DebugEventType.miss,
       );
     }
 
@@ -170,7 +163,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _handleTap(TapDownDetails details) {
     if (_showIntro) return;
-    if (_controller.isEnded || !_canCountMisses) return;
+    if (_isRunEnded || !_canCountMisses) return;
 
     final missesBefore = _controller.missCount;
 
@@ -244,9 +237,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
           return Stack(
             children: [
-              IgnorePointer(
-                child: Container(color: bgColor),
-              ),
+              IgnorePointer(child: Container(color: bgColor)),
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -270,7 +261,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     setState(() => _showIntro = false);
                   },
                 ),
-              if (_controller.isEnded && summary != null)
+              if (_isRunEnded && summary != null)
                 RunEndOverlay(
                   state: RunEndState.fromSummary(summary),
                   onReplay: _replay,
