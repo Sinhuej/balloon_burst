@@ -1,45 +1,63 @@
-import 'package:balloon_burst/game/game_state.dart'
-    show GameState;
-import 'package:balloon_burst/debug/debug_log.dart'
-    show DebugEventType;
+import 'package:balloon_burst/game/game_state.dart' show GameState;
+import 'package:balloon_burst/debug/debug_log.dart' show DebugEventType;
 import 'package:balloon_burst/gameplay/balloon.dart';
 
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
+/// ===============================================================
+/// GameController (BalloonBurst)
+/// ===============================================================
+///
+/// RESPONSIBILITY (Post-Engine Integration):
+/// - Updates gameplay-related controllers (momentum/tier/speed)
+/// - Tracks lightweight telemetry counters (misses/escapes) for UI/debug
+/// - Logs gameplay signals
+///
+/// NON-RESPONSIBILITY:
+/// - Run lifecycle authority (start/end) is now owned by TJ Engine
+/// - Fail conditions (miss limit, escape limit) are owned by TJ Engine
+/// ===============================================================
 class GameController {
   final MomentumController momentum;
   final TierController tier;
   final SpeedCurve speed;
   final GameState gameState;
 
-  bool isEnded = false;
-
+  // Telemetry-only counters (engine owns fail rules + lifecycle)
   int _escapeCount = 0;
   int _missCount = 0;
-  String _endReason = '';
 
   GameController({
     required this.momentum,
     required this.tier,
-    required this.speed,                                            required this.gameState,
-  });                                                           
+    required this.speed,
+    required this.gameState,
+  });
+
+  /// Telemetry values (read-only).
   int get escapeCount => _escapeCount;
   int get missCount => _missCount;
-  String get endReason => _endReason;
 
-  // -----------------------
-  // Telemetry (read-only)
-  // -----------------------
+  /// -----------------------
+  /// Telemetry (read-only)
+  /// -----------------------
   double get accuracy01 => momentum.accuracy01;
 
   void update(List<Balloon> balloons, double dt) {
     momentum.update(dt);
+
+    // NOTE: TierController.update expects momentum01, not dt.
+    // If TierController signature differs in this repo, keep as-is.
+    // For now we preserve behavior: calling update(...) here.
     tier.update(dt);
+
     gameState.framesSinceStart++;
   }
 
+  /// Telemetry-only escape registration.
+  /// Engine will decide if escapes end the run.
   void registerEscapes(int count) {
     _escapeCount += count;
 
@@ -47,56 +65,40 @@ class GameController {
       'WORLD: ESCAPE +$count total=$_escapeCount',
       type: DebugEventType.miss,
     );
-
-    if (_escapeCount >= 3) {
-      endRun('escape');
-    }
   }
 
+  /// Telemetry-only tap registration.
+  /// Engine will decide if misses end the run.
   void registerTap({required bool hit}) {
-  // Always update momentum first (hit or miss)
-  momentum.registerTap(hit: hit);
+    // Always update momentum first (hit or miss)
+    momentum.registerTap(hit: hit);
 
-  // Always log current accuracy (if filter enabled)
-  gameState.log(
-    'ACCURACY: a01=${momentum.accuracy01.toStringAsFixed(3)}',
-    type: DebugEventType.accuracy,
-  );
-
-  if (!hit) {
-    _missCount++;
+    // Always log current accuracy (if filter enabled)
     gameState.log(
-      'MISS: count=$_missCount',
-      type: DebugEventType.miss,
+      'ACCURACY: a01=${momentum.accuracy01.toStringAsFixed(3)}',
+      type: DebugEventType.accuracy,
     );
 
-    if (_missCount >= 10) {
-      endRun('miss');
+    if (!hit) {
+      _missCount++;
+      gameState.log(
+        'MISS: count=$_missCount',
+        type: DebugEventType.miss,
+      );
     }
   }
-}
 
-  void endRun(String reason) {
-    if (isEnded) return;
-
-    isEnded = true;
-    _endReason = reason;
-
-    gameState.log(
-      'SYSTEM: RUN END reason=$reason escapes=$_escapeCount misses=$_missCount',
-      type: DebugEventType.system,
-    );
-  }
-
-  void reset() {                                                    isEnded = false;
-    _escapeCount = 0;                                               _missCount = 0;
-    _endReason = '';
+  /// Reset only telemetry + controllers.
+  /// Run lifecycle reset is owned by TJ Engine.
+  void reset() {
+    _escapeCount = 0;
+    _missCount = 0;
 
     momentum.reset();
     tier.reset();
 
     gameState.log(
-      'SYSTEM: run reset',
+      'SYSTEM: controller reset (telemetry + controllers)',
       type: DebugEventType.system,
     );
   }
