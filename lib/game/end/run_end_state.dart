@@ -4,7 +4,6 @@ import 'package:balloon_burst/tj_engine/engine/run/models/run_state.dart';
 enum RunEndReason {
   miss,
   escape,
-  unknown,
 }
 
 class RunEndState {
@@ -18,19 +17,22 @@ class RunEndState {
     required this.escapes,
   });
 
-  /// 🔹 Engine-owned summary conversion
+  /// Engine-owned summary conversion
   factory RunEndState.fromSummary(RunSummary summary) {
     RunEndReason mappedReason;
 
     switch (summary.endReason) {
-      case EndReason.miss:
-        mappedReason = RunEndReason.miss;
-        break;
-      case EndReason.escape:
+      case EndReason.escapeLimit:
         mappedReason = RunEndReason.escape;
         break;
+
+      case EndReason.missLimit:
+        mappedReason = RunEndReason.miss;
+        break;
+
+      // All other engine reasons map to "miss"
       default:
-        mappedReason = RunEndReason.unknown;
+        mappedReason = RunEndReason.miss;
     }
 
     return RunEndState(
