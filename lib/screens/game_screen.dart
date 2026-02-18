@@ -11,7 +11,8 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 
-import 'package:balloon_burst/tj_engine/engine/tj_engine.dart'; // ✅ NEW
+import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
+import 'package:balloon_burst/tj_engine/engine/run/models/run_state.dart';
 
 import 'package:balloon_burst/screens/game/render/game_canvas.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
@@ -40,7 +41,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
 
-  late final TJEngine _engine; // ✅ NEW (parallel engine instance)
+  late final TJEngine _engine;
   late final GameController _controller;
 
   late final WorldSurgePulse _surge;
@@ -51,7 +52,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Size _lastSize = Size.zero;
 
   bool _showHud = false;
-  bool _showIntro = true; // Intro auto-plays on fresh launch
+  bool _showIntro = true;
   double _fps = 0.0;
   bool _canCountMisses = false;
 
@@ -68,7 +69,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       type: DebugEventType.system,
     );
 
-    _engine = TJEngine(); // ✅ NEW (no behavior change)
+    _engine = TJEngine();
+
+    // 🔹 START ENGINE RUN (parallel tracking only)
+    _engine.runLifecycle.startRun(
+      runId: DateTime.now().millisecondsSinceEpoch.toString(),
+    );
 
     _controller = GameController(
       momentum: MomentumController(),
@@ -83,6 +89,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _onTick(Duration elapsed) {
     if (_controller.isEnded) {
+      // 🔹 END ENGINE RUN (parallel tracking only)
+      if (_engine.runLifecycle.state == RunState.running) {
+        _engine.runLifecycle.endRun(EndReason.unknown);
+      }
+
       _lastTime = elapsed;
       if (mounted) setState(() {});
       return;
@@ -110,7 +121,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
       final speed =
-          baseRiseSpeed * widget.spawner.speedMultiplier * b.riseSpeedMultiplier;
+          baseRiseSpeed *
+          widget.spawner.speedMultiplier *
+          b.riseSpeedMultiplier;
 
       final moved = b.movedBy(-speed * dt);
       final driftX = moved.driftedX(
