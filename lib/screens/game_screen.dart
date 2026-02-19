@@ -100,6 +100,8 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
     _lastTime = elapsed;
 
+    _engine.update(dt); // 🔥 NEW — engine difficulty ticking
+
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
