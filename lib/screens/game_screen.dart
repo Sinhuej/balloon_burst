@@ -41,8 +41,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
@@ -56,6 +55,9 @@ class _GameScreenState extends State<GameScreen>
   bool _showIntro = true;
   double _fps = 0.0;
   bool _canCountMisses = false;
+
+  // ✅ Phase C Step 3 — parallel verification logging (no behavior changes)
+  double _difficultyLogTimer = 0.0;
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
@@ -100,12 +102,23 @@ class _GameScreenState extends State<GameScreen>
         : (elapsed - _lastTime).inMicroseconds / 1e6;
     _lastTime = elapsed;
 
-    
-    // Phase C Step 2 — tick engine difficulty
-    widget.engine.update(dt);
-
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
+
+    // ✅ Phase C Step 3 — tick engine difficulty in parallel (no spawner changes yet)
+    widget.engine.update(dt);
+
+    // ✅ Phase C Step 3 — verify snapshot (log every ~2 seconds)
+    _difficultyLogTimer += dt;
+    if (_difficultyLogTimer >= 2.0) {
+      final s = widget.engine.difficulty.snapshot;
+      widget.gameState.log(
+        'DIFF: lvl=${s.level} interval=${s.spawnInterval.toStringAsFixed(2)} '
+        'speed=${s.speedMultiplier.toStringAsFixed(2)} max=${s.maxSimultaneousSpawns}',
+        type: DebugEventType.system,
+      );
+      _difficultyLogTimer = 0.0;
+    }
 
     widget.spawner.update(
       dt: dt,
@@ -199,6 +212,7 @@ class _GameScreenState extends State<GameScreen>
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
+    _difficultyLogTimer = 0.0;
 
     _controller.reset();
     widget.spawner.resetForNewRun();
