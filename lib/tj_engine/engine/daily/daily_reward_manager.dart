@@ -77,19 +77,26 @@ class DailyRewardManager {
     return status.computedReward;
   }
 
-  /// ============================================================
-  /// Reward scaling logic (temporary numbers for now)
-  /// Will be tuned later.
+ /// ============================================================
+  /// Reward scaling logic.
+  /// Engine-owned economic tuning lives here.
   /// ============================================================
   DailyRewardModel _computeReward(int worldLevel) {
-    const baseCoins = 100;
-    const perWorldBonus = 25;
+    // 🔹 Base daily reward
+    const int baseCoins = 100;
 
-    final coins = baseCoins + (worldLevel * perWorldBonus);
+    // 🔹 Scaling per world level
+    const int coinsPerWorld = 25;
+
+    // 🔹 Optional bonus scaling
+    const int bonusPointsPerWorld = 5;
+
+    final scaledCoins = baseCoins + (worldLevel * coinsPerWorld);
+    final scaledBonus = worldLevel * bonusPointsPerWorld;
 
     return DailyRewardModel(
-      coins: coins,
-      bonusPoints: worldLevel * 5,
+      coins: scaledCoins,
+      bonusPoints: scaledBonus,
     );
   }
 }
