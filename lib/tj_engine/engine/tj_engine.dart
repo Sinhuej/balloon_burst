@@ -1,40 +1,31 @@
 // lib/tj_engine/engine/tj_engine.dart
 
+import 'core/difficulty_manager.dart';
 import 'run/run_lifecycle_manager.dart';
-import 'daily/daily_reward_manager.dart';
 
 /// ===============================================================
 /// SYSTEM: TJEngine (Engine Facade)
 /// ===============================================================
 ///
 /// PURPOSE:
-/// Single entry point to all TapJunkie engine systems.
-///
-/// OWNED BY:
-/// BalloonBurst (for now)
-///
-/// FUTURE:
-/// This file becomes the only import point for games.
-/// Games should not directly instantiate engine subsystems.
+/// Single entry point to TapJunkie engine systems.
 ///
 /// IMPORTANT:
-/// This facade exposes:
-/// - RunLifecycleManager
-/// - DailyRewardManager
-///
-/// This file must remain pure Dart.
-/// No Flutter imports.
+/// - Pure Dart (no Flutter imports)
+/// - Games should access engine subsystems only through this facade
 /// ===============================================================
 class TJEngine {
-  /// Authoritative run lifecycle system.
   final RunLifecycleManager runLifecycle;
-
-  /// Daily reward system (24-hour claim logic).
-  final DailyRewardManager dailyReward;
+  final DifficultyManager difficulty;
 
   TJEngine({
     RunLifecycleManager? runLifecycle,
-    DailyRewardManager? dailyReward,
+    DifficultyManager? difficulty,
   })  : runLifecycle = runLifecycle ?? RunLifecycleManager(),
-        dailyReward = dailyReward ?? DailyRewardManager();
+        difficulty = difficulty ?? DifficultyManager();
+
+  /// Called every frame from the game layer (GameScreen / Flame loop).
+  void update(double dt) {
+    difficulty.update(dt);
+  }
 }
