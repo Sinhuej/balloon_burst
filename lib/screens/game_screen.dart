@@ -26,12 +26,14 @@ import 'package:balloon_burst/game/end/run_end_state.dart';
 class GameScreen extends StatefulWidget {
   final GameState gameState;
   final BalloonSpawner spawner;
+  final TJEngine engine; // 🔹 injected engine
   final VoidCallback onRequestDebug;
 
   const GameScreen({
     super.key,
     required this.gameState,
     required this.spawner,
+    required this.engine,
     required this.onRequestDebug,
   });
 
@@ -42,8 +44,6 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen>
     with TickerProviderStateMixin {
   late final Ticker _ticker;
-
-  late final TJEngine _engine;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
 
@@ -62,7 +62,7 @@ class _GameScreenState extends State<GameScreen>
   static const double hitForgiveness = 18.0;
 
   bool get _isRunEnded =>
-      _engine.runLifecycle.state == RunState.ended;
+      widget.engine.runLifecycle.state == RunState.ended;
 
   @override
   void initState() {
@@ -73,9 +73,7 @@ class _GameScreenState extends State<GameScreen>
       type: DebugEventType.system,
     );
 
-    _engine = TJEngine();
-
-    _engine.runLifecycle.startRun(
+    widget.engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
 
@@ -143,7 +141,7 @@ class _GameScreenState extends State<GameScreen>
 
     if (escapedThisTick > 0) {
       _controller.registerEscapes(escapedThisTick);
-      _engine.runLifecycle.report(
+      widget.engine.runLifecycle.report(
         EscapeEvent(count: escapedThisTick),
       );
     }
@@ -182,9 +180,9 @@ class _GameScreenState extends State<GameScreen>
     final missesAfter = _controller.missCount;
 
     if (missesAfter > missesBefore) {
-      _engine.runLifecycle.report(const MissEvent());
+      widget.engine.runLifecycle.report(const MissEvent());
     } else {
-      _engine.runLifecycle.report(const PopEvent(points: 1));
+      widget.engine.runLifecycle.report(const PopEvent(points: 1));
     }
   }
 
@@ -205,7 +203,7 @@ class _GameScreenState extends State<GameScreen>
     widget.gameState.clearLogs();
     _lastTime = Duration.zero;
 
-    _engine.runLifecycle.startRun(
+    widget.engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
 
@@ -221,7 +219,7 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   Widget build(BuildContext context) {
-    final summary = _engine.runLifecycle.latestSummary;
+    final summary = widget.engine.runLifecycle.latestSummary;
 
     return Scaffold(
       body: LayoutBuilder(
