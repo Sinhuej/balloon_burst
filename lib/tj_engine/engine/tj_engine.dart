@@ -2,6 +2,7 @@
 
 import 'core/difficulty_manager.dart';
 import 'run/run_lifecycle_manager.dart';
+import 'daily/daily_reward_manager.dart';
 
 /// ===============================================================
 /// SYSTEM: TJEngine (Engine Facade)
@@ -17,12 +18,15 @@ import 'run/run_lifecycle_manager.dart';
 class TJEngine {
   final RunLifecycleManager runLifecycle;
   final DifficultyManager difficulty;
+  final DailyRewardManager dailyReward;
 
   TJEngine({
     RunLifecycleManager? runLifecycle,
     DifficultyManager? difficulty,
+    DailyRewardManager? dailyReward,
   })  : runLifecycle = runLifecycle ?? RunLifecycleManager(),
-        difficulty = difficulty ?? DifficultyManager();
+        difficulty = difficulty ?? DifficultyManager(),
+        dailyReward = dailyReward ?? DailyRewardManager();
 
   /// Called every frame from the game layer (GameScreen / Flame loop).
   void update(double dt) {
