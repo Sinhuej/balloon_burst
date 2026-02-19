@@ -8,6 +8,9 @@ import 'package:balloon_burst/screens/debug_screen.dart';
 
 import 'package:balloon_burst/debug/debug_controller.dart';
 
+// 🔹 ENGINE IMPORT
+import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
+
 class AppRoot extends StatefulWidget {
   const AppRoot({super.key});
 
@@ -19,7 +22,9 @@ class _AppRootState extends State<AppRoot> {
   final GameState _gameState = GameState();
   final BalloonSpawner _spawner = BalloonSpawner();
 
-  // Legacy – kept for now so nothing explodes
+  // 🔹 SINGLE SESSION ENGINE
+  final TJEngine _engine = TJEngine();
+
   final DebugController _debug = DebugController();
 
   void _openDebug() {
@@ -39,9 +44,9 @@ class _AppRootState extends State<AppRoot> {
     switch (_gameState.screenMode) {
       case ScreenMode.debug:
         return DebugScreen(
-          gameState: _gameState,      // 🔑 THIS WAS MISSING
+          gameState: _gameState,
           spawner: _spawner,
-          debug: _debug,              // still passed, but ignored internally
+          debug: _debug,
           onClose: _closeDebug,
         );
 
@@ -50,6 +55,7 @@ class _AppRootState extends State<AppRoot> {
         return GameScreen(
           gameState: _gameState,
           spawner: _spawner,
+          engine: _engine,        // 🔥 THIS FIXES RED
           onRequestDebug: _openDebug,
         );
     }
