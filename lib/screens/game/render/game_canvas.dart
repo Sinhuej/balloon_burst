@@ -168,12 +168,14 @@ class GameCanvas extends StatelessWidget {
                   ),
 
                 if (showHud)
-                  DebugHud(
-                    fps: fps,
-                    speedMultiplier: speedMultiplier,
-                    recentAccuracy: recentAccuracy,
-                    recentMisses: recentMisses,
-                  ),
+                 DebugHud(
+                  fps: fps,
+                  speedMultiplier: speedMultiplier,
+                  world: currentWorld,
+                  balloonCount: balloons.length,
+                  recentAccuracy: recentAccuracy,
+                  recentMisses: recentMisses,
+                ),
               ],
             );
           },
