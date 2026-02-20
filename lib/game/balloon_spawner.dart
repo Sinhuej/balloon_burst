@@ -1,7 +1,8 @@
 import 'dart:math';
-import 'package:balloon_burst/gameplay/balloon.dart';
-import 'package:balloon_burst/game/game_state.dart';
+
 import 'package:balloon_burst/game/balloon_type.dart';
+import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/gameplay/balloon.dart';
 
 class BalloonSpawner {
   double _timer = 0.0;
@@ -16,6 +17,7 @@ class BalloonSpawner {
 
   int _lastLoggedWorld = 1;
 
+  // 🔒 Wave control (current design: one wave at a time)
   bool _waveActive = false;
 
   static const int world2Pops = 50;
@@ -39,11 +41,17 @@ class BalloonSpawner {
   static const double maxWorldRamp = 0.10;
   static const double maxMissSlowdown = 0.05;
 
+  // Vertical stacking on entry
   static const double burstSpacingY = 26.0;
+
+  // Cluster feel
   static const double clusterSpread = 0.12;
   static const double clusterJitter = 0.02;
+
+  // Horizontal spawn range
   static const double clusterOriginRangeWorld1 = 0.56;
   static const double clusterOriginRangeWorld2Plus = 0.66;
+
   static const double xClamp = 0.58;
 
   void update({
@@ -51,8 +59,16 @@ class BalloonSpawner {
     required int tier,
     required List<Balloon> balloons,
     required double viewportHeight,
-    required double engineSpawnInterval, // 🔥 NEW
+
+    /// ENGINE: difficulty-derived base spawn interval
+    /// e.g. 1.2 = neutral, <1.2 = faster
+    required double engineSpawnInterval,
+
+    /// ENGINE: difficulty-derived concurrency cap
+    /// Limits how many (not popped) balloons can exist simultaneously.
+    required int engineMaxSimultaneousSpawns,
   }) {
+    // 🔒 Lock wave until no ACTIVE balloons remain
     if (_waveActive) {
       final hasActiveBalloon = balloons.any((b) => !b.isPopped);
       if (hasActiveBalloon) return;
@@ -62,35 +78,51 @@ class BalloonSpawner {
     }
 
     // ---------------------------------------------------------
-    // WORLD INTERVAL
+    // CONCURRENCY GOVERNOR (Engine-owned)
     // ---------------------------------------------------------
-    final worldInterval =
+    final int activeCount = balloons.where((b) => !b.isPopped).length;
+    final int remainingCapacity =
+        (engineMaxSimultaneousSpawns - activeCount).clamp(0, 9999);
+
+    // If we're at/over cap, do not spawn.
+    if (remainingCapacity <= 0) return;
+
+    // ---------------------------------------------------------
+    // WORLD INTERVAL (thematic pacing)
+    // ---------------------------------------------------------
+    final double worldInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
 
     // ---------------------------------------------------------
-    // ENGINE DIFFICULTY MULTIPLIER
+    // ENGINE DIFFICULTY MULTIPLIER (time pressure)
     // Engine base interval = 1.2
     // 1.2 → neutral
     // <1.2 → faster
     // ---------------------------------------------------------
-    final engineMultiplier = engineSpawnInterval / 1.2;
+    final double engineMultiplier = engineSpawnInterval / 1.2;
 
-    final targetInterval = worldInterval * engineMultiplier;
+    final double targetInterval = worldInterval * engineMultiplier;
 
+    // Smooth to avoid jank
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
 
     _timer += dt;
-
     if (_timer < spawnInterval) return;
     _timer = 0.0;
 
-    final int count = _pickGroupSizeForWorld(currentWorld);
+    // ---------------------------------------------------------
+    // GROUP SIZE (world flavor), then clamp to remaining capacity
+    // ---------------------------------------------------------
+    final int desiredCount = _pickGroupSizeForWorld(currentWorld);
+    final int count = min(desiredCount, remainingCapacity);
+
+    // If count becomes 0 (edge case), skip safely.
+    if (count <= 0) return;
+
     final List<BalloonType> types = _chooseTypesForGroup(count);
 
     final double originRange =
-        (currentWorld <= 1)
-            ? clusterOriginRangeWorld1
-            : clusterOriginRangeWorld2Plus;
+        (currentWorld <= 1) ? clusterOriginRangeWorld1 : clusterOriginRangeWorld2Plus;
 
     final double clusterCenterX = _pickClusterOrigin(originRange);
     final List<double> xOffsets = _xOffsetsForCount(count);
@@ -99,15 +131,14 @@ class BalloonSpawner {
 
     for (int i = 0; i < count; i++) {
       final int index = _spawnCount++;
+
       final double spawnY =
           viewportHeight + burstSpacingY * (count - 1 - i);
 
-      final double jitter =
-          (_rng.nextDouble() * 2 - 1) * clusterJitter;
+      final double jitter = (_rng.nextDouble() * 2 - 1) * clusterJitter;
 
       final double x =
-          (clusterCenterX + xOffsets[i] + jitter)
-              .clamp(-xClamp, xClamp);
+          (clusterCenterX + xOffsets[i] + jitter).clamp(-xClamp, xClamp);
 
       final Balloon b = Balloon(
         id: 'balloon_$index',
@@ -122,22 +153,26 @@ class BalloonSpawner {
     }
   }
 
+  // 🎈 Weighted cluster sizes per world
   int _pickGroupSizeForWorld(int world) {
     final roll = _rng.nextDouble();
 
     switch (world) {
       case 1:
+        // 1:25% | 2:40% | 3:35%
         if (roll < 0.25) return 1;
         if (roll < 0.65) return 2;
         return 3;
 
       case 2:
+        // 1:20% | 2:30% | 3:30% | 4:20%
         if (roll < 0.20) return 1;
         if (roll < 0.50) return 2;
         if (roll < 0.80) return 3;
         return 4;
 
       case 3:
+        // 1:15% | 2:25% | 3:30% | 4:20% | 5:10%
         if (roll < 0.15) return 1;
         if (roll < 0.40) return 2;
         if (roll < 0.70) return 3;
@@ -145,6 +180,7 @@ class BalloonSpawner {
         return 5;
 
       case 4:
+        // 1:10% | 2:20% | 3:25% | 4:20% | 5:15% | 6:10%
         if (roll < 0.10) return 1;
         if (roll < 0.30) return 2;
         if (roll < 0.55) return 3;
@@ -157,6 +193,7 @@ class BalloonSpawner {
     }
   }
 
+  // Wider perceived bottom spread
   double _pickClusterOrigin(double range) {
     final t = _rng.nextDouble();
     final biased = pow(t, 0.65);
@@ -183,9 +220,7 @@ class BalloonSpawner {
       return [_chooseBalloonType()];
     }
 
-    final List<BalloonType> out =
-        List.filled(count, BalloonType.standard);
-
+    final List<BalloonType> out = List.filled(count, BalloonType.standard);
     out[0] = BalloonType.standard;
 
     bool hasLargeSlow = false;
@@ -231,12 +266,8 @@ class BalloonSpawner {
 
     final w = currentWorld;
     if (w != _lastLoggedWorld) {
-      gameState.log(
-        'WORLD CHANGE $_lastLoggedWorld → $w at pops=$totalPops',
-      );
-      gameState.log(
-        'BG COLOR → ${_worldName(w)}',
-      );
+      gameState.log('WORLD CHANGE $_lastLoggedWorld → $w at pops=$totalPops');
+      gameState.log('BG COLOR → ${_worldName(w)}');
       _lastLoggedWorld = w;
     }
   }
@@ -275,25 +306,21 @@ class BalloonSpawner {
         end = world2Pops;
     }
 
-    return ((totalPops - start) / (end - start))
-        .clamp(0.0, 1.0);
+    return ((totalPops - start) / (end - start)).clamp(0.0, 1.0);
   }
 
   double get accuracyModifier {
     if (recentMisses == 0) return 1.0;
 
     final missFactor =
-        (recentMisses / (recentMisses + recentHits + 1))
-            .clamp(0.0, 1.0);
+        (recentMisses / (recentMisses + recentHits + 1)).clamp(0.0, 1.0);
 
     final slowdown = missFactor * maxMissSlowdown;
-    return (1.0 - slowdown)
-        .clamp(1.0 - maxMissSlowdown, 1.0);
+    return (1.0 - slowdown).clamp(1.0 - maxMissSlowdown, 1.0);
   }
 
   double get speedMultiplier {
-    final worldMult =
-        worldSpeedMultiplier[currentWorld] ?? 1.0;
+    final worldMult = worldSpeedMultiplier[currentWorld] ?? 1.0;
     final ramp = 1.0 + (worldProgress * maxWorldRamp);
     return worldMult * ramp * accuracyModifier;
   }
