@@ -112,7 +112,9 @@ class _GameScreenState extends State<GameScreen>
       tier: 0,
       balloons: _balloons,
       viewportHeight: _lastSize.height,
-    );
+      engineSpawnInterval:
+        widget.engine.difficulty.snapshot.spawnInterval,.    
+     );
 
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
