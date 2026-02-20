@@ -113,7 +113,7 @@ class _GameScreenState extends State<GameScreen>
       balloons: _balloons,
       viewportHeight: _lastSize.height,
       engineSpawnInterval:
-        widget.engine.difficulty.snapshot.spawnInterval,.    
+        widget.engine.difficulty.snapshot.spawnInterval,    
      );
 
     if (!_canCountMisses && _balloons.isNotEmpty) {
