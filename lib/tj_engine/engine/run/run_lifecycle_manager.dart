@@ -5,6 +5,25 @@ import 'models/run_event.dart';
 import 'models/run_status_snapshot.dart';
 import 'models/run_summary.dart';
 
+/// ===============================================================
+/// SYSTEM: RunLifecycleManager
+/// ===============================================================
+///
+/// PURPOSE:
+/// Authoritative engine-owned controller for a single gameplay run.
+///
+/// RESPONSIBILITIES:
+/// - Start a run
+/// - End a run
+/// - Track run statistics
+/// - Generate RunSummary
+/// - Provide live RunStatusSnapshot
+///
+/// IMPORTANT:
+/// This file must remain pure Dart.
+/// No Flutter imports.
+/// No game-specific imports.
+/// ===============================================================
 class RunLifecycleManager {
   RunState _state = RunState.idle;
 
@@ -17,6 +36,12 @@ class RunLifecycleManager {
   int _misses = 0;
   int _escapes = 0;
 
+  // ------------------------------------------------------------
+  // STREAK (competitive precision arcade)
+  // ------------------------------------------------------------
+  int _streak = 0;
+  int _bestStreak = 0;
+
   int _currentWorldLevel = 1;
   int _maxWorldLevelReached = 1;
 
@@ -28,6 +53,9 @@ class RunLifecycleManager {
   RunState get state => _state;
   RunSummary? get latestSummary => _latestSummary;
 
+  /// ============================================================
+  /// Start a new run.
+  /// ============================================================
   void startRun({required String runId}) {
     if (_state == RunState.running) return;
 
@@ -42,6 +70,9 @@ class RunLifecycleManager {
     _misses = 0;
     _escapes = 0;
 
+    _streak = 0;
+    _bestStreak = 0;
+
     _currentWorldLevel = 1;
     _maxWorldLevelReached = 1;
 
@@ -52,7 +83,7 @@ class RunLifecycleManager {
 
   /// ============================================================
   /// Report gameplay event.
-  /// Engine now enforces fail limits.
+  /// Engine enforces fail limits + streak rules.
   /// ============================================================
   void report(RunEvent event) {
     if (_state != RunState.running) return;
@@ -60,41 +91,46 @@ class RunLifecycleManager {
     if (event is PopEvent) {
       _pops++;
       _score += event.points;
-    }
 
-    else if (event is MissEvent) {
+      // ✅ Streak: Pop -> +1
+      _streak++;
+      if (_streak > _bestStreak) _bestStreak = _streak;
+    } else if (event is MissEvent) {
       _misses++;
+
+      // ✅ Streak: Miss -> reset
+      _streak = 0;
 
       // 🔹 Miss fail rule
       if (_misses >= 10) {
         endRun(EndReason.missLimit);
         return;
       }
-    }
-
-    else if (event is EscapeEvent) {
+    } else if (event is EscapeEvent) {
       _escapes += event.count;
+
+      // ✅ Streak: Escape -> reset (any count > 0)
+      if (event.count > 0) _streak = 0;
 
       // 🔹 Escape fail rule
       if (_escapes >= 3) {
         endRun(EndReason.escapeLimit);
         return;
       }
-    }
-
-    else if (event is WorldTransitionEvent) {
+    } else if (event is WorldTransitionEvent) {
       _currentWorldLevel = event.newWorldLevel;
       if (_currentWorldLevel > _maxWorldLevelReached) {
         _maxWorldLevelReached = _currentWorldLevel;
       }
-    }
-
-    else if (event is ScoreDeltaEvent) {
+    } else if (event is ScoreDeltaEvent) {
       _score += event.delta;
       if (_score < 0) _score = 0;
     }
   }
 
+  /// ============================================================
+  /// End the current run.
+  /// ============================================================
   void endRun(EndReason reason) {
     if (_state != RunState.running) return;
 
@@ -115,12 +151,16 @@ class RunLifecycleManager {
       pops: _pops,
       misses: _misses,
       escapes: _escapes,
+      bestStreak: _bestStreak,
       accuracy01: _accuracy01,
       worldReached: _maxWorldLevelReached,
       endReason: reason,
     );
   }
 
+  /// ============================================================
+  /// Live snapshot of run state.
+  /// ============================================================
   RunStatusSnapshot getSnapshot() {
     final now = DateTime.now();
     final start = _startTime ?? now;
@@ -133,6 +173,8 @@ class RunLifecycleManager {
       pops: _pops,
       misses: _misses,
       escapes: _escapes,
+      streak: _streak,
+      bestStreak: _bestStreak,
       accuracy01: _accuracy01,
       currentWorldLevel: _currentWorldLevel,
       maxWorldLevelReached: _maxWorldLevelReached,

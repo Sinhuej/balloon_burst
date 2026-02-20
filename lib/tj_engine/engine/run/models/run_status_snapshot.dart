@@ -41,6 +41,17 @@ class RunStatusSnapshot {
   /// Total escaped balloons.
   final int escapes;
 
+  /// Current consecutive pop streak.
+  ///
+  /// STREAK RULES (competitive arcade):
+  /// - Pop -> +1
+  /// - Miss -> reset to 0
+  /// - Escape -> reset to 0
+  final int streak;
+
+  /// Best consecutive pop streak achieved so far in this run.
+  final int bestStreak;
+
   /// Smoothed accuracy value (0.0 – 1.0).
   ///
   /// To change how accuracy is calculated:
@@ -69,6 +80,8 @@ class RunStatusSnapshot {
     required this.pops,
     required this.misses,
     required this.escapes,
+    required this.streak,
+    required this.bestStreak,
     required this.accuracy01,
     required this.currentWorldLevel,
     required this.maxWorldLevelReached,

@@ -55,6 +55,14 @@ class RunSummary {
   /// Total escaped balloons.
   final int escapes;
 
+  /// Best consecutive pop streak achieved in this run.
+  ///
+  /// STREAK RULES (competitive arcade):
+  /// - Pop -> +1
+  /// - Miss -> reset to 0
+  /// - Escape -> reset to 0
+  final int bestStreak;
+
   /// Final smoothed accuracy value (0.0 – 1.0).
   ///
   /// To adjust accuracy sensitivity:
@@ -83,6 +91,7 @@ class RunSummary {
     required this.pops,
     required this.misses,
     required this.escapes,
+    required this.bestStreak,
     required this.accuracy01,
     required this.worldReached,
     required this.endReason,
