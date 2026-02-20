@@ -237,6 +237,7 @@ class _GameScreenState extends State<GameScreen>
   @override
   Widget build(BuildContext context) {
     final summary = widget.engine.runLifecycle.latestSummary;
+    final snapshot = widget.engine.runLifecycle.getSnapshot();
 
     return Scaffold(
       body: LayoutBuilder(
@@ -268,7 +269,10 @@ class _GameScreenState extends State<GameScreen>
                 speedMultiplier: widget.spawner.speedMultiplier,
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
-              ),
+                streak: snapshot.streak,
+                bestStreak: snapshot.bestStreak,
+                ),
+
               if (_showIntro)
                 CarnivalIntroOverlay(
                   onComplete: () {

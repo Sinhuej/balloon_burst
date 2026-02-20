@@ -28,6 +28,10 @@ class GameCanvas extends StatelessWidget {
   final double recentAccuracy;
   final int recentMisses;
 
+  // 🔥 NEW — Competitive Precision Tracking
+  final int streak;
+  final int bestStreak;
+
   const GameCanvas({
     super.key,
     required this.currentWorld,
@@ -44,6 +48,8 @@ class GameCanvas extends StatelessWidget {
     required this.speedMultiplier,
     required this.recentAccuracy,
     required this.recentMisses,
+    required this.streak,
+    required this.bestStreak,
   });
 
   @override
@@ -59,12 +65,8 @@ class GameCanvas extends StatelessWidget {
             final Color effectiveBg =
                 surge.showNextWorldColor ? pulseColor : backgroundColor;
 
-            // If GameScreen is doing parallax behind us, it will pass transparent here.
-            // In that case, we must NOT paint a base background, or we’ll reintroduce
-            // scaffold/white during transitions.
             final bool paintBaseBg = effectiveBg.opacity > 0.0;
 
-            // Pulse overlay color: opposite of effectiveBg (fade-back wash).
             final Color pulseOverlayColor =
                 surge.showNextWorldColor ? backgroundColor : pulseColor;
 
@@ -74,8 +76,6 @@ class GameCanvas extends StatelessWidget {
 
             final bool lightningActive = surge.isLightningActive;
 
-            // IMPORTANT:
-            // Shake should NOT affect gameplay (balloons), only atmosphere layers.
             final double atmosphereShakeY =
                 surge.shakeYOffset + surge.lightningShakeAmp;
 
@@ -83,20 +83,17 @@ class GameCanvas extends StatelessWidget {
               children: [
                 // -----------------------------
                 // Atmosphere layer (SHAKEN)
-                // background + pulse + lightning
                 // -----------------------------
                 Positioned.fill(
                   child: Transform.translate(
                     offset: Offset(0, atmosphereShakeY),
                     child: Stack(
                       children: [
-                        // Base background (ONLY if not transparent)
                         if (paintBaseBg)
                           Positioned.fill(
                             child: ColoredBox(color: effectiveBg),
                           ),
 
-                        // Pulse fade-back layer (subtle energy wash)
                         if (paintPulseOverlay)
                           Positioned.fill(
                             child: Opacity(
@@ -105,7 +102,6 @@ class GameCanvas extends StatelessWidget {
                             ),
                           ),
 
-                        // Lightning pre-darken (psych bump)
                         if (lightningActive && surge.lightningDarkenOpacity > 0.0)
                           Positioned.fill(
                             child: IgnorePointer(
@@ -116,7 +112,6 @@ class GameCanvas extends StatelessWidget {
                             ),
                           ),
 
-                        // Lightning bolt (visual-only) — BELOW balloons
                         if (lightningActive && surge.lightningT > 0.0)
                           Positioned.fill(
                             child: IgnorePointer(
@@ -136,7 +131,6 @@ class GameCanvas extends StatelessWidget {
 
                 // -----------------------------
                 // Gameplay layer (NOT SHAKEN)
-                // This preserves tap accuracy.
                 // -----------------------------
                 Positioned.fill(
                   child: CustomPaint(
@@ -144,8 +138,6 @@ class GameCanvas extends StatelessWidget {
                   ),
                 ),
 
-                // Illuminate balloons briefly during strike (ABOVE balloons)
-                // Keep this unshaken so it doesn’t “slide” relative to taps.
                 if (lightningActive && surge.lightningFlashOpacity > 0.0)
                   Positioned.fill(
                     child: IgnorePointer(
@@ -156,13 +148,29 @@ class GameCanvas extends StatelessWidget {
                     ),
                   ),
 
-                // Debug HUD (dev only) — topmost
+                // 🔥 Subtle Streak HUD (earned prestige)
+                if (streak > 0)
+                  Positioned(
+                    top: 32,
+                    right: 24,
+                    child: Opacity(
+                      opacity: 0.75,
+                      child: Text(
+                        'STREAK ×$streak',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+
                 if (showHud)
                   DebugHud(
                     fps: fps,
                     speedMultiplier: speedMultiplier,
-                    world: currentWorld,
-                    balloonCount: balloons.length,
                     recentAccuracy: recentAccuracy,
                     recentMisses: recentMisses,
                   ),
