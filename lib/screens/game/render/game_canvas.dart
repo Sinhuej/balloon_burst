@@ -120,16 +120,26 @@ class _GameCanvasState extends State<GameCanvas>
     // Keep it consistent across worlds. Escalate by milestone only.
     switch (milestone) {
       case 3:
-        return const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.0,
-          color: Color(0xFFFFF1A6),
-          shadows: [
-            Shadow(color: Colors.black54, blurRadius: 12, offset: Offset(0, 2)),
-            Shadow(color: Color(0xFF3BF7FF), blurRadius: 18, offset: Offset(0, 0)),
-          ],
-        );
+       return const TextStyle(
+        fontSize: 21,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.5,
+        color: Colors.white,
+        shadows: [
+         // Depth shadow (crisp)
+         Shadow(
+          color: Colors.black,
+          blurRadius: 4,
+          offset: Offset(0, 2),
+        ),
+         // Thin cyan edge (brand accent, not flood)
+         Shadow(
+          color: Color(0xFF00E5FF),
+          blurRadius: 6,
+          offset: Offset(0, 0),
+        ),
+      ],
+    );
       case 2:
         return const TextStyle(
           fontSize: 20,
