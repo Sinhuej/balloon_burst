@@ -191,8 +191,14 @@ class _GameCanvasState extends State<GameCanvas>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(_currentMilestone >= 3 ? 0.55 : 0.22),
-                borderRadius: BorderRadius.circular(14),
+               color: Colors.black.withOpacity(_currentMilestone >= 3 ? 0.55 : 0.22),
+               borderRadius: BorderRadius.circular(14),
+               border: _currentMilestone >= 3
+                ? Border.all(
+                 color: const Color(0xFF00E5FF),
+                 width: 1.8,
+                )
+               : null,
               ),
               child: Text(
                 'STREAK ×${widget.streak}',
