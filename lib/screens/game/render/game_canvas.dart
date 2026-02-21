@@ -191,7 +191,7 @@ class _GameCanvasState extends State<GameCanvas>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.22),
+                color: Colors.black.withOpacity(_currentMilestone >= 3 ? 0.55 : 0.22),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(
