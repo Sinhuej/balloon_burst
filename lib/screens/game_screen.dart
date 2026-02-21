@@ -270,7 +270,6 @@ class _GameScreenState extends State<GameScreen>
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
                 streak: snapshot.streak,
-                bestStreak: snapshot.bestStreak,
                 ),
 
               if (_showIntro)
