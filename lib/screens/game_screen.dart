@@ -135,7 +135,7 @@ class _GameScreenState extends State<GameScreen>
      final currentWorld = widget.spawner.currentWorld;
      if (currentWorld != _lastReportedWorld) {
      _lastReportedWorld = currentWorld;
-     gwidget.engine.runLifecycle.report(
+      widget.engine.runLifecycle.report(
       WorldTransitionEvent(newWorldLevel: currentWorld),
     );
    }
