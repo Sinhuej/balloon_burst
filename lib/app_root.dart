@@ -8,7 +8,6 @@ import 'package:balloon_burst/screens/debug_screen.dart';
 
 import 'package:balloon_burst/debug/debug_controller.dart';
 
-// 🔹 ENGINE IMPORT
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 
 class AppRoot extends StatefulWidget {
@@ -22,10 +21,25 @@ class _AppRootState extends State<AppRoot> {
   final GameState _gameState = GameState();
   final BalloonSpawner _spawner = BalloonSpawner();
 
-  // 🔹 SINGLE SESSION ENGINE
-  final TJEngine _engine = TJEngine();
+  late final TJEngine _engine;
 
   final DebugController _debug = DebugController();
+
+  bool _engineReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeEngine();
+  }
+
+  Future<void> _initializeEngine() async {
+    _engine = TJEngine();
+    await _engine.leaderboard.load();
+    setState(() {
+      _engineReady = true;
+    });
+  }
 
   void _openDebug() {
     setState(() {
@@ -41,6 +55,12 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_engineReady) {
+      return const Material(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     switch (_gameState.screenMode) {
       case ScreenMode.debug:
         return DebugScreen(
@@ -55,7 +75,7 @@ class _AppRootState extends State<AppRoot> {
         return GameScreen(
           gameState: _gameState,
           spawner: _spawner,
-          engine: _engine,        // 🔥 THIS FIXES RED
+          engine: _engine,
           onRequestDebug: _openDebug,
         );
     }
