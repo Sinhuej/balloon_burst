@@ -256,6 +256,18 @@ class _GameScreenState extends State<GameScreen>
     final summary = widget.engine.runLifecycle.latestSummary;
     final snapshot = widget.engine.runLifecycle.getSnapshot();
 
+    if (_isRunEnded && _leaderboardSubmitted) {
+     final entries = widget.engine.leaderboard.entries;
+     debugPrint('TJ LEADERBOARD SIZE: ${entries.length}');
+     for (int i = 0; i < entries.length; i++) {
+      debugPrint(
+       ' #${i + 1} score=${entries[i].score} '
+       'world=${entries[i].worldReached} '
+       'streak=${entries[i].bestStreak}',
+     );
+   }
+ }
+
     // ✅ Submit to leaderboard exactly once
     if (_isRunEnded && summary != null && !_leaderboardSubmitted) {
       _leaderboardSubmitted = true;
