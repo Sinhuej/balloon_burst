@@ -10,6 +10,36 @@ class LeaderboardScreen extends StatelessWidget {
     required this.engine,
   });
 
+  // ============================================================
+  // 🎖 Prestige Styling Helpers (World-Based)
+  // ============================================================
+
+  Color _prestigeBorderColor(int world) {
+    switch (world) {
+      case 4:
+        return const Color(0xFFFFD700); // Gold
+      case 3:
+        return const Color(0xFFFF3DFF); // Elite Magenta
+      case 2:
+        return const Color(0xFF00E5FF); // Cyan
+      default:
+        return const Color(0xFF1E88E5); // Base Blue
+    }
+  }
+
+  Color _prestigeBackground(int world) {
+    switch (world) {
+      case 4:
+        return const Color(0xFF2B1F05);
+      case 3:
+        return const Color(0xFF1B0F2F);
+      case 2:
+        return const Color(0xFF0E1E2F);
+      default:
+        return const Color(0xFF13183F);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final entries = engine.leaderboard.entries;
@@ -47,6 +77,13 @@ class LeaderboardScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final LeaderboardEntry e = entries[index];
                 final rank = index + 1;
+                final world = e.worldReached;
+
+                final borderColor =
+                    rank == 1 ? _prestigeBorderColor(world) : Colors.transparent;
+
+                final rankColor =
+                    rank == 1 ? _prestigeBorderColor(world) : Colors.white;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 14),
@@ -55,13 +92,11 @@ class LeaderboardScreen extends StatelessWidget {
                     horizontal: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF13183F),
+                    color: _prestigeBackground(world),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: rank == 1
-                          ? Colors.cyanAccent
-                          : Colors.transparent,
-                      width: 1.5,
+                      color: borderColor,
+                      width: rank == 1 ? 2 : 1,
                     ),
                   ),
                   child: Row(
@@ -74,9 +109,7 @@ class LeaderboardScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: rank == 1
-                                ? Colors.cyanAccent
-                                : Colors.white,
+                            color: rankColor,
                           ),
                         ),
                       ),
