@@ -10,20 +10,16 @@ class LeaderboardScreen extends StatelessWidget {
     required this.engine,
   });
 
-  // ============================================================
-  // 🎖 Prestige Styling Helpers (World-Based)
-  // ============================================================
-
   Color _prestigeBorderColor(int world) {
     switch (world) {
       case 4:
-        return const Color(0xFFFFD700); // Gold
+        return const Color(0xFFFFD700);
       case 3:
-        return const Color(0xFFFF3DFF); // Elite Magenta
+        return const Color(0xFFFF3DFF);
       case 2:
-        return const Color(0xFF00E5FF); // Cyan
+        return const Color(0xFF00E5FF);
       default:
-        return const Color(0xFF1E88E5); // Base Blue
+        return const Color(0xFF1E88E5);
     }
   }
 
@@ -79,29 +75,25 @@ class LeaderboardScreen extends StatelessWidget {
                 final rank = index + 1;
                 final world = e.worldReached;
 
-                final borderColor =
-                    rank == 1 ? _prestigeBorderColor(world) : Colors.transparent;
+                final borderColor = _prestigeBorderColor(world);
+                final background = _prestigeBackground(world);
 
-                final rankColor =
-                    rank == 1 ? _prestigeBorderColor(world) : Colors.white;
-
-                return Container(
+                Widget card = Container(
                   margin: const EdgeInsets.only(bottom: 14),
                   padding: const EdgeInsets.symmetric(
                     vertical: 14,
                     horizontal: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: _prestigeBackground(world),
+                    color: background,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: borderColor,
+                      color: rank == 1 ? borderColor : Colors.transparent,
                       width: rank == 1 ? 2 : 1,
                     ),
                   ),
                   child: Row(
                     children: [
-                      // Rank
                       SizedBox(
                         width: 40,
                         child: Text(
@@ -109,12 +101,10 @@ class LeaderboardScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: rankColor,
+                            color: rank == 1 ? borderColor : Colors.white,
                           ),
                         ),
                       ),
-
-                      // Score + Stats
                       Expanded(
                         child: Column(
                           crossAxisAlignment:
@@ -144,6 +134,24 @@ class LeaderboardScreen extends StatelessWidget {
                     ],
                   ),
                 );
+
+                // 🎖 Animated Prestige for #1 only
+                if (rank == 1 && world >= 2) {
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.85, end: 1.0),
+                    duration: const Duration(seconds: 2),
+                    curve: Curves.easeInOut,
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: child,
+                      );
+                    },
+                    child: card,
+                  );
+                }
+
+                return card;
               },
             ),
     );
