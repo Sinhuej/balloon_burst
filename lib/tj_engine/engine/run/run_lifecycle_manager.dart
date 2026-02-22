@@ -92,11 +92,19 @@ class RunLifecycleManager {
       _pops++;
       _score += event.points;
 
+      // 🔹 Update accuracy
+       final attempts = _pops + _misses;
+       _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
+
       // ✅ Streak: Pop -> +1
       _streak++;
       if (_streak > _bestStreak) _bestStreak = _streak;
     } else if (event is MissEvent) {
       _misses++;
+
+      // 🔹 Update accuracy
+      final attempts = _pops + _misses;
+      _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
 
       // ✅ Streak: Miss -> reset
       _streak = 0;
