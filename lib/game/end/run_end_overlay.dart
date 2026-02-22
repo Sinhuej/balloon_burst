@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:balloon_burst/screens/leaderboard_screen.dart';
 import 'run_end_state.dart';
 import 'run_end_messages.dart';
+import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 
 class RunEndOverlay extends StatelessWidget {
   final RunEndState state;
   final VoidCallback onReplay;
-
-  // 🏆 Optional leaderboard placement
   final int? placement;
+  final TJEngine engine;
 
   const RunEndOverlay({
     super.key,
     required this.state,
     required this.onReplay,
+    required this.engine,
     this.placement,
   });
 
@@ -27,7 +29,6 @@ class RunEndOverlay extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
 
-            // 🔥 Leaderboard placement (if any)
             if (placement != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
@@ -70,6 +71,27 @@ class RunEndOverlay extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 color: Colors.white54,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        LeaderboardScreen(engine: engine),
+                  ),
+                );
+              },
+              child: const Text(
+                'View Leaderboard',
+                style: TextStyle(
+                  color: Colors.cyanAccent,
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
