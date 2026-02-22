@@ -353,7 +353,6 @@ class _GameScreenState extends State<GameScreen>
                 state: RunEndState.fromSummary(summary),
                 onReplay: _replay,
                 placement: _leaderboardPlacement,
-                engine: widget.engine,
               ),
             ],
           );
