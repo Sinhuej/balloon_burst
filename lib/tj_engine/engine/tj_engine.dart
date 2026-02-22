@@ -4,24 +4,12 @@ import 'core/difficulty_manager.dart';
 import 'run/run_lifecycle_manager.dart';
 import 'daily/daily_reward_manager.dart';
 import 'leaderboard/leaderboard_manager.dart';
+import 'leaderboard/leaderboard_entry.dart';
 
-/// ===============================================================
-/// SYSTEM: TJEngine (Engine Facade)
-/// ===============================================================
-///
-/// PURPOSE:
-/// Single entry point to TapJunkie engine systems.
-///
-/// IMPORTANT:
-/// - Pure Dart (no Flutter imports)
-/// - Games should access engine subsystems only through this facade
-/// ===============================================================
 class TJEngine {
   final RunLifecycleManager runLifecycle;
   final DifficultyManager difficulty;
   final DailyRewardManager dailyReward;
-
-  // 🔥 NEW: Leaderboard system
   final LeaderboardManager leaderboard;
 
   TJEngine({
@@ -34,8 +22,23 @@ class TJEngine {
         dailyReward = dailyReward ?? DailyRewardManager(),
         leaderboard = leaderboard ?? LeaderboardManager();
 
-  /// Called every frame from the game layer (GameScreen / Flame loop).
   void update(double dt) {
     difficulty.update(dt);
+  }
+
+  /// 🔥 NEW: Submit latest run to leaderboard
+  Future<int?> submitLatestRunToLeaderboard() async {
+    final summary = runLifecycle.latestSummary;
+    if (summary == null) return null;
+
+    final entry = LeaderboardEntry(
+      score: summary.score,
+      worldReached: summary.worldReached,
+      accuracy01: summary.accuracy01,
+      bestStreak: summary.bestStreak,
+      timestamp: summary.endTime,
+    );
+
+    return leaderboard.submit(entry);
   }
 }

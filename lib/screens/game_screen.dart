@@ -59,6 +59,10 @@ class _GameScreenState extends State<GameScreen>
   double _fps = 0.0;
   bool _canCountMisses = false;
 
+  // ✅ Leaderboard guard
+  bool _leaderboardSubmitted = false;
+  int? _leaderboardPlacement;
+
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
@@ -105,7 +109,6 @@ class _GameScreenState extends State<GameScreen>
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
-    // 🔥 Tick engine systems (difficulty, etc.)
     widget.engine.update(dt);
 
     widget.spawner.update(
@@ -114,10 +117,10 @@ class _GameScreenState extends State<GameScreen>
       balloons: _balloons,
       viewportHeight: _lastSize.height,
       engineSpawnInterval:
-        widget.engine.difficulty.snapshot.spawnInterval,    
+          widget.engine.difficulty.snapshot.spawnInterval,
       engineMaxSimultaneousSpawns:
-        widget.engine.difficulty.snapshot.maxSimultaneousSpawns,     
-      );
+          widget.engine.difficulty.snapshot.maxSimultaneousSpawns,
+    );
 
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
@@ -126,10 +129,6 @@ class _GameScreenState extends State<GameScreen>
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
 
-      /// ---------------------------------------------------------
-      /// SPEED CALCULATION
-      /// Base × World × Engine Difficulty × Balloon Modifier
-      /// ---------------------------------------------------------
       final engineSpeed =
           widget.engine.difficulty.snapshot.speedMultiplier;
 
@@ -178,52 +177,52 @@ class _GameScreenState extends State<GameScreen>
   }
 
   int _milestoneForStreak(int streak) {
-  if (streak >= 30) return 3;
-  if (streak >= 20) return 2;
-  if (streak >= 10) return 1;
-  return 0;
-}
-
-void _handleTap(TapDownDetails details) {
-  if (_showIntro) return;
-  if (_isRunEnded || !_canCountMisses) return;
-
-  final prevStreak =
-      widget.engine.runLifecycle.getSnapshot().streak;
-
-  final missesBefore = _controller.missCount;
-
-  TapHandler.handleTap(
-    details: details,
-    lastSize: _lastSize,
-    balloons: _balloons,
-    gameState: widget.gameState,
-    spawner: widget.spawner,
-    controller: _controller,
-    surge: _surge,
-    balloonRadius: balloonRadius,
-    hitForgiveness: hitForgiveness,
-  );
-
-  final missesAfter = _controller.missCount;
-
-  if (missesAfter > missesBefore) {
-    widget.engine.runLifecycle.report(const MissEvent());
-    return;
+    if (streak >= 30) return 3;
+    if (streak >= 20) return 2;
+    if (streak >= 10) return 1;
+    return 0;
   }
 
-  widget.engine.runLifecycle.report(const PopEvent(points: 1));
+  void _handleTap(TapDownDetails details) {
+    if (_showIntro) return;
+    if (_isRunEnded || !_canCountMisses) return;
 
-  final nextStreak =
-      widget.engine.runLifecycle.getSnapshot().streak;
+    final prevStreak =
+        widget.engine.runLifecycle.getSnapshot().streak;
 
-  final prevMilestone = _milestoneForStreak(prevStreak);
-  final nextMilestone = _milestoneForStreak(nextStreak);
+    final missesBefore = _controller.missCount;
 
-  if (nextMilestone > prevMilestone) {
-    AudioPlayerService.playStreakMilestone(nextMilestone);
+    TapHandler.handleTap(
+      details: details,
+      lastSize: _lastSize,
+      balloons: _balloons,
+      gameState: widget.gameState,
+      spawner: widget.spawner,
+      controller: _controller,
+      surge: _surge,
+      balloonRadius: balloonRadius,
+      hitForgiveness: hitForgiveness,
+    );
+
+    final missesAfter = _controller.missCount;
+
+    if (missesAfter > missesBefore) {
+      widget.engine.runLifecycle.report(const MissEvent());
+      return;
+    }
+
+    widget.engine.runLifecycle.report(const PopEvent(points: 1));
+
+    final nextStreak =
+        widget.engine.runLifecycle.getSnapshot().streak;
+
+    final prevMilestone = _milestoneForStreak(prevStreak);
+    final nextMilestone = _milestoneForStreak(nextStreak);
+
+    if (nextMilestone > prevMilestone) {
+      AudioPlayerService.playStreakMilestone(nextMilestone);
+    }
   }
-}
 
   void _handleLongPress() {
     if (_showIntro) return;
@@ -234,6 +233,9 @@ void _handleTap(TapDownDetails details) {
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
+
+    _leaderboardSubmitted = false;
+    _leaderboardPlacement = null;
 
     _controller.reset();
     widget.spawner.resetForNewRun();
@@ -250,16 +252,21 @@ void _handleTap(TapDownDetails details) {
   }
 
   @override
-  void dispose() {
-    _surge.dispose();
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final summary = widget.engine.runLifecycle.latestSummary;
     final snapshot = widget.engine.runLifecycle.getSnapshot();
+
+    // ✅ Submit to leaderboard exactly once
+    if (_isRunEnded && summary != null && !_leaderboardSubmitted) {
+      _leaderboardSubmitted = true;
+
+      widget.engine.submitLatestRunToLeaderboard().then((placement) {
+        if (!mounted) return;
+        setState(() {
+          _leaderboardPlacement = placement;
+        });
+      });
+    }
 
     return Scaffold(
       body: LayoutBuilder(
@@ -292,8 +299,7 @@ void _handleTap(TapDownDetails details) {
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
                 streak: snapshot.streak,
-                ),
-
+              ),
               if (_showIntro)
                 CarnivalIntroOverlay(
                   onComplete: () {
@@ -326,5 +332,12 @@ void _handleTap(TapDownDetails details) {
       default:
         return const Color(0xFF6EC6FF);
     }
+  }
+
+  @override
+  void dispose() {
+    _surge.dispose();
+    _ticker.dispose();
+    super.dispose();
   }
 }
