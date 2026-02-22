@@ -5,7 +5,7 @@ class AudioPlayerService {
     android: AudioContextAndroid(
       usageType: AndroidUsageType.game,
       contentType: AndroidContentType.sonification,
-      audioFocus: AndroidAudioFocus.none,
+      audioFocus: AndroidAudioFocus.none, // allow mixing
     ),
     iOS: AudioContextIOS(
       category: AVAudioSessionCategory.ambient,
@@ -17,6 +17,10 @@ class AudioPlayerService {
 
   // 🔔 World surge cue (single instance, gated)
   static final AudioPlayer _surgePlayer = AudioPlayer()
+    ..setAudioContext(_gameAudioContext);
+
+  // 🏁 Milestone cue (single instance, gated)
+  static final AudioPlayer _milestonePlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
   /// Balloon pop (rapid, overlapping, fire-and-forget)
@@ -33,30 +37,12 @@ class AudioPlayerService {
     }
   }
 
-  /// Milestone cue (10 / 20 / 30)
-  static Future<void> playMilestone(int milestone) async {
+  /// World transition anticipation cue
+  static Future<void> playSurge() async {
     try {
-      final player = AudioPlayer();
-      await player.setAudioContext(_gameAudioContext);
-
-      String asset;
-
-      switch (milestone) {
-        case 10:
-          asset = 'audio/milestone_10.mp3';
-          break;
-        case 20:
-          asset = 'audio/milestone_20.mp3';
-          break;
-        case 30:
-          asset = 'audio/milestone_30.mp3';
-          break;
-        default:
-          return;
-      }
-
-      await player.play(
-        AssetSource(asset),
+      await _surgePlayer.stop(); // ensure only one surge at a time
+      await _surgePlayer.play(
+        AssetSource('audio/surge.mp3'),
         volume: 1.0,
       );
     } catch (_) {
@@ -64,12 +50,29 @@ class AudioPlayerService {
     }
   }
 
-  /// World transition anticipation cue
-  static Future<void> playSurge() async {
+  /// Streak milestone cues (10 / 20 / 30)
+  /// milestoneIndex:
+  /// 1 => 10, 2 => 20, 3 => 30
+  static Future<void> playStreakMilestone(int milestoneIndex) async {
+    String asset;
+    switch (milestoneIndex) {
+      case 1:
+        asset = 'audio/milestone_10.mp3';
+        break;
+      case 2:
+        asset = 'audio/milestone_20.mp3';
+        break;
+      case 3:
+        asset = 'audio/milestone_30.mp3';
+        break;
+      default:
+        return;
+    }
+
     try {
-      await _surgePlayer.stop();
-      await _surgePlayer.play(
-        AssetSource('audio/surge.mp3'),
+      await _milestonePlayer.stop(); // ensure only one milestone at a time
+      await _milestonePlayer.play(
+        AssetSource(asset),
         volume: 1.0,
       );
     } catch (_) {

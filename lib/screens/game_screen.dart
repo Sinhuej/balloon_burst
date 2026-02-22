@@ -6,6 +6,7 @@ import 'package:balloon_burst/debug/debug_log.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:balloon_burst/audio/audio_player.dart';
 
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
@@ -176,32 +177,53 @@ class _GameScreenState extends State<GameScreen>
     setState(() {});
   }
 
-  void _handleTap(TapDownDetails details) {
-    if (_showIntro) return;
-    if (_isRunEnded || !_canCountMisses) return;
+  int _milestoneForStreak(int streak) {
+  if (streak >= 30) return 3;
+  if (streak >= 20) return 2;
+  if (streak >= 10) return 1;
+  return 0;
+}
 
-    final missesBefore = _controller.missCount;
+void _handleTap(TapDownDetails details) {
+  if (_showIntro) return;
+  if (_isRunEnded || !_canCountMisses) return;
 
-    TapHandler.handleTap(
-      details: details,
-      lastSize: _lastSize,
-      balloons: _balloons,
-      gameState: widget.gameState,
-      spawner: widget.spawner,
-      controller: _controller,
-      surge: _surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
-    );
+  final prevStreak =
+      widget.engine.runLifecycle.getSnapshot().streak;
 
-    final missesAfter = _controller.missCount;
+  final missesBefore = _controller.missCount;
 
-    if (missesAfter > missesBefore) {
-      widget.engine.runLifecycle.report(const MissEvent());
-    } else {
-      widget.engine.runLifecycle.report(const PopEvent(points: 1));
-    }
+  TapHandler.handleTap(
+    details: details,
+    lastSize: _lastSize,
+    balloons: _balloons,
+    gameState: widget.gameState,
+    spawner: widget.spawner,
+    controller: _controller,
+    surge: _surge,
+    balloonRadius: balloonRadius,
+    hitForgiveness: hitForgiveness,
+  );
+
+  final missesAfter = _controller.missCount;
+
+  if (missesAfter > missesBefore) {
+    widget.engine.runLifecycle.report(const MissEvent());
+    return;
   }
+
+  widget.engine.runLifecycle.report(const PopEvent(points: 1));
+
+  final nextStreak =
+      widget.engine.runLifecycle.getSnapshot().streak;
+
+  final prevMilestone = _milestoneForStreak(prevStreak);
+  final nextMilestone = _milestoneForStreak(nextStreak);
+
+  if (nextMilestone > prevMilestone) {
+    AudioPlayerService.playStreakMilestone(nextMilestone);
+  }
+}
 
   void _handleLongPress() {
     if (_showIntro) return;
