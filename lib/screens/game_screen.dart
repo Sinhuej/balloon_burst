@@ -20,6 +20,7 @@ import 'package:balloon_burst/screens/game/render/game_canvas.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 import 'package:balloon_burst/screens/game/input/tap_handler.dart';
 import 'package:balloon_burst/screens/game/intro/carnival_intro_overlay.dart';
+import 'package:balloon_burst/screens/leaderboard_screen.dart';
 
 import 'package:balloon_burst/game/end/run_end_overlay.dart';
 import 'package:balloon_burst/game/end/run_end_state.dart';
@@ -353,7 +354,16 @@ class _GameScreenState extends State<GameScreen>
                 state: RunEndState.fromSummary(summary),
                 onReplay: _replay,
                 placement: _leaderboardPlacement,
-              ),
+                onViewLeaderboard: () {
+                 Navigator.of(context).push(
+                  MaterialPageRoute(
+                   builder: (_) => LeaderboardScreen(
+                    engine: widget.engine,
+                ),
+               ),
+              );
+             },
+            ),
             ],
           );
         },
