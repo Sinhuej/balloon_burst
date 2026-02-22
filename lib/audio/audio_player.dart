@@ -5,7 +5,7 @@ class AudioPlayerService {
     android: AudioContextAndroid(
       usageType: AndroidUsageType.game,
       contentType: AndroidContentType.sonification,
-      audioFocus: AndroidAudioFocus.none, // allow mixing
+      audioFocus: AndroidAudioFocus.none,
     ),
     iOS: AudioContextIOS(
       category: AVAudioSessionCategory.ambient,
@@ -20,23 +20,54 @@ class AudioPlayerService {
     ..setAudioContext(_gameAudioContext);
 
   /// Balloon pop (rapid, overlapping, fire-and-forget)
-  static Future<void> playPop() async {
+  static Future<void> playPop({double volume = 1.0}) async {
     try {
       final player = AudioPlayer();
       await player.setAudioContext(_gameAudioContext);
       await player.play(
         AssetSource('audio/pop.mp3'),
-        volume: 1.0,
+        volume: volume,
       );
     } catch (_) {
       // Never block gameplay on audio
     }
   }
 
+  /// Milestone cue (10 / 20 / 30)
+  static Future<void> playMilestone(int milestone) async {
+    try {
+      final player = AudioPlayer();
+      await player.setAudioContext(_gameAudioContext);
+
+      String asset;
+
+      switch (milestone) {
+        case 10:
+          asset = 'audio/milestone_10.mp3';
+          break;
+        case 20:
+          asset = 'audio/milestone_20.mp3';
+          break;
+        case 30:
+          asset = 'audio/milestone_30.mp3';
+          break;
+        default:
+          return;
+      }
+
+      await player.play(
+        AssetSource(asset),
+        volume: 1.0,
+      );
+    } catch (_) {
+      // Fail silently
+    }
+  }
+
   /// World transition anticipation cue
   static Future<void> playSurge() async {
     try {
-      await _surgePlayer.stop(); // ensure only one surge at a time
+      await _surgePlayer.stop();
       await _surgePlayer.play(
         AssetSource('audio/surge.mp3'),
         volume: 1.0,
