@@ -62,6 +62,7 @@ class _GameScreenState extends State<GameScreen>
 
   bool _leaderboardSubmitted = false;
   int? _leaderboardPlacement;
+  int _lastReportedWorld = 1;
 
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
@@ -85,6 +86,8 @@ class _GameScreenState extends State<GameScreen>
     widget.engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
+
+    _lastReportedWorld = widget.spawner.currentWorld;
 
     _controller = GameController(
       momentum: MomentumController(),
@@ -127,6 +130,15 @@ class _GameScreenState extends State<GameScreen>
       engineMaxSimultaneousSpawns:
           widget.engine.difficulty.snapshot.maxSimultaneousSpawns,
     );
+
+    // 🔥 REPORT WORLD TRANSITION TO ENGINE
+     final currentWorld = widget.spawner.currentWorld;
+     if (currentWorld != _lastReportedWorld) {
+     _lastReportedWorld = currentWorld;
+     gwidget.engine.runLifecycle.report(
+      WorldTransitionEvent(newWorldLevel: currentWorld),
+    );
+   }
 
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;

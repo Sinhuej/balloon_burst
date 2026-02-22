@@ -98,7 +98,7 @@ class LeaderboardScreen extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               'World ${e.worldReached} • '
-                              '${(e.accuracy01 * 100).toStringAsFixed(0)}% • '
+                              'Acc ${(e.accuracy01 * 100).toStringAsFixed(0)}% • '
                               'Streak ${e.bestStreak}',
                               style: const TextStyle(
                                 fontSize: 12,
