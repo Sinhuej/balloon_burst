@@ -56,10 +56,10 @@ class _GameScreenState extends State<GameScreen>
 
   bool _showHud = false;
   bool _showIntro = true;
-  double _fps = 0.0;
   bool _canCountMisses = false;
 
-  // ✅ Leaderboard guard
+  double _fps = 0.0;
+
   bool _leaderboardSubmitted = false;
   int? _leaderboardPlacement;
 
@@ -79,6 +79,9 @@ class _GameScreenState extends State<GameScreen>
       type: DebugEventType.system,
     );
 
+    // ✅ Ensure difficulty always starts fresh
+    widget.engine.difficulty.reset();
+
     widget.engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
@@ -95,8 +98,10 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
+
     if (_isRunEnded) {
       _lastTime = elapsed;
+      _maybeSubmitLeaderboard();
       if (mounted) setState(() {});
       return;
     }
@@ -104,6 +109,7 @@ class _GameScreenState extends State<GameScreen>
     final dt = (_lastTime == Duration.zero)
         ? 0.016
         : (elapsed - _lastTime).inMicroseconds / 1e6;
+
     _lastTime = elapsed;
 
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
@@ -132,11 +138,10 @@ class _GameScreenState extends State<GameScreen>
       final engineSpeed =
           widget.engine.difficulty.snapshot.speedMultiplier;
 
-      final speed =
-          baseRiseSpeed *
-              widget.spawner.speedMultiplier *
-              engineSpeed *
-              b.riseSpeedMultiplier;
+      final speed = baseRiseSpeed *
+          widget.spawner.speedMultiplier *
+          engineSpeed *
+          b.riseSpeedMultiplier;
 
       final moved = b.movedBy(-speed * dt);
       final driftX = moved.driftedX(
@@ -148,6 +153,7 @@ class _GameScreenState extends State<GameScreen>
     }
 
     int escapedThisTick = 0;
+
     for (int i = _balloons.length - 1; i >= 0; i--) {
       final b = _balloons[i];
       if (b.y < -balloonRadius) {
@@ -174,6 +180,31 @@ class _GameScreenState extends State<GameScreen>
     );
 
     setState(() {});
+  }
+
+  void _maybeSubmitLeaderboard() {
+    if (_leaderboardSubmitted) return;
+
+    _leaderboardSubmitted = true;
+
+    widget.engine.submitLatestRunToLeaderboard().then((placement) {
+      if (!mounted) return;
+
+      setState(() {
+        _leaderboardPlacement = placement;
+      });
+
+      final entries = widget.engine.leaderboard.entries;
+
+      widget.gameState.log('TJ LEADERBOARD SIZE: ${entries.length}');
+
+      for (int i = 0; i < entries.length; i++) {
+        final e = entries[i];
+        widget.gameState.log(
+          ' #${i + 1} score=${e.score} world=${e.worldReached} streak=${e.bestStreak}',
+        );
+      }
+    });
   }
 
   int _milestoneForStreak(int streak) {
@@ -244,6 +275,9 @@ class _GameScreenState extends State<GameScreen>
     widget.gameState.clearLogs();
     _lastTime = Duration.zero;
 
+    // ✅ Reset difficulty for new run
+    widget.engine.difficulty.reset();
+
     widget.engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
@@ -252,33 +286,16 @@ class _GameScreenState extends State<GameScreen>
   }
 
   @override
+  void dispose() {
+    _surge.dispose();
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final summary = widget.engine.runLifecycle.latestSummary;
     final snapshot = widget.engine.runLifecycle.getSnapshot();
-
-    if (_isRunEnded && _leaderboardSubmitted) {
-     final entries = widget.engine.leaderboard.entries;
-     debugPrint('TJ LEADERBOARD SIZE: ${entries.length}');
-     for (int i = 0; i < entries.length; i++) {
-      debugPrint(
-       ' #${i + 1} score=${entries[i].score} '
-       'world=${entries[i].worldReached} '
-       'streak=${entries[i].bestStreak}',
-     );
-   }
- }
-
-    // ✅ Submit to leaderboard exactly once
-    if (_isRunEnded && summary != null && !_leaderboardSubmitted) {
-      _leaderboardSubmitted = true;
-
-      widget.engine.submitLatestRunToLeaderboard().then((placement) {
-        if (!mounted) return;
-        setState(() {
-          _leaderboardPlacement = placement;
-        });
-      });
-    }
 
     return Scaffold(
       body: LayoutBuilder(
@@ -344,12 +361,5 @@ class _GameScreenState extends State<GameScreen>
       default:
         return const Color(0xFF6EC6FF);
     }
-  }
-
-  @override
-  void dispose() {
-    _surge.dispose();
-    _ticker.dispose();
-    super.dispose();
   }
 }
