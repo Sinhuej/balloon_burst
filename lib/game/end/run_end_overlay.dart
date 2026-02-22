@@ -1,100 +1,216 @@
 import 'package:flutter/material.dart';
-import 'package:balloon_burst/screens/leaderboard_screen.dart';
 import 'run_end_state.dart';
 import 'run_end_messages.dart';
-import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 
-class RunEndOverlay extends StatelessWidget {
+class RunEndOverlay extends StatefulWidget {
   final RunEndState state;
   final VoidCallback onReplay;
+
+  /// Optional: leaderboard placement for this run (1-based).
+  /// If placement == 1, we trigger the "NEW #1!" takeover animation.
   final int? placement;
-  final TJEngine engine;
+
+  /// Optional: show a "View Leaderboard" action.
+  final VoidCallback? onViewLeaderboard;
 
   const RunEndOverlay({
     super.key,
     required this.state,
     required this.onReplay,
-    required this.engine,
     this.placement,
+    this.onViewLeaderboard,
   });
 
   @override
+  State<RunEndOverlay> createState() => _RunEndOverlayState();
+}
+
+class _RunEndOverlayState extends State<RunEndOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _takeover;
+  late final Animation<double> _scale;
+  late final Animation<double> _glow;
+
+  bool get _isNewNumberOne => widget.placement == 1;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _takeover = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+
+    // Scale punch: 1.0 -> 1.06 -> 1.0
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.06).chain(
+          CurveTween(curve: Curves.easeOutCubic),
+        ),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.06, end: 1.0).chain(
+          CurveTween(curve: Curves.easeInCubic),
+        ),
+        weight: 55,
+      ),
+    ]).animate(_takeover);
+
+    // Glow burst: 0.0 -> 1.0 -> 0.0
+    _glow = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 1.0).chain(
+          CurveTween(curve: Curves.easeOut),
+        ),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 0.0).chain(
+          CurveTween(curve: Curves.easeIn),
+        ),
+        weight: 60,
+      ),
+    ]).animate(_takeover);
+
+    if (_isNewNumberOne) {
+      // Start takeover once on first build frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _takeover.forward(from: 0);
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final wasNew = oldWidget.placement == 1;
+    final isNew = _isNewNumberOne;
+
+    // If a new run ends and this overlay is reused, re-trigger.
+    if (!wasNew && isNew) {
+      _takeover.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _takeover.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final showLeaderboardButton = widget.onViewLeaderboard != null;
+
     return GestureDetector(
-      onTap: onReplay,
+      onTap: widget.onReplay,
       child: Container(
         color: Colors.black.withOpacity(0.75),
         alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: AnimatedBuilder(
+          animation: _takeover,
+          builder: (context, child) {
+            // Soft cyan glow only for NEW #1.
+            final glowOpacity = _isNewNumberOne ? (_glow.value * 0.25) : 0.0;
 
-            if (placement != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  'NEW #$placement!',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
-                    color: Colors.cyanAccent,
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // Glow burst behind the content
+                if (_isNewNumberOne)
+                  IgnorePointer(
+                    child: Container(
+                      width: 340,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.cyanAccent.withOpacity(glowOpacity),
+                            blurRadius: 40,
+                            spreadRadius: 6,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Main content, with scale punch
+                Transform.scale(
+                  scale: _isNewNumberOne ? _scale.value : 1.0,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // NEW #1 tag
+                      if (_isNewNumberOne)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'NEW #1!',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                              color: Colors.cyanAccent.withOpacity(0.95),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
+                      Text(
+                        RunEndMessages.title(widget.state),
+                        style: const TextStyle(
+                          fontSize: 26,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        RunEndMessages.body(widget.state),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white70,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        RunEndMessages.action(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white54,
+                        ),
+                      ),
+
+                      if (showLeaderboardButton) ...[
+                        const SizedBox(height: 22),
+                        GestureDetector(
+                          onTap: () {
+                            // Prevent replay tap from firing when user taps button.
+                            widget.onViewLeaderboard?.call();
+                          },
+                          child: Text(
+                            'View Leaderboard',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.cyanAccent.withOpacity(0.9),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
-
-            Text(
-              RunEndMessages.title(state),
-              style: const TextStyle(
-                fontSize: 26,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 16),
-
-            Text(
-              RunEndMessages.body(state),
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 32),
-
-            Text(
-              RunEndMessages.action(),
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.white54,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        LeaderboardScreen(engine: engine),
-                  ),
-                );
-              },
-              child: const Text(
-                'View Leaderboard',
-                style: TextStyle(
-                  color: Colors.cyanAccent,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
