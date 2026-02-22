@@ -337,10 +337,11 @@ class _GameScreenState extends State<GameScreen>
                   },
                 ),
               if (_isRunEnded && summary != null)
-                RunEndOverlay(
-                  state: RunEndState.fromSummary(summary),
-                  onReplay: _replay,
-                ),
+               RunEndOverlay(
+               state: RunEndState.fromSummary(summary),
+               onReplay: _replay,
+               placement: _leaderboardPlacement,
+              ),
             ],
           );
         },

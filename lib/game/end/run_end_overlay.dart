@@ -6,10 +6,14 @@ class RunEndOverlay extends StatelessWidget {
   final RunEndState state;
   final VoidCallback onReplay;
 
+  // 🏆 Optional leaderboard placement
+  final int? placement;
+
   const RunEndOverlay({
     super.key,
     required this.state,
     required this.onReplay,
+    this.placement,
   });
 
   @override
@@ -22,6 +26,22 @@ class RunEndOverlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+
+            // 🔥 Leaderboard placement (if any)
+            if (placement != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'NEW #$placement!',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                    color: Colors.cyanAccent,
+                  ),
+                ),
+              ),
+
             Text(
               RunEndMessages.title(state),
               style: const TextStyle(
@@ -31,7 +51,9 @@ class RunEndOverlay extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+
             const SizedBox(height: 16),
+
             Text(
               RunEndMessages.body(state),
               style: const TextStyle(
@@ -40,7 +62,9 @@ class RunEndOverlay extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+
             const SizedBox(height: 32),
+
             Text(
               RunEndMessages.action(),
               style: const TextStyle(
