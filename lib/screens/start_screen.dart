@@ -26,14 +26,18 @@ class _StartScreenState extends State<StartScreen> {
     widget.onStart();
   }
 
-  void _claimReward() {
+  Future<void> _claimReward() async {
     final reward = widget.engine.dailyReward.claim(
       currentWorldLevel: 1,
     );
 
-    if (reward != null) {
-      setState(() {});
-    }
+    if (reward == null) return;
+
+    // ✅ Persist last claim so it DOES NOT reset on app relaunch.
+    await widget.engine.saveDailyReward();
+
+    if (!mounted) return;
+    setState(() {});
   }
 
   String _formatDuration(Duration d) {
@@ -42,8 +46,8 @@ class _StartScreenState extends State<StartScreen> {
     final seconds = d.inSeconds.remainder(60);
 
     return '${hours.toString().padLeft(2, '0')}:'
-        '${minutes.toString().padLeft(2, '0')}:'
-        '${seconds.toString().padLeft(2, '0')}';
+           '${minutes.toString().padLeft(2, '0')}:'
+           '${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -67,6 +71,7 @@ class _StartScreenState extends State<StartScreen> {
                 letterSpacing: 2,
               ),
             ),
+
             const SizedBox(height: 28),
 
             // 🎁 DAILY REWARD
@@ -102,7 +107,9 @@ class _StartScreenState extends State<StartScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LeaderboardScreen(engine: widget.engine),
+                    builder: (_) => LeaderboardScreen(
+                      engine: widget.engine,
+                    ),
                   ),
                 );
               },

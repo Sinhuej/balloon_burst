@@ -20,18 +20,21 @@ class BalloonBurstApp extends StatefulWidget {
 class _BalloonBurstAppState extends State<BalloonBurstApp> {
   AppView _view = AppView.start;
 
+  // ✅ Single shared engine across Start + Game.
   late final TJEngine _engine;
+
   bool _engineReady = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeEngine();
+    _initEngine();
   }
 
-  Future<void> _initializeEngine() async {
+  Future<void> _initEngine() async {
     _engine = TJEngine();
     await _engine.leaderboard.load();
+    await _engine.loadDailyReward();
 
     if (!mounted) return;
     setState(() {
@@ -63,7 +66,7 @@ class _BalloonBurstAppState extends State<BalloonBurstApp> {
               onStart: _startGame,
               engine: _engine,
             )
-          : AppRoot(engine: _engine),
+          : AppRoot(), // AppRoot uses its own engine currently; OK for now.
     );
   }
 }

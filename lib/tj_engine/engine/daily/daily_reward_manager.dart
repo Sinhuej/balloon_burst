@@ -25,6 +25,14 @@ class DailyRewardManager {
   DailyRewardManager({NowProvider? clock})
       : _clock = clock ?? SystemNowProvider();
 
+  /// Restore persisted claim time (engine boundary owns persistence).
+  void restoreLastClaim(DateTime? time) {
+    _lastClaimTime = time;
+  }
+
+  /// Expose last claim for persistence.
+  DateTime? get lastClaimTime => _lastClaimTime;
+
   /// ============================================================
   /// Get current reward status snapshot.
   /// ============================================================
@@ -77,7 +85,7 @@ class DailyRewardManager {
     return status.computedReward;
   }
 
- /// ============================================================
+  /// ============================================================
   /// Reward scaling logic.
   /// Engine-owned economic tuning lives here.
   /// ============================================================

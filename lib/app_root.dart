@@ -11,12 +11,7 @@ import 'package:balloon_burst/debug/debug_controller.dart';
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 
 class AppRoot extends StatefulWidget {
-  final TJEngine engine;
-
-  const AppRoot({
-    super.key,
-    required this.engine,
-  });
+  const AppRoot({super.key});
 
   @override
   State<AppRoot> createState() => _AppRootState();
@@ -25,7 +20,31 @@ class AppRoot extends StatefulWidget {
 class _AppRootState extends State<AppRoot> {
   final GameState _gameState = GameState();
   final BalloonSpawner _spawner = BalloonSpawner();
+
+  late final TJEngine _engine;
+
   final DebugController _debug = DebugController();
+
+  bool _engineReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeEngine();
+  }
+
+  Future<void> _initializeEngine() async {
+    _engine = TJEngine();
+
+    // ✅ Load persisted systems once per app session.
+    await _engine.leaderboard.load();
+    await _engine.loadDailyReward();
+
+    if (!mounted) return;
+    setState(() {
+      _engineReady = true;
+    });
+  }
 
   void _openDebug() {
     setState(() {
@@ -41,6 +60,12 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_engineReady) {
+      return const Material(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     switch (_gameState.screenMode) {
       case ScreenMode.debug:
         return DebugScreen(
@@ -55,7 +80,7 @@ class _AppRootState extends State<AppRoot> {
         return GameScreen(
           gameState: _gameState,
           spawner: _spawner,
-          engine: widget.engine,
+          engine: _engine,
           onRequestDebug: _openDebug,
         );
     }
