@@ -1,5 +1,6 @@
 ///This File is edited and built by SlimNation////
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:balloon_burst/audio/audio_warmup.dart';
@@ -8,12 +9,10 @@ import 'package:balloon_burst/screens/leaderboard_screen.dart';
 
 class StartScreen extends StatefulWidget {
   final VoidCallback onStart;
-  final TJEngine engine;
 
   const StartScreen({
     super.key,
     required this.onStart,
-    required this.engine,
   });
 
   @override
@@ -21,23 +20,42 @@ class StartScreen extends StatefulWidget {
 }
 
 class _StartScreenState extends State<StartScreen> {
+  late final TJEngine _engine;
+
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _engine = TJEngine(); // temporary engine for reward + leaderboard view
+
+    // ✅ Tick UI once per second so countdown visibly updates.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
   Future<void> _handleStart() async {
     await AudioWarmup.warmUp();
     widget.onStart();
   }
 
-  Future<void> _claimReward() async {
-    final reward = widget.engine.dailyReward.claim(
+  void _claimReward() {
+    final reward = _engine.dailyReward.claim(
       currentWorldLevel: 1,
     );
 
-    if (reward == null) return;
-
-    // ✅ Persist last claim so it DOES NOT reset on app relaunch.
-    await widget.engine.saveDailyReward();
-
-    if (!mounted) return;
-    setState(() {});
+    if (reward != null) {
+      setState(() {});
+    }
   }
 
   String _formatDuration(Duration d) {
@@ -46,13 +64,13 @@ class _StartScreenState extends State<StartScreen> {
     final seconds = d.inSeconds.remainder(60);
 
     return '${hours.toString().padLeft(2, '0')}:'
-           '${minutes.toString().padLeft(2, '0')}:'
-           '${seconds.toString().padLeft(2, '0')}';
+        '${minutes.toString().padLeft(2, '0')}:'
+        '${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final status = widget.engine.dailyReward.getStatus(
+    final status = _engine.dailyReward.getStatus(
       currentWorldLevel: 1,
     );
 
@@ -71,10 +89,9 @@ class _StartScreenState extends State<StartScreen> {
                 letterSpacing: 2,
               ),
             ),
-
             const SizedBox(height: 28),
 
-            // 🎁 DAILY REWARD
+            // 🎁 DAILY REWARD (TICKING)
             if (status.isAvailable)
               ElevatedButton(
                 onPressed: _claimReward,
@@ -107,9 +124,7 @@ class _StartScreenState extends State<StartScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LeaderboardScreen(
-                      engine: widget.engine,
-                    ),
+                    builder: (_) => LeaderboardScreen(engine: _engine),
                   ),
                 );
               },
