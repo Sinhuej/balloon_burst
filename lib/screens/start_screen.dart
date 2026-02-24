@@ -9,10 +9,12 @@ import 'package:balloon_burst/screens/leaderboard_screen.dart';
 
 class StartScreen extends StatefulWidget {
   final VoidCallback onStart;
+  final TJEngine engine;
 
   const StartScreen({
     super.key,
     required this.onStart,
+    required this.engine,
   });
 
   @override
@@ -20,15 +22,11 @@ class StartScreen extends StatefulWidget {
 }
 
 class _StartScreenState extends State<StartScreen> {
-  late final TJEngine _engine;
-
   Timer? _ticker;
 
   @override
   void initState() {
     super.initState();
-
-    _engine = TJEngine(); // temporary engine for reward + leaderboard view
 
     // ✅ Tick UI once per second so countdown visibly updates.
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -49,7 +47,7 @@ class _StartScreenState extends State<StartScreen> {
   }
 
   void _claimReward() {
-    final reward = _engine.dailyReward.claim(
+    final reward = widget.engine.dailyReward.claim(
       currentWorldLevel: 1,
     );
 
@@ -70,7 +68,7 @@ class _StartScreenState extends State<StartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final status = _engine.dailyReward.getStatus(
+    final status = widget.engine.dailyReward.getStatus(
       currentWorldLevel: 1,
     );
 
@@ -91,7 +89,6 @@ class _StartScreenState extends State<StartScreen> {
             ),
             const SizedBox(height: 28),
 
-            // 🎁 DAILY REWARD (TICKING)
             if (status.isAvailable)
               ElevatedButton(
                 onPressed: _claimReward,
@@ -124,7 +121,8 @@ class _StartScreenState extends State<StartScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LeaderboardScreen(engine: _engine),
+                    builder: (_) =>
+                        LeaderboardScreen(engine: widget.engine),
                   ),
                 );
               },
