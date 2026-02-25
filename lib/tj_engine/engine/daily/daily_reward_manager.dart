@@ -10,7 +10,7 @@ import 'now_provider.dart';
 ///
 /// ENGINE-OWNED.
 /// No UI logic.
-/// Pure Dart-ish (uses SharedPreferences like LeaderboardManager).
+/// Uses SharedPreferences (same style as LeaderboardManager).
 ///
 /// RULE:
 /// Reward available every 24 hours from last claim.
@@ -44,14 +44,17 @@ class DailyRewardManager {
       final parsed = DateTime.tryParse(iso);
       _lastClaimTime = parsed?.toUtc();
     } catch (_) {
-      // Never block gameplay/UI due to storage.
       _lastClaimTime = null;
     }
   }
 
   /// ============================================================
-  /// Persist current state (internal).
+  /// Save persisted state (call when you need a guaranteed flush).
   /// ============================================================
+  Future<void> save() async {
+    await _persist();
+  }
+
   Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -105,7 +108,11 @@ class DailyRewardManager {
   /// ============================================================
   /// Claim reward (if eligible).
   /// Returns reward or null if not available.
-  /// Persists last claim time.
+  ///
+  /// NOTE:
+  /// This is fast and does not await disk flush.
+  /// If you need "guaranteed" persistence (before launching a run),
+  /// call claimAndSave() instead.
   /// ============================================================
   DailyRewardModel? claim({
     required int currentWorldLevel,
@@ -115,15 +122,24 @@ class DailyRewardManager {
 
     _lastClaimTime = _clock.now().toUtc();
 
-    // Persist asynchronously; do not block UI.
+    // Best-effort async persist; do not block UI.
     _persist();
 
     return status.computedReward;
   }
 
+  /// Guaranteed persistence version (awaits disk write).
+  Future<DailyRewardModel?> claimAndSave({
+    required int currentWorldLevel,
+  }) async {
+    final reward = claim(currentWorldLevel: currentWorldLevel);
+    if (reward == null) return null;
+    await _persist();
+    return reward;
+  }
+
   /// ============================================================
   /// Reward scaling logic.
-  /// Engine-owned economic tuning lives here.
   /// ============================================================
   DailyRewardModel _computeReward(int worldLevel) {
     const int baseCoins = 100;
