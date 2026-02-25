@@ -5,6 +5,7 @@ import 'screens/start_screen.dart';
 import 'app_root.dart';
 
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
+import 'package:balloon_burst/audio/audio_player.dart';
 
 void main() {
   runApp(const BalloonBurstApp());
@@ -20,9 +21,7 @@ class BalloonBurstApp extends StatefulWidget {
 class _BalloonBurstAppState extends State<BalloonBurstApp> {
   AppView _view = AppView.start;
 
-  // ✅ Single shared engine across Start + Game.
   late final TJEngine _engine;
-
   bool _engineReady = false;
 
   @override
@@ -33,8 +32,12 @@ class _BalloonBurstAppState extends State<BalloonBurstApp> {
 
   Future<void> _initEngine() async {
     _engine = TJEngine();
-    await _engine.leaderboard.load();
-    await _engine.loadDailyReward();
+
+    // Load all persisted systems
+    await _engine.loadAll();
+
+    // Inject mute state into static audio layer
+    AudioPlayerService.setMuted(_engine.isMuted);
 
     if (!mounted) return;
     setState(() {
@@ -66,7 +69,9 @@ class _BalloonBurstAppState extends State<BalloonBurstApp> {
               onStart: _startGame,
               engine: _engine,
             )
-          : AppRoot(), // AppRoot uses its own engine currently; OK for now.
+          : AppRoot(
+              engine: _engine,
+            ),
     );
   }
 }
