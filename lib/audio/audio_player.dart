@@ -1,6 +1,13 @@
 import 'package:audioplayers/audioplayers.dart';
 
 class AudioPlayerService {
+  static bool _muted = false;
+
+  /// Injected at runtime by UI/engine load.
+  static void setMuted(bool value) {
+    _muted = value;
+  }
+
   static final AudioContext _gameAudioContext = AudioContext(
     android: AudioContextAndroid(
       usageType: AndroidUsageType.game,
@@ -25,6 +32,8 @@ class AudioPlayerService {
 
   /// Balloon pop (rapid, overlapping, fire-and-forget)
   static Future<void> playPop({double volume = 1.0}) async {
+    if (_muted) return;
+
     try {
       final player = AudioPlayer();
       await player.setAudioContext(_gameAudioContext);
@@ -39,6 +48,8 @@ class AudioPlayerService {
 
   /// World transition anticipation cue
   static Future<void> playSurge() async {
+    if (_muted) return;
+
     try {
       await _surgePlayer.stop(); // ensure only one surge at a time
       await _surgePlayer.play(
@@ -54,6 +65,8 @@ class AudioPlayerService {
   /// milestoneIndex:
   /// 1 => 10, 2 => 20, 3 => 30
   static Future<void> playStreakMilestone(int milestoneIndex) async {
+    if (_muted) return;
+
     String asset;
     switch (milestoneIndex) {
       case 1:
