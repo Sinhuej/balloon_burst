@@ -6,7 +6,7 @@ import 'daily/daily_reward_manager.dart';
 import 'leaderboard/leaderboard_manager.dart';
 import 'leaderboard/leaderboard_entry.dart';
 
-// audio settings
+// Audio settings
 import 'audio/audio_settings_manager.dart';
 
 class TJEngine {
@@ -14,8 +14,6 @@ class TJEngine {
   final DifficultyManager difficulty;
   final DailyRewardManager dailyReward;
   final LeaderboardManager leaderboard;
-
-  // global audio settings (mute)
   final AudioSettingsManager audio;
 
   TJEngine({
@@ -42,12 +40,12 @@ class TJEngine {
     await audio.load();
   }
 
-  /// Back-compat: existing code calls this.
+  /// Back-compat: your app calls this already.
   Future<void> loadDailyReward() async {
     await dailyReward.load();
   }
 
-  /// Optional helper for UI to force a guaranteed flush.
+  /// Optional: allow UI to force-save if needed.
   Future<void> saveDailyReward() async {
     await dailyReward.save();
   }

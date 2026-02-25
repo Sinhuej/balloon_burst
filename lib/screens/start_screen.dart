@@ -46,21 +46,18 @@ class _StartScreenState extends State<StartScreen> {
     widget.onStart();
   }
 
-  void _claimReward() {
+  Future<void> _claimReward() async {
     final engine = widget.engine;
 
     // World scaling: Start screen uses world 1 by default for now.
-    final reward = engine.dailyReward.claim(currentWorldLevel: 1);
+    final reward = await engine.dailyReward.claimAndSave(
+      currentWorldLevel: 1,
+    );
+
+    if (!mounted) return;
 
     // If reward claimed, refresh UI immediately.
     if (reward != null) {
-      // If TJEngine exposes a save method, try it without risking CI breaks.
-      // (If it doesn't exist, this quietly no-ops.)
-      try {
-        // ignore: avoid_dynamic_calls
-        (engine as dynamic).saveDailyReward();
-      } catch (_) {}
-
       setState(() {});
     }
   }
@@ -98,7 +95,6 @@ class _StartScreenState extends State<StartScreen> {
                 letterSpacing: 2,
               ),
             ),
-
             const SizedBox(height: 12),
 
             // 🔇 Mute toggle (persisted via engine)
@@ -117,7 +113,7 @@ class _StartScreenState extends State<StartScreen> {
 
             const SizedBox(height: 28),
 
-            // 🎁 DAILY REWARD (RESTORED + LIVE TICKING)
+            // 🎁 DAILY REWARD (LIVE + BULLETPROOF CLAIM)
             if (status.isAvailable)
               ElevatedButton(
                 onPressed: _claimReward,
