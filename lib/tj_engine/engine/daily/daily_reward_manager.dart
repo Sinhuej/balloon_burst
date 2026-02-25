@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'models/daily_reward_model.dart';
 import 'models/daily_reward_status.dart';
 import 'now_provider.dart';
@@ -8,8 +10,7 @@ import 'now_provider.dart';
 ///
 /// ENGINE-OWNED.
 /// No UI logic.
-/// No Flutter imports.
-/// Pure Dart.
+/// Pure Dart-ish (uses SharedPreferences like LeaderboardManager).
 ///
 /// RULE:
 /// Reward available every 24 hours from last claim.
@@ -18,6 +19,9 @@ import 'now_provider.dart';
 class DailyRewardManager {
   static const Duration claimInterval = Duration(hours: 24);
 
+  // Storage key (versioned)
+  static const String _storageKeyLastClaim = 'tj_daily_last_claim_iso_v1';
+
   final NowProvider _clock;
 
   DateTime? _lastClaimTime;
@@ -25,13 +29,42 @@ class DailyRewardManager {
   DailyRewardManager({NowProvider? clock})
       : _clock = clock ?? SystemNowProvider();
 
-  /// Restore persisted claim time (engine boundary owns persistence).
-  void restoreLastClaim(DateTime? time) {
-    _lastClaimTime = time;
+  /// ============================================================
+  /// Load persisted state (call once at app start).
+  /// ============================================================
+  Future<void> load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final iso = prefs.getString(_storageKeyLastClaim);
+      if (iso == null || iso.trim().isEmpty) {
+        _lastClaimTime = null;
+        return;
+      }
+
+      final parsed = DateTime.tryParse(iso);
+      _lastClaimTime = parsed?.toUtc();
+    } catch (_) {
+      // Never block gameplay/UI due to storage.
+      _lastClaimTime = null;
+    }
   }
 
-  /// Expose last claim for persistence.
-  DateTime? get lastClaimTime => _lastClaimTime;
+  /// ============================================================
+  /// Persist current state (internal).
+  /// ============================================================
+  Future<void> _persist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = _lastClaimTime?.toUtc().toIso8601String();
+      if (value == null) {
+        await prefs.remove(_storageKeyLastClaim);
+      } else {
+        await prefs.setString(_storageKeyLastClaim, value);
+      }
+    } catch (_) {
+      // Fail silently.
+    }
+  }
 
   /// ============================================================
   /// Get current reward status snapshot.
@@ -39,7 +72,7 @@ class DailyRewardManager {
   DailyRewardStatus getStatus({
     required int currentWorldLevel,
   }) {
-    final now = _clock.now();
+    final now = _clock.now().toUtc();
 
     final lastClaim = _lastClaimTime;
     bool isAvailable;
@@ -50,7 +83,7 @@ class DailyRewardManager {
       remaining = Duration.zero;
     } else {
       final nextEligible = lastClaim.add(claimInterval);
-      if (now.isAfter(nextEligible)) {
+      if (now.isAfter(nextEligible) || now.isAtSameMomentAs(nextEligible)) {
         isAvailable = true;
         remaining = Duration.zero;
       } else {
@@ -72,15 +105,18 @@ class DailyRewardManager {
   /// ============================================================
   /// Claim reward (if eligible).
   /// Returns reward or null if not available.
+  /// Persists last claim time.
   /// ============================================================
   DailyRewardModel? claim({
     required int currentWorldLevel,
   }) {
     final status = getStatus(currentWorldLevel: currentWorldLevel);
-
     if (!status.isAvailable) return null;
 
-    _lastClaimTime = _clock.now();
+    _lastClaimTime = _clock.now().toUtc();
+
+    // Persist asynchronously; do not block UI.
+    _persist();
 
     return status.computedReward;
   }
@@ -90,13 +126,8 @@ class DailyRewardManager {
   /// Engine-owned economic tuning lives here.
   /// ============================================================
   DailyRewardModel _computeReward(int worldLevel) {
-    // 🔹 Base daily reward
     const int baseCoins = 100;
-
-    // 🔹 Scaling per world level
     const int coinsPerWorld = 25;
-
-    // 🔹 Optional bonus scaling
     const int bonusPointsPerWorld = 5;
 
     final scaledCoins = baseCoins + (worldLevel * coinsPerWorld);
