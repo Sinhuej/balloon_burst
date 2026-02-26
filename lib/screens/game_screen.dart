@@ -206,6 +206,13 @@ class _GameScreenState extends State<GameScreen>
     });
   }
 
+int _milestoneForStreak(int streak) {
+    if (streak >= 30) return 3;
+    if (streak >= 20) return 2;
+    if (streak >= 10) return 1;
+    return 0;
+  }
+
   void _handleTap(TapDownDetails details) {
     if (_showIntro) return;
     if (_isRunEnded || !_canCountMisses) return;
