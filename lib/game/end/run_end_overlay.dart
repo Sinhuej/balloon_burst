@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'run_end_state.dart';
 import 'run_end_messages.dart';
+import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
+import 'package:balloon_burst/audio/audio_player.dart';
 
 class RunEndOverlay extends StatefulWidget {
   final RunEndState state;
   final VoidCallback onReplay;
   final int? placement;
   final VoidCallback? onViewLeaderboard;
+  final TJEngine engine;
 
   const RunEndOverlay({
     super.key,
@@ -14,6 +17,7 @@ class RunEndOverlay extends StatefulWidget {
     required this.onReplay,
     this.placement,
     this.onViewLeaderboard,
+    required this.engine,
   });
 
   @override
@@ -153,7 +157,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
                     const SizedBox(height: 28),
 
-                    // ✅ Explicit Replay Button
                     ElevatedButton(
                       onPressed: widget.onReplay,
                       style: ElevatedButton.styleFrom(
@@ -184,6 +187,24 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                         ),
                       ),
                     ],
+
+                    const SizedBox(height: 16),
+
+                    IconButton(
+                      icon: Icon(
+                        widget.engine.isMuted
+                            ? Icons.volume_off
+                            : Icons.volume_up,
+                        color: Colors.white70,
+                      ),
+                      onPressed: () async {
+                        final muted =
+                            await widget.engine.toggleMute();
+                        AudioPlayerService.setMuted(muted);
+                        if (!mounted) return;
+                        setState(() {});
+                      },
+                    ),
                   ],
                 ),
               ),

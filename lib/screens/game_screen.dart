@@ -81,7 +81,6 @@ class _GameScreenState extends State<GameScreen>
       type: DebugEventType.system,
     );
 
-    // ✅ Ensure difficulty always starts fresh
     widget.engine.difficulty.reset();
 
     widget.engine.runLifecycle.startRun(
@@ -102,7 +101,6 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _onTick(Duration elapsed) {
-
     if (_isRunEnded) {
       _lastTime = elapsed;
       _maybeSubmitLeaderboard();
@@ -132,14 +130,13 @@ class _GameScreenState extends State<GameScreen>
           widget.engine.difficulty.snapshot.maxSimultaneousSpawns,
     );
 
-    // 🔥 REPORT WORLD TRANSITION TO ENGINE
-     final currentWorld = widget.spawner.currentWorld;
-     if (currentWorld != _lastReportedWorld) {
-     _lastReportedWorld = currentWorld;
+    final currentWorld = widget.spawner.currentWorld;
+    if (currentWorld != _lastReportedWorld) {
+      _lastReportedWorld = currentWorld;
       widget.engine.runLifecycle.report(
-      WorldTransitionEvent(newWorldLevel: currentWorld),
-    );
-   }
+        WorldTransitionEvent(newWorldLevel: currentWorld),
+      );
+    }
 
     if (!_canCountMisses && _balloons.isNotEmpty) {
       _canCountMisses = true;
@@ -206,78 +203,12 @@ class _GameScreenState extends State<GameScreen>
       setState(() {
         _leaderboardPlacement = placement;
       });
-
-      final entries = widget.engine.leaderboard.entries;
-
-      widget.gameState.log('TJ LEADERBOARD SIZE: ${entries.length}');
-
-      for (int i = 0; i < entries.length; i++) {
-        final e = entries[i];
-        widget.gameState.log(
-          ' #${i + 1} score=${e.score} world=${e.worldReached} streak=${e.bestStreak}',
-        );
-      }
     });
-  }
-
-  int _milestoneForStreak(int streak) {
-    if (streak >= 30) return 3;
-    if (streak >= 20) return 2;
-    if (streak >= 10) return 1;
-    return 0;
-  }
-
-  void _handleTap(TapDownDetails details) {
-    if (_showIntro) return;
-    if (_isRunEnded || !_canCountMisses) return;
-
-    final prevStreak =
-        widget.engine.runLifecycle.getSnapshot().streak;
-
-    final missesBefore = _controller.missCount;
-
-    TapHandler.handleTap(
-      details: details,
-      lastSize: _lastSize,
-      balloons: _balloons,
-      gameState: widget.gameState,
-      spawner: widget.spawner,
-      controller: _controller,
-      surge: _surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
-    );
-
-    final missesAfter = _controller.missCount;
-
-    if (missesAfter > missesBefore) {
-      widget.engine.runLifecycle.report(const MissEvent());
-      return;
-    }
-
-    widget.engine.runLifecycle.report(const PopEvent(points: 1));
-
-    final nextStreak =
-        widget.engine.runLifecycle.getSnapshot().streak;
-
-    final prevMilestone = _milestoneForStreak(prevStreak);
-    final nextMilestone = _milestoneForStreak(nextStreak);
-
-    if (nextMilestone > prevMilestone) {
-      AudioPlayerService.playStreakMilestone(nextMilestone);
-    }
-  }
-
-  void _handleLongPress() {
-    if (_showIntro) return;
-    setState(() => _showHud = !_showHud);
-    widget.onRequestDebug();
   }
 
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
-
     _leaderboardSubmitted = false;
     _leaderboardPlacement = null;
 
@@ -288,7 +219,6 @@ class _GameScreenState extends State<GameScreen>
     widget.gameState.clearLogs();
     _lastTime = Duration.zero;
 
-    // ✅ Reset difficulty for new run
     widget.engine.difficulty.reset();
 
     widget.engine.runLifecycle.startRun(
@@ -308,7 +238,6 @@ class _GameScreenState extends State<GameScreen>
   @override
   Widget build(BuildContext context) {
     final summary = widget.engine.runLifecycle.latestSummary;
-    final snapshot = widget.engine.runLifecycle.getSnapshot();
 
     return Scaffold(
       body: LayoutBuilder(
@@ -324,7 +253,9 @@ class _GameScreenState extends State<GameScreen>
 
           return Stack(
             children: [
+
               IgnorePointer(child: Container(color: bgColor)),
+
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -340,8 +271,28 @@ class _GameScreenState extends State<GameScreen>
                 speedMultiplier: widget.spawner.speedMultiplier,
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
-                streak: snapshot.streak,
+                streak: widget.engine.runLifecycle.getSnapshot().streak,
               ),
+
+              Positioned(
+                top: 40,
+                right: 16,
+                child: IconButton(
+                  icon: Icon(
+                    widget.engine.isMuted
+                        ? Icons.volume_off
+                        : Icons.volume_up,
+                    color: Colors.white70,
+                  ),
+                  onPressed: () async {
+                    final muted = await widget.engine.toggleMute();
+                    AudioPlayerService.setMuted(muted);
+                    if (!mounted) return;
+                    setState(() {});
+                  },
+                ),
+              ),
+
               if (_showIntro)
                 CarnivalIntroOverlay(
                   onComplete: () {
@@ -349,21 +300,23 @@ class _GameScreenState extends State<GameScreen>
                     setState(() => _showIntro = false);
                   },
                 ),
+
               if (_isRunEnded && summary != null)
-               RunEndOverlay(
-                state: RunEndState.fromSummary(summary),
-                onReplay: _replay,
-                placement: _leaderboardPlacement,
-                onViewLeaderboard: () {
-                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                   builder: (_) => LeaderboardScreen(
-                    engine: widget.engine,
+                RunEndOverlay(
+                  state: RunEndState.fromSummary(summary),
+                  onReplay: _replay,
+                  placement: _leaderboardPlacement,
+                  onViewLeaderboard: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => LeaderboardScreen(
+                          engine: widget.engine,
+                        ),
+                      ),
+                    );
+                  },
+                  engine: widget.engine,
                 ),
-               ),
-              );
-             },
-            ),
             ],
           );
         },
