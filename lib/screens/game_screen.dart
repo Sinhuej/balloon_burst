@@ -206,6 +206,56 @@ class _GameScreenState extends State<GameScreen>
     });
   }
 
+  void _handleTap(TapDownDetails details) {
+    if (_showIntro) return;
+    if (_isRunEnded || !_canCountMisses) return;
+
+    final prevStreak =
+        widget.engine.runLifecycle.getSnapshot().streak;
+
+    final missesBefore = _controller.missCount;
+
+    TapHandler.handleTap(
+      details: details,
+      lastSize: _lastSize,
+      balloons: _balloons,
+      gameState: widget.gameState,
+      spawner: widget.spawner,
+      controller: _controller,
+      surge: _surge,
+      balloonRadius: balloonRadius,
+      hitForgiveness: hitForgiveness,
+    );
+
+    final missesAfter = _controller.missCount;
+
+    if (missesAfter > missesBefore) {
+      widget.engine.runLifecycle.report(const MissEvent());
+      return;
+    }
+
+    widget.engine.runLifecycle.report(const PopEvent(points: 1));
+
+    final nextStreak =
+        widget.engine.runLifecycle.getSnapshot().streak;
+
+    final prevMilestone =
+        _milestoneForStreak(prevStreak);
+    final nextMilestone =
+        _milestoneForStreak(nextStreak);
+
+    if (nextMilestone > prevMilestone) {
+      AudioPlayerService.playStreakMilestone(
+          nextMilestone);
+    }
+  }
+
+  void _handleLongPress() {
+    if (_showIntro) return;
+    setState(() => _showHud = !_showHud);
+    widget.onRequestDebug();
+  }
+
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
