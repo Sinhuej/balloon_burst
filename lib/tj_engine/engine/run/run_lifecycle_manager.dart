@@ -83,7 +83,6 @@ class RunLifecycleManager {
 
   /// ============================================================
   /// Report gameplay event.
-  /// Engine enforces fail limits + streak rules.
   /// ============================================================
   void report(RunEvent event) {
     if (_state != RunState.running) return;
@@ -92,44 +91,41 @@ class RunLifecycleManager {
       _pops++;
       _score += event.points;
 
-      // 🔹 Update accuracy
-       final attempts = _pops + _misses;
-       _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
-
-      // ✅ Streak: Pop -> +1
-      _streak++;
-      if (_streak > _bestStreak) _bestStreak = _streak;
-    } else if (event is MissEvent) {
-      _misses++;
-
-      // 🔹 Update accuracy
       final attempts = _pops + _misses;
       _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
 
-      // ✅ Streak: Miss -> reset
+      _streak++;
+      if (_streak > _bestStreak) _bestStreak = _streak;
+
+    } else if (event is MissEvent) {
+      _misses++;
+
+      final attempts = _pops + _misses;
+      _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
+
       _streak = 0;
 
-      // 🔹 Miss fail rule
       if (_misses >= 10) {
         endRun(EndReason.missLimit);
         return;
       }
+
     } else if (event is EscapeEvent) {
       _escapes += event.count;
 
-      // ✅ Streak: Escape -> reset (any count > 0)
       if (event.count > 0) _streak = 0;
 
-      // 🔹 Escape fail rule
       if (_escapes >= 3) {
         endRun(EndReason.escapeLimit);
         return;
       }
+
     } else if (event is WorldTransitionEvent) {
       _currentWorldLevel = event.newWorldLevel;
       if (_currentWorldLevel > _maxWorldLevelReached) {
         _maxWorldLevelReached = _currentWorldLevel;
       }
+
     } else if (event is ScoreDeltaEvent) {
       _score += event.delta;
       if (_score < 0) _score = 0;
@@ -164,6 +160,26 @@ class RunLifecycleManager {
       worldReached: _maxWorldLevelReached,
       endReason: reason,
     );
+  }
+
+  /// ============================================================
+  /// Revive the last ended run.
+  /// Keeps score/streak/world.
+  /// Clears fail counters and resumes running state.
+  /// ============================================================
+  void revive() {
+    if (_state != RunState.ended) return;
+
+    _state = RunState.running;
+
+    // Reset fail counters so player doesn’t instantly die again
+    _misses = 0;
+    _escapes = 0;
+
+    // Clear end markers
+    _endReason = null;
+    _endTime = null;
+    _latestSummary = null;
   }
 
   /// ============================================================
