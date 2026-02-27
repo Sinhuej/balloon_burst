@@ -49,6 +49,16 @@ class _StartScreenState extends State<StartScreen> {
   Future<void> _claimReward() async {
     final engine = widget.engine;
 
+    final reward =
+        await engine.claimDailyRewardAndCredit(
+      currentWorldLevel: 1,
+    );
+
+    if (reward != null) {
+      setState(() {});
+    }
+  }
+
     // World scaling: Start screen uses world 1 by default for now.
     final reward = await engine.dailyReward.claimAndSave(
       currentWorldLevel: 1,

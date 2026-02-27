@@ -7,6 +7,7 @@ import 'leaderboard/leaderboard_manager.dart';
 import 'leaderboard/leaderboard_entry.dart';
 import 'wallet/wallet_manager.dart';
 import 'audio/audio_settings_manager.dart';
+import 'daily/models/daily_reward_model.dart';
 
 class TJEngine {
   final RunLifecycleManager runLifecycle;
@@ -40,6 +41,21 @@ class TJEngine {
     await dailyReward.load();
     await audio.load();
     await wallet.load();
+  }
+
+ /// Claim daily reward and credit wallet.
+  Future<DailyRewardModel?> claimDailyRewardAndCredit({
+    required int currentWorldLevel,
+  }) async {
+    final reward = dailyReward.claim(
+      currentWorldLevel: currentWorldLevel,
+    );
+
+    if (reward == null) return null;
+
+    await wallet.addCoins(reward.coins);
+
+    return reward;
   }
 
   /// Back-compat method (safe)
