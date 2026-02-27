@@ -5,8 +5,7 @@ import 'run/run_lifecycle_manager.dart';
 import 'daily/daily_reward_manager.dart';
 import 'leaderboard/leaderboard_manager.dart';
 import 'leaderboard/leaderboard_entry.dart';
-
-// Audio settings
+import 'wallet/wallet_manager.dart';
 import 'audio/audio_settings_manager.dart';
 
 class TJEngine {
@@ -15,6 +14,7 @@ class TJEngine {
   final DailyRewardManager dailyReward;
   final LeaderboardManager leaderboard;
   final AudioSettingsManager audio;
+  final WalletManager wallet;
 
   TJEngine({
     RunLifecycleManager? runLifecycle,
@@ -22,35 +22,32 @@ class TJEngine {
     DailyRewardManager? dailyReward,
     LeaderboardManager? leaderboard,
     AudioSettingsManager? audio,
+    WalletManager? wallet,
   })  : runLifecycle = runLifecycle ?? RunLifecycleManager(),
         difficulty = difficulty ?? DifficultyManager(),
         dailyReward = dailyReward ?? DailyRewardManager(),
         leaderboard = leaderboard ?? LeaderboardManager(),
-        audio = audio ?? AudioSettingsManager();
+        audio = audio ?? AudioSettingsManager(),
+        wallet = wallet ?? WalletManager();
 
   void update(double dt) {
     difficulty.update(dt);
   }
 
   /// Load all engine subsystems that require async storage.
-  /// Call once at app start.
   Future<void> loadAll() async {
     await leaderboard.load();
     await dailyReward.load();
     await audio.load();
+    await wallet.load();
   }
 
-  /// Back-compat: your app calls this already.
+  /// Back-compat method (safe)
   Future<void> loadDailyReward() async {
     await dailyReward.load();
   }
 
-  /// Optional: allow UI to force-save if needed.
-  Future<void> saveDailyReward() async {
-    await dailyReward.save();
-  }
-
-  /// Audio helpers for UI.
+  /// Audio helpers
   bool get isMuted => audio.muted;
 
   Future<void> setMuted(bool value) async {
