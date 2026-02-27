@@ -7,6 +7,7 @@ import 'package:balloon_burst/audio/audio_player.dart';
 class RunEndOverlay extends StatefulWidget {
   final RunEndState state;
   final VoidCallback onReplay;
+  final VoidCallback? onRevive;
   final int? placement;
   final VoidCallback? onViewLeaderboard;
   final TJEngine engine;
@@ -15,6 +16,7 @@ class RunEndOverlay extends StatefulWidget {
     super.key,
     required this.state,
     required this.onReplay,
+    this.onRevive,
     this.placement,
     this.onViewLeaderboard,
     required this.engine,
@@ -30,7 +32,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   late final Animation<double> _scale;
   late final Animation<double> _glow;
 
+  static const int _reviveCost = 50;
+
   bool get _isNewNumberOne => widget.placement == 1;
+  bool get _canAfford =>
+      widget.engine.wallet.balance >= _reviveCost;
 
   @override
   void initState() {
@@ -113,27 +119,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                     ),
                   ),
                 ),
-
               Transform.scale(
                 scale: _isNewNumberOne ? _scale.value : 1.0,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_isNewNumberOne)
-                      Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: 12),
-                        child: Text(
-                          'NEW #1!',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.cyanAccent
-                                .withOpacity(0.95),
-                          ),
-                        ),
-                      ),
-
                     Text(
                       RunEndMessages.title(widget.state),
                       style: const TextStyle(
@@ -143,9 +133,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 16),
-
                     Text(
                       RunEndMessages.body(widget.state),
                       style: const TextStyle(
@@ -154,27 +142,27 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 24),
 
-                    const SizedBox(height: 28),
+                    if (widget.onRevive != null) ...[
+                      ElevatedButton(
+                        onPressed: _canAfford
+                            ? widget.onRevive
+                            : null,
+                        child: Text(
+                          'REVIVE ($_reviveCost Coins)',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
 
                     ElevatedButton(
                       onPressed: widget.onReplay,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 28,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: const Text(
-                        'REPLAY',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text('REPLAY'),
                     ),
 
                     if (widget.onViewLeaderboard != null) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                       TextButton(
                         onPressed:
                             widget.onViewLeaderboard,
@@ -182,7 +170,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                           'VIEW LEADERBOARD',
                           style: TextStyle(
                             color: Colors.cyanAccent,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
