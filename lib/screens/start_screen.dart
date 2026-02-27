@@ -90,6 +90,17 @@ class _StartScreenState extends State<StartScreen> {
               ),
             ),
 
+             const SizedBox(height: 8),
+
+             Text(
+              'Coins: ${engine.wallet.balance}',
+              style: const TextStyle(
+               fontSize: 18,
+               fontWeight: FontWeight.w600,
+               color: Colors.amber,
+              ),
+             ),
+
             const SizedBox(height: 12),
 
             IconButton(

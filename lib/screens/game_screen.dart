@@ -350,6 +350,19 @@ int _milestoneForStreak(int streak) {
                 ),
               ),
 
+              Positioned(
+               top: 40,
+               left: 16,
+               child: Text(
+                '💰 ${widget.engine.wallet.balance}',
+                style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.amber,
+               ),
+              ),
+             ),
+
               if (_showIntro)
                 CarnivalIntroOverlay(
                   onComplete: () {
