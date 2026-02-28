@@ -285,6 +285,22 @@ int _milestoneForStreak(int streak) {
     setState(() {});
   }
 
+ static const int _reviveCost = 50;
+
+ Future<void> _revive() async {
+  final success =
+      await widget.engine.wallet.spendCoins(_reviveCost);
+
+  if (!success) return;
+
+  _leaderboardSubmitted = false;
+  _leaderboardPlacement = null;
+
+  widget.engine.runLifecycle.revive();
+
+  setState(() {});
+ }
+
   @override
   void dispose() {
     _surge.dispose();
@@ -372,10 +388,11 @@ int _milestoneForStreak(int streak) {
                 ),
 
               if (_isRunEnded && summary != null)
-                RunEndOverlay(
-                  state: RunEndState.fromSummary(summary),
-                  onReplay: _replay,
-                  placement: _leaderboardPlacement,
+               RunEndOverlay(
+                state: RunEndState.fromSummary(summary),
+                onReplay: _replay,
+                onRevive: _revive,
+                placement: _leaderboardPlacement,
                   onViewLeaderboard: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
