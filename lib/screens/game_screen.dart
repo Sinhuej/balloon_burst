@@ -58,6 +58,8 @@ class _GameScreenState extends State<GameScreen>
   bool _showHud = false;
   bool _showIntro = true;
   bool _canCountMisses = false;
+  bool _reviveProtectionActive = false;
+  Timer? _reviveProtectionTimer;
 
   double _fps = 0.0;
 
@@ -173,11 +175,13 @@ class _GameScreenState extends State<GameScreen>
     }
 
     if (escapedThisTick > 0) {
-      _controller.registerEscapes(escapedThisTick);
-      widget.engine.runLifecycle.report(
-        EscapeEvent(count: escapedThisTick),
-      );
-    }
+  if (!_reviveProtectionActive) {
+    _controller.registerEscapes(escapedThisTick);
+    widget.engine.runLifecycle.report(
+      EscapeEvent(count: escapedThisTick),
+    );
+  }
+}
 
     _controller.update(_balloons, dt);
 
@@ -237,8 +241,10 @@ int _milestoneForStreak(int streak) {
     final missesAfter = _controller.missCount;
 
     if (missesAfter > missesBefore) {
+     if (!_reviveProtectionActive) {
       widget.engine.runLifecycle.report(const MissEvent());
-      return;
+    }
+     return;
     }
 
     widget.engine.runLifecycle.report(const PopEvent(points: 1));
@@ -298,14 +304,29 @@ int _milestoneForStreak(int streak) {
 
   widget.engine.runLifecycle.revive();
 
+  // 🔒 Activate revive protection window
+  _reviveProtectionActive = true;
+
+  _reviveProtectionTimer?.cancel();
+  _reviveProtectionTimer = Timer(
+    const Duration(milliseconds: 1250),
+    () {
+      if (!mounted) return;
+      setState(() {
+        _reviveProtectionActive = false;
+      });
+    },
+  );
+
   setState(() {});
- }
+}
 
   @override
   void dispose() {
-    _surge.dispose();
-    _ticker.dispose();
-    super.dispose();
+  _reviveProtectionTimer?.cancel();  
+  _surge.dispose();
+  _ticker.dispose();
+  super.dispose();
   }
 
   @override
