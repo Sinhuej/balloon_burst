@@ -35,6 +35,13 @@ class RunLifecycleManager {
   int _pops = 0;
   int _misses = 0;
   int _escapes = 0;
+  bool _shieldActive = false;  
+  bool get isShieldActive => _shieldActive;  
+
+  void activateShield() {
+  if (_state != RunState.running) return;
+  _shieldActive = true;
+  }
 
   // ------------------------------------------------------------
   // STREAK (competitive precision arcade)
@@ -72,6 +79,7 @@ class RunLifecycleManager {
 
     _streak = 0;
     _bestStreak = 0;
+    _shieldActive = false;
 
     _currentWorldLevel = 1;
     _maxWorldLevelReached = 1;
@@ -98,17 +106,28 @@ class RunLifecycleManager {
       if (_streak > _bestStreak) _bestStreak = _streak;
 
     } else if (event is MissEvent) {
-      _misses++;
 
-      final attempts = _pops + _misses;
-      _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
+    // 🛡 Shield absorbs one miss
+    if (_shieldActive) {
+     _shieldActive = false;
 
-      _streak = 0;
+    // Still reset streak for fairness
+    _streak = 0;
 
-      if (_misses >= 10) {
-        endRun(EndReason.missLimit);
-        return;
-      }
+    return; // Do NOT increment miss count
+    }
+
+    _misses++;
+
+    final attempts = _pops + _misses;
+    _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
+
+    _streak = 0;
+
+    if (_misses >= 10) {
+     endRun(EndReason.missLimit);
+     return;
+    }
 
     } else if (event is EscapeEvent) {
       _escapes += event.count;
