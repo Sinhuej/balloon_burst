@@ -60,6 +60,7 @@ class _GameScreenState extends State<GameScreen>
   bool _showIntro = true;
   bool _canCountMisses = false;
   bool _reviveProtectionActive = false;
+  bool _reviveFlashActive = false;  
   Timer? _reviveProtectionTimer;
 
   double _fps = 0.0;
@@ -305,7 +306,7 @@ int _milestoneForStreak(int streak) {
 
   widget.engine.runLifecycle.revive();
 
-  // 🔒 Activate revive protection window
+  // 🔒 Protection window
   _reviveProtectionActive = true;
 
   _reviveProtectionTimer?.cancel();
@@ -315,6 +316,20 @@ int _milestoneForStreak(int streak) {
       if (!mounted) return;
       setState(() {
         _reviveProtectionActive = false;
+      });
+    },
+  );
+
+  // ✨ Flash + sound
+  _reviveFlashActive = true;
+  AudioPlayerService.playStreakMilestone(1); // temporary reuse or swap later
+
+  Future.delayed(
+    const Duration(milliseconds: 500),
+    () {
+      if (!mounted) return;
+      setState(() {
+        _reviveFlashActive = false;
       });
     },
   );
@@ -401,7 +416,20 @@ int _milestoneForStreak(int streak) {
               ),
              ),
 
-              if (_showIntro)
+               if (_reviveFlashActive)
+                Positioned.fill(
+                 child: IgnorePointer(
+                  child: AnimatedOpacity(
+                   opacity: _reviveFlashActive ? 0.35 : 0.0,
+                   duration: const Duration(milliseconds: 250),
+                  child: Container(
+                 color: Colors.amber,
+                ),
+               ),
+              ),
+             ),
+
+               if (_showIntro)
                 CarnivalIntroOverlay(
                   onComplete: () {
                     if (!mounted) return;
