@@ -91,6 +91,8 @@ class _GameScreenState extends State<GameScreen>
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
 
+    widget.engine.runLifecycle.activateShield(); // TEMP TEST
+
     _lastReportedWorld = widget.spawner.currentWorld;
 
     _controller = GameController(
