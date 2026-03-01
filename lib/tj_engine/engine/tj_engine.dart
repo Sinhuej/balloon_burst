@@ -90,22 +90,6 @@ class TJEngine {
     return true;
    }
 
-  static const int shieldCost = 75;
-
-  Future<bool> purchaseShield() async {
-   // Cannot purchase mid-run
-   if (runLifecycle.state == RunState.running) return false;
-
-   // Prevent stacking
-   if (runLifecycle.isShieldActive) return false;
-
-   final success = await wallet.spendCoins(shieldCost);
-   if (!success) return false;
-
-   runLifecycle.activateShield();
-   return true;
-  }
-
   /// Submit latest run to leaderboard
   Future<int?> submitLatestRunToLeaderboard() async {
     final summary = runLifecycle.latestSummary;
