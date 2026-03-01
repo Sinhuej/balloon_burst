@@ -72,7 +72,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         weight: 40,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 0.8, end: 0.0)
+        tween: Tween(begin: 0.5, end: 0.0)
             .chain(CurveTween(curve: Curves.easeIn)),
         weight: 60,
       ),
@@ -86,6 +86,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   }
 
   Future<void> _purchaseShield() async {
+    if (_shieldPurchased) return;
+
     final success = await widget.engine.purchaseShield();
     if (!success) return;
 
@@ -146,35 +148,36 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                 alignment: Alignment.center,
                 children: [
 
-                  // Flash glow (temporary only)
+                  // Tight flash glow
                   IgnorePointer(
-  child: Container(
-    width: 260,
-    height: 48,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(8),
-      boxShadow: _shieldGlow.value > 0
-          ? [
-              BoxShadow(
-                color: Colors.amber
-                    .withOpacity(_shieldGlow.value),
-                blurRadius: 18,
-              ),
-            ]
-          : [],
-    ),
-  ),
-),
+                    child: Container(
+                      width: 260,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: _shieldGlow.value > 0
+                            ? [
+                                BoxShadow(
+                                  color: Colors.amber
+                                      .withOpacity(_shieldGlow.value),
+                                  blurRadius: 18,
+                                ),
+                              ]
+                            : [],
+                      ),
+                    ),
+                  ),
 
                   Transform.scale(
                     scale: _shieldScale.value,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5A5A5A),
                         foregroundColor: Colors.white,
                       ),
                       onPressed: (!_shieldPurchased && _canAffordShield)
                           ? _purchaseShield
-                          : null,
+                          : () {}, // prevents disabled dimming
                       child: Text(
                         _shieldPurchased
                             ? '🛡 Shield Armed'
