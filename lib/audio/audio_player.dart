@@ -30,6 +30,10 @@ class AudioPlayerService {
   static final AudioPlayer _milestonePlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
+  // 🛡 Shield break cue (single instance, gated)
+  static final AudioPlayer _shieldPlayer = AudioPlayer()
+    ..setAudioContext(_gameAudioContext);
+
   /// Balloon pop (rapid, overlapping, fire-and-forget)
   static Future<void> playPop({double volume = 1.0}) async {
     if (_muted) return;
@@ -51,7 +55,7 @@ class AudioPlayerService {
     if (_muted) return;
 
     try {
-      await _surgePlayer.stop(); // ensure only one surge at a time
+      await _surgePlayer.stop();
       await _surgePlayer.play(
         AssetSource('audio/surge.mp3'),
         volume: 1.0,
@@ -83,10 +87,25 @@ class AudioPlayerService {
     }
 
     try {
-      await _milestonePlayer.stop(); // ensure only one milestone at a time
+      await _milestonePlayer.stop();
       await _milestonePlayer.play(
         AssetSource(asset),
         volume: 1.0,
+      );
+    } catch (_) {
+      // Fail silently
+    }
+  }
+
+  /// Shield break sound (subtle reinforcement cue)
+  static Future<void> playShieldBreak() async {
+    if (_muted) return;
+
+    try {
+      await _shieldPlayer.stop();
+      await _shieldPlayer.play(
+        AssetSource('audio/milestone_30.mp3'),
+        volume: 0.9,
       );
     } catch (_) {
       // Fail silently

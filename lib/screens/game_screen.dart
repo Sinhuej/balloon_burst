@@ -62,6 +62,9 @@ class _GameScreenState extends State<GameScreen>
   bool _reviveProtectionActive = false;
   bool _reviveFlashActive = false;  
   Timer? _reviveProtectionTimer;
+  
+  bool _previousShieldState = false;
+  bool _showShieldFlash = false;  
 
   double _fps = 0.0;
 
@@ -103,6 +106,25 @@ class _GameScreenState extends State<GameScreen>
     _surge = WorldSurgePulse(vsync: this);
     _ticker = createTicker(_onTick)..start();
   }
+  
+  void _triggerShieldBreakFeedback() {
+   // Visual flash
+   _showShieldFlash = true;
+
+   _shieldFlashTimer?.cancel();
+   _shieldFlashTimer = Timer(
+    const Duration(milliseconds: 250),
+    () {
+      if (!mounted) return;
+      setState(() {
+        _showShieldFlash = false;
+      });
+    },
+  );
+
+  // Optional sound
+  AudioPlayerService.playShieldBreak();
+}
 
   void _onTick(Duration elapsed) {
     if (_isRunEnded) {
@@ -122,6 +144,15 @@ class _GameScreenState extends State<GameScreen>
     _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
 
     widget.engine.update(dt);
+
+    final shieldNow = widget.engine.runLifecycle.isShieldActive;
+
+    // Detect shield consumption
+    if (_previousShieldState && !shieldNow) {
+     _triggerShieldBreakFeedback();
+   }
+
+    _previousShieldState = shieldNow;
 
     widget.spawner.update(
       dt: dt,
@@ -339,6 +370,7 @@ int _milestoneForStreak(int streak) {
 
   @override
   void dispose() {
+  _shieldFlashTimer?.cancel(); 
   _reviveProtectionTimer?.cancel();  
   _surge.dispose();
   _ticker.dispose();
@@ -365,6 +397,13 @@ int _milestoneForStreak(int streak) {
             children: [
 
               IgnorePointer(child: Container(color: bgColor)),
+
+              if (_showShieldFlash)
+               IgnorePointer(
+                child: Container(
+                 color: Colors.amber.withOpacity(0.25),
+                ),
+               ),
 
               GameCanvas(
                 currentWorld: currentWorld,
