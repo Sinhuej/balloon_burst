@@ -22,6 +22,7 @@ class StartScreen extends StatefulWidget {
 
 class _StartScreenState extends State<StartScreen> {
   Timer? _tick;
+  bool _showPurchaseFlash = false;
 
   @override
   void initState() {
@@ -55,6 +56,24 @@ class _StartScreenState extends State<StartScreen> {
     }
   }
 
+  Future<void> _purchaseShield() async {
+    final success = await widget.engine.purchaseShield();
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _showPurchaseFlash = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (!mounted) return;
+        setState(() {
+          _showPurchaseFlash = false;
+        });
+      });
+    }
+  }
+
   String _formatDuration(Duration d) {
     final hours = d.inHours;
     final minutes = d.inMinutes.remainder(60);
@@ -65,6 +84,25 @@ class _StartScreenState extends State<StartScreen> {
         '${seconds.toString().padLeft(2, '0')}';
   }
 
+  ButtonStyle _pillStyle({
+    required bool enabled,
+  }) {
+    const bg = Color(0xFFF3F1FF);
+    const fg = Color(0xFF5A4FCF);
+    const disabledBg = Color(0xFFDCD7F5);
+    const disabledFg = Color(0xFF7A74B8);
+
+    return ElevatedButton.styleFrom(
+      shape: const StadiumBorder(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      backgroundColor: enabled ? bg : disabledBg,
+      foregroundColor: enabled ? fg : disabledFg,
+      disabledBackgroundColor: disabledBg,
+      disabledForegroundColor: disabledFg,
+      elevation: 0,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final engine = widget.engine;
@@ -72,6 +110,30 @@ class _StartScreenState extends State<StartScreen> {
     final status = engine.dailyReward.getStatus(
       currentWorldLevel: 1,
     );
+
+    final canAfford =
+        engine.wallet.balance >= TJEngine.shieldCost;
+
+    final alreadyActive =
+        engine.runLifecycle.isShieldActive;
+
+    final shieldEnabled = canAfford && !alreadyActive;
+
+    String shieldLabel;
+    String? helperText;
+
+    if (alreadyActive) {
+      shieldLabel = '🛡 Shield Ready';
+      helperText = 'Absorbs your first escape';
+    } else if (canAfford) {
+      shieldLabel =
+          '🛡 Add Shield Protection (${TJEngine.shieldCost} Coins)';
+      helperText = 'Absorbs your first escape';
+    } else {
+      shieldLabel =
+          '🛡 Shield (${TJEngine.shieldCost} Coins)';
+      helperText = 'Need more coins';
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B0F2F),
@@ -90,16 +152,16 @@ class _StartScreenState extends State<StartScreen> {
               ),
             ),
 
-             const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-             Text(
+            Text(
               'Coins: ${engine.wallet.balance}',
               style: const TextStyle(
-               fontSize: 18,
-               fontWeight: FontWeight.w600,
-               color: Colors.amber,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.amber,
               ),
-             ),
+            ),
 
             const SizedBox(height: 12),
 
@@ -122,6 +184,7 @@ class _StartScreenState extends State<StartScreen> {
 
             if (status.isAvailable)
               ElevatedButton(
+                style: _pillStyle(enabled: true),
                 onPressed: _claimReward,
                 child: Text(
                   'Claim Daily Reward\n'
@@ -140,36 +203,43 @@ class _StartScreenState extends State<StartScreen> {
 
             const SizedBox(height: 34),
 
-            const SizedBox(height: 20),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: _showPurchaseFlash
+                    ? [
+                        BoxShadow(
+                          color: Colors.amber.withOpacity(0.6),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        )
+                      ]
+                    : [],
+              ),
+              child: ElevatedButton(
+                style: _pillStyle(enabled: shieldEnabled),
+                onPressed:
+                    shieldEnabled ? _purchaseShield : null,
+                child: Text(shieldLabel),
+              ),
+            ),
 
-            Builder(
-             builder: (context) {
-              final engine = widget.engine;
-              final canAfford = engine.wallet.balance >= TJEngine.shieldCost;
-              final alreadyActive = engine.runLifecycle.isShieldActive;
+            if (helperText != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                helperText,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                ),
+              ),
+            ],
 
-              final enabled = canAfford && !alreadyActive;
-
-              return ElevatedButton(
-               onPressed: enabled
-                ? () async {
-                 final success = await engine.purchaseShield();
-                 if (!mounted) return;
-                 if (success) {
-                  setState(() {});
-                 }
-                }
-              : null,
-             child: Text(
-              alreadyActive
-            ? '🛡 Shield Ready'
-            : '🛡 Buy Shield (${TJEngine.shieldCost} Coins)',
-           ),
-          );
-         },
-        ),
+            const SizedBox(height: 24),
 
             ElevatedButton(
+              style: _pillStyle(enabled: true),
               onPressed: _handleStart,
               child: const Text('START'),
             ),
