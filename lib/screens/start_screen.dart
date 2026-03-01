@@ -115,7 +115,7 @@ class _StartScreenState extends State<StartScreen> {
         engine.wallet.balance >= TJEngine.shieldCost;
 
     final alreadyActive =
-        engine.runLifecycle.isShieldActive;
+        engine.runLifecycle.isShieldArmedForNextRun
 
     final shieldEnabled = canAfford && !alreadyActive;
 

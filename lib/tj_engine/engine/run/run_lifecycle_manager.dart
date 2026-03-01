@@ -24,6 +24,9 @@ class RunLifecycleManager {
 
   bool get isShieldActive => _shieldActive;
 
+  // ✅ NEW — used by StartScreen
+  bool get isShieldArmedForNextRun => _shieldPending;
+
   void armShieldForNextRun() {
     _shieldPending = true;
   }
@@ -71,7 +74,6 @@ class RunLifecycleManager {
 
     _streak = 0;
     _bestStreak = 0;
-
     _currentWorldLevel = 1;
     _maxWorldLevelReached = 1;
 
@@ -79,7 +81,7 @@ class RunLifecycleManager {
     _endReason = null;
     _latestSummary = null;
 
-    // 🔥 Activate shield if purchased before run
+    // Activate shield if purchased before run
     _activateShieldIfPending();
   }
 
@@ -111,7 +113,6 @@ class RunLifecycleManager {
 
     } else if (event is EscapeEvent) {
 
-      // 🛡 Shield absorbs first escape
       if (_shieldActive && event.count > 0) {
         _consumeShield();
         _streak = 0;
@@ -178,7 +179,6 @@ class RunLifecycleManager {
     _endTime = null;
     _latestSummary = null;
 
-    // 🔥 If shield was purchased before revive, activate now
     _activateShieldIfPending();
   }
 
