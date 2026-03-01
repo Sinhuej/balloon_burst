@@ -404,15 +404,35 @@ int _milestoneForStreak(int streak) {
               ),
 
               Positioned(
-               top: 40,
-               left: 16,
-               child: Text(
-                '💰 ${widget.engine.wallet.balance}',
-                style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.amber,
-               ),
+                top: 40,
+                left: 16,
+                child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+
+                  // Wallet
+                  Text(
+                   '💰 ${widget.engine.wallet.balance}',
+                   style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber,
+                   ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Shield Indicator (only visible if active)
+                  if (widget.engine.runLifecycle.isShieldActive)
+                   const Text(
+                    '🛡 SHIELD READY',
+                    style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.cyanAccent,
+                   ),
+                  ),
+               ],
               ),
              ),
 
