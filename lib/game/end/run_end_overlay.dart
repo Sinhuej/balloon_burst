@@ -93,37 +93,47 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     setState(() {});
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black.withOpacity(0.75),
+  // SHIELD PURCHASE
+AnimatedBuilder(
+  animation: _shieldPulse,
+  builder: (context, child) {
+    return Stack(
       alignment: Alignment.center,
-      child: AnimatedBuilder(
-        animation: _shieldPulse,
-        builder: (context, _) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
+      children: [
 
-              // Subtle glow behind shield button when animating
-              if (_shieldPulse.isAnimating)
-                IgnorePointer(
-                  child: Container(
-                    width: 260,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.amber
-                              .withOpacity(_shieldGlow.value),
-                          blurRadius: 20,
-                          spreadRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+        // Glow behind button
+        Container(
+          width: 260,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.amber.withOpacity(_shieldGlow.value),
+                blurRadius: 18,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+        ),
+
+        Transform.scale(
+          scale: _shieldScale.value,
+          child: ElevatedButton(
+            onPressed: (!_shieldArmed && _canAffordShield)
+                ? _purchaseShield
+                : null,
+            child: Text(
+              _shieldArmed
+                  ? '🛡 Shield Armed'
+                  : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})',
+            ),
+          ),
+        ),
+      ],
+    );
+  },
+),
 
               Transform.scale(
                 scale: _shieldScale.value,
