@@ -50,6 +50,7 @@ class _GameScreenState extends State<GameScreen>
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
+  Timer? _shieldFlashTimer;
 
   final List<Balloon> _balloons = [];
 
