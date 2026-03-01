@@ -74,6 +74,21 @@ class TJEngine {
   Future<bool> toggleMute() async {
     return audio.toggleMuted();
   }
+  
+  // ============================================================
+  // SHIELD PURCHASE
+  // ============================================================
+
+  static const int shieldCost = 75;
+
+  /// Deduct coins and arm shield for next run.
+  Future<bool> purchaseShield() async {
+   final success = await wallet.spendCoins(shieldCost);
+    if (!success) return false;
+
+    runLifecycle.armShieldForNextRun();
+    return true;
+   }
 
   static const int shieldCost = 75;
 

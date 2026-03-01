@@ -17,16 +17,29 @@ class RunLifecycleManager {
   int _misses = 0;
   int _escapes = 0;
 
-  // 🛡 One-time shield per run (now protects ESCAPE)
-  bool _shieldActive = false;
-  bool get isShieldActive => _shieldActive;
+  // ============================================================
+  // SHIELD (Pre-Run Insurance Model)
+  // ============================================================
 
-  void activateShield() {
-    if (_state != RunState.running) return;
-    _shieldActive = true;
+  // Purchased before run
+  bool _shieldArmedForNextRun = false;
+
+  // Active during current run
+  bool _shieldActive = false;
+
+  bool get isShieldActive => _shieldActive;
+  bool get isShieldArmedForNextRun => _shieldArmedForNextRun;
+
+  /// Called by engine when shield is purchased before run.
+  void armShieldForNextRun() {
+    if (_state == RunState.running) return;
+    _shieldArmedForNextRun = true;
   }
 
+  // ============================================================
   // STREAK
+  // ============================================================
+
   int _streak = 0;
   int _bestStreak = 0;
 
@@ -40,6 +53,10 @@ class RunLifecycleManager {
 
   RunState get state => _state;
   RunSummary? get latestSummary => _latestSummary;
+
+  // ============================================================
+  // Start Run
+  // ============================================================
 
   void startRun({required String runId}) {
     if (_state == RunState.running) return;
@@ -64,7 +81,15 @@ class RunLifecycleManager {
     _accuracy01 = 1.0;
     _endReason = null;
     _latestSummary = null;
+
+    // Transfer pre-run shield into active shield
+    _shieldActive = _shieldArmedForNextRun;
+    _shieldArmedForNextRun = false;
   }
+
+  // ============================================================
+  // Event Reporting
+  // ============================================================
 
   void report(RunEvent event) {
     if (_state != RunState.running) return;
@@ -78,7 +103,10 @@ class RunLifecycleManager {
 
       _streak++;
       if (_streak > _bestStreak) _bestStreak = _streak;
-    } else if (event is MissEvent) {
+      return;
+    }
+
+    if (event is MissEvent) {
       _misses++;
 
       final attempts = _pops + _misses;
@@ -88,34 +116,50 @@ class RunLifecycleManager {
 
       if (_misses >= 10) {
         endRun(EndReason.missLimit);
-        return;
       }
-    } else if (event is EscapeEvent) {
-      // 🛡 Shield absorbs ONE escape
-      if (_shieldActive && event.count > 0) {
+      return;
+    }
+
+    if (event is EscapeEvent) {
+      int count = event.count;
+
+      // Shield absorbs ONE escape
+      if (_shieldActive && count > 0) {
         _shieldActive = false;
         _streak = 0;
-        return;
+        count -= 1;
       }
 
-      _escapes += event.count;
+      if (count <= 0) return;
 
-      if (event.count > 0) _streak = 0;
+      _escapes += count;
+
+      if (count > 0) _streak = 0;
 
       if (_escapes >= 3) {
         endRun(EndReason.escapeLimit);
-        return;
       }
-    } else if (event is WorldTransitionEvent) {
+      return;
+    }
+
+    if (event is WorldTransitionEvent) {
       _currentWorldLevel = event.newWorldLevel;
       if (_currentWorldLevel > _maxWorldLevelReached) {
         _maxWorldLevelReached = _currentWorldLevel;
       }
-    } else if (event is ScoreDeltaEvent) {
+      return;
+    }
+
+    if (event is ScoreDeltaEvent) {
       _score += event.delta;
       if (_score < 0) _score = 0;
+      return;
     }
   }
+
+  // ============================================================
+  // End Run
+  // ============================================================
 
   void endRun(EndReason reason) {
     if (_state != RunState.running) return;
@@ -144,6 +188,10 @@ class RunLifecycleManager {
     );
   }
 
+  // ============================================================
+  // Revive
+  // ============================================================
+
   void revive() {
     if (_state != RunState.ended) return;
 
@@ -155,7 +203,15 @@ class RunLifecycleManager {
     _endReason = null;
     _endTime = null;
     _latestSummary = null;
+
+    // Shield does NOT persist through revive
+    _shieldActive = false;
+    _shieldArmedForNextRun = false;
   }
+
+  // ============================================================
+  // Snapshot
+  // ============================================================
 
   RunStatusSnapshot getSnapshot() {
     final now = DateTime.now();
