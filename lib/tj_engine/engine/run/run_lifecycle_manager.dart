@@ -5,25 +5,6 @@ import 'models/run_event.dart';
 import 'models/run_status_snapshot.dart';
 import 'models/run_summary.dart';
 
-/// ===============================================================
-/// SYSTEM: RunLifecycleManager
-/// ===============================================================
-///
-/// PURPOSE:
-/// Authoritative engine-owned controller for a single gameplay run.
-///
-/// RESPONSIBILITIES:
-/// - Start a run
-/// - End a run
-/// - Track run statistics
-/// - Generate RunSummary
-/// - Provide live RunStatusSnapshot
-///
-/// IMPORTANT:
-/// This file must remain pure Dart.
-/// No Flutter imports.
-/// No game-specific imports.
-/// ===============================================================
 class RunLifecycleManager {
   RunState _state = RunState.idle;
 
@@ -35,17 +16,17 @@ class RunLifecycleManager {
   int _pops = 0;
   int _misses = 0;
   int _escapes = 0;
-  bool _shieldActive = false;  
-  bool get isShieldActive => _shieldActive;  
+
+  // 🛡 One-time shield per run (now protects ESCAPE)
+  bool _shieldActive = false;
+  bool get isShieldActive => _shieldActive;
 
   void activateShield() {
-  if (_state != RunState.running) return;
-  _shieldActive = true;
+    if (_state != RunState.running) return;
+    _shieldActive = true;
   }
 
-  // ------------------------------------------------------------
-  // STREAK (competitive precision arcade)
-  // ------------------------------------------------------------
+  // STREAK
   int _streak = 0;
   int _bestStreak = 0;
 
@@ -60,9 +41,6 @@ class RunLifecycleManager {
   RunState get state => _state;
   RunSummary? get latestSummary => _latestSummary;
 
-  /// ============================================================
-  /// Start a new run.
-  /// ============================================================
   void startRun({required String runId}) {
     if (_state == RunState.running) return;
 
@@ -79,6 +57,7 @@ class RunLifecycleManager {
 
     _streak = 0;
     _bestStreak = 0;
+
     _shieldActive = false;
 
     _currentWorldLevel = 1;
@@ -89,9 +68,6 @@ class RunLifecycleManager {
     _latestSummary = null;
   }
 
-  /// ============================================================
-  /// Report gameplay event.
-  /// ============================================================
   void report(RunEvent event) {
     if (_state != RunState.running) return;
 
@@ -104,32 +80,26 @@ class RunLifecycleManager {
 
       _streak++;
       if (_streak > _bestStreak) _bestStreak = _streak;
-
     } else if (event is MissEvent) {
+      _misses++;
 
-    // 🛡 Shield absorbs one miss
-    if (_shieldActive) {
-     _shieldActive = false;
+      final attempts = _pops + _misses;
+      _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
 
-    // Still reset streak for fairness
-    _streak = 0;
+      _streak = 0;
 
-    return; // Do NOT increment miss count
-    }
-
-    _misses++;
-
-    final attempts = _pops + _misses;
-    _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
-
-    _streak = 0;
-
-    if (_misses >= 10) {
-     endRun(EndReason.missLimit);
-     return;
-    }
-
+      if (_misses >= 10) {
+        endRun(EndReason.missLimit);
+        return;
+      }
     } else if (event is EscapeEvent) {
+      // 🛡 Shield absorbs ONE escape
+      if (_shieldActive && event.count > 0) {
+        _shieldActive = false;
+        _streak = 0;
+        return;
+      }
+
       _escapes += event.count;
 
       if (event.count > 0) _streak = 0;
@@ -138,22 +108,17 @@ class RunLifecycleManager {
         endRun(EndReason.escapeLimit);
         return;
       }
-
     } else if (event is WorldTransitionEvent) {
       _currentWorldLevel = event.newWorldLevel;
       if (_currentWorldLevel > _maxWorldLevelReached) {
         _maxWorldLevelReached = _currentWorldLevel;
       }
-
     } else if (event is ScoreDeltaEvent) {
       _score += event.delta;
       if (_score < 0) _score = 0;
     }
   }
 
-  /// ============================================================
-  /// End the current run.
-  /// ============================================================
   void endRun(EndReason reason) {
     if (_state != RunState.running) return;
 
@@ -181,29 +146,19 @@ class RunLifecycleManager {
     );
   }
 
-  /// ============================================================
-  /// Revive the last ended run.
-  /// Keeps score/streak/world.
-  /// Clears fail counters and resumes running state.
-  /// ============================================================
   void revive() {
     if (_state != RunState.ended) return;
 
     _state = RunState.running;
 
-    // Reset fail counters so player doesn’t instantly die again
     _misses = 0;
     _escapes = 0;
 
-    // Clear end markers
     _endReason = null;
     _endTime = null;
     _latestSummary = null;
   }
 
-  /// ============================================================
-  /// Live snapshot of run state.
-  /// ============================================================
   RunStatusSnapshot getSnapshot() {
     final now = DateTime.now();
     final start = _startTime ?? now;
