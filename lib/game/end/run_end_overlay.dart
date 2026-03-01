@@ -67,7 +67,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _shieldGlow = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 0.8)
+        tween: Tween(begin: 0.0, end: 0.5)
             .chain(CurveTween(curve: Curves.easeOut)),
         weight: 40,
       ),
@@ -148,22 +148,23 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
                   // Flash glow (temporary only)
                   IgnorePointer(
-                    child: Container(
-                      width: 260,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.amber
-                                .withOpacity(_shieldGlow.value),
-                            blurRadius: 28,
-                            spreadRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+  child: Container(
+    width: 260,
+    height: 48,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: _shieldGlow.value > 0
+          ? [
+              BoxShadow(
+                color: Colors.amber
+                    .withOpacity(_shieldGlow.value),
+                blurRadius: 18,
+              ),
+            ]
+          : [],
+    ),
+  ),
+),
 
                   Transform.scale(
                     scale: _shieldScale.value,
