@@ -148,7 +148,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                 alignment: Alignment.center,
                 children: [
 
-                  // Tight flash glow
                   IgnorePointer(
                     child: Container(
                       width: 260,
@@ -172,12 +171,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                     scale: _shieldScale.value,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5A5A5A),
                         foregroundColor: Colors.white,
                       ),
                       onPressed: (!_shieldPurchased && _canAffordShield)
                           ? _purchaseShield
-                          : () {}, // prevents disabled dimming
+                          : null,
                       child: Text(
                         _shieldPurchased
                             ? '🛡 Shield Armed'

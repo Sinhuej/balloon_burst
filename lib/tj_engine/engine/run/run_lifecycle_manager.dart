@@ -1,5 +1,3 @@
-// lib/tj_engine/engine/run/run_lifecycle_manager.dart
-
 import 'models/run_state.dart';
 import 'models/run_event.dart';
 import 'models/run_status_snapshot.dart';
@@ -18,26 +16,29 @@ class RunLifecycleManager {
   int _escapes = 0;
 
   // ============================================================
-  // SHIELD (Pre-Run Insurance Model)
+  // SHIELD SYSTEM (Model C)
   // ============================================================
 
-  // Purchased before run
-  bool _shieldArmedForNextRun = false;
-
-  // Active during current run
+  bool _shieldPending = false;
   bool _shieldActive = false;
 
   bool get isShieldActive => _shieldActive;
-  bool get isShieldArmedForNextRun => _shieldArmedForNextRun;
 
-  /// Called by engine when shield is purchased before run.
   void armShieldForNextRun() {
-    if (_state == RunState.running) return;
-    _shieldArmedForNextRun = true;
+    _shieldPending = true;
   }
 
-  // ============================================================
-  // STREAK
+  void _activateShieldIfPending() {
+    if (_shieldPending) {
+      _shieldActive = true;
+      _shieldPending = false;
+    }
+  }
+
+  void _consumeShield() {
+    _shieldActive = false;
+  }
+
   // ============================================================
 
   int _streak = 0;
@@ -53,10 +54,6 @@ class RunLifecycleManager {
 
   RunState get state => _state;
   RunSummary? get latestSummary => _latestSummary;
-
-  // ============================================================
-  // Start Run
-  // ============================================================
 
   void startRun({required String runId}) {
     if (_state == RunState.running) return;
@@ -82,14 +79,9 @@ class RunLifecycleManager {
     _endReason = null;
     _latestSummary = null;
 
-    // Transfer pre-run shield into active shield
-    _shieldActive = _shieldArmedForNextRun;
-    _shieldArmedForNextRun = false;
+    // 🔥 Activate shield if purchased before run
+    _activateShieldIfPending();
   }
-
-  // ============================================================
-  // Event Reporting
-  // ============================================================
 
   void report(RunEvent event) {
     if (_state != RunState.running) return;
@@ -103,10 +95,8 @@ class RunLifecycleManager {
 
       _streak++;
       if (_streak > _bestStreak) _bestStreak = _streak;
-      return;
-    }
 
-    if (event is MissEvent) {
+    } else if (event is MissEvent) {
       _misses++;
 
       final attempts = _pops + _misses;
@@ -116,50 +106,38 @@ class RunLifecycleManager {
 
       if (_misses >= 10) {
         endRun(EndReason.missLimit);
+        return;
       }
-      return;
-    }
 
-    if (event is EscapeEvent) {
-      int count = event.count;
+    } else if (event is EscapeEvent) {
 
-      // Shield absorbs ONE escape
-      if (_shieldActive && count > 0) {
-        _shieldActive = false;
+      // 🛡 Shield absorbs first escape
+      if (_shieldActive && event.count > 0) {
+        _consumeShield();
         _streak = 0;
-        count -= 1;
+        return;
       }
 
-      if (count <= 0) return;
+      _escapes += event.count;
 
-      _escapes += count;
-
-      if (count > 0) _streak = 0;
+      if (event.count > 0) _streak = 0;
 
       if (_escapes >= 3) {
         endRun(EndReason.escapeLimit);
+        return;
       }
-      return;
-    }
 
-    if (event is WorldTransitionEvent) {
+    } else if (event is WorldTransitionEvent) {
       _currentWorldLevel = event.newWorldLevel;
       if (_currentWorldLevel > _maxWorldLevelReached) {
         _maxWorldLevelReached = _currentWorldLevel;
       }
-      return;
-    }
 
-    if (event is ScoreDeltaEvent) {
+    } else if (event is ScoreDeltaEvent) {
       _score += event.delta;
       if (_score < 0) _score = 0;
-      return;
     }
   }
-
-  // ============================================================
-  // End Run
-  // ============================================================
 
   void endRun(EndReason reason) {
     if (_state != RunState.running) return;
@@ -188,10 +166,6 @@ class RunLifecycleManager {
     );
   }
 
-  // ============================================================
-  // Revive
-  // ============================================================
-
   void revive() {
     if (_state != RunState.ended) return;
 
@@ -204,14 +178,9 @@ class RunLifecycleManager {
     _endTime = null;
     _latestSummary = null;
 
-    // Shield does NOT persist through revive
-    _shieldActive = false;
-    _shieldArmedForNextRun = false;
+    // 🔥 If shield was purchased before revive, activate now
+    _activateShieldIfPending();
   }
-
-  // ============================================================
-  // Snapshot
-  // ============================================================
 
   RunStatusSnapshot getSnapshot() {
     final now = DateTime.now();
