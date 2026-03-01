@@ -58,8 +58,6 @@ class RunLifecycleManager {
     _streak = 0;
     _bestStreak = 0;
 
-    _shieldActive = false;
-
     _currentWorldLevel = 1;
     _maxWorldLevelReached = 1;
 
