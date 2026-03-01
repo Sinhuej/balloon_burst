@@ -8,6 +8,7 @@ import 'leaderboard/leaderboard_entry.dart';
 import 'wallet/wallet_manager.dart';
 import 'audio/audio_settings_manager.dart';
 import 'daily/models/daily_reward_model.dart';
+import 'run/models/run_state.dart';
 
 class TJEngine {
   final RunLifecycleManager runLifecycle;
@@ -72,6 +73,22 @@ class TJEngine {
 
   Future<bool> toggleMute() async {
     return audio.toggleMuted();
+  }
+
+  static const int shieldCost = 75;
+
+  Future<bool> purchaseShield() async {
+   // Cannot purchase mid-run
+   if (runLifecycle.state == RunState.running) return false;
+
+   // Prevent stacking
+   if (runLifecycle.isShieldActive) return false;
+
+   final success = await wallet.spendCoins(shieldCost);
+   if (!success) return false;
+
+   runLifecycle.activateShield();
+   return true;
   }
 
   /// Submit latest run to leaderboard
