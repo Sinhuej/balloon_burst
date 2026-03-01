@@ -49,31 +49,34 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _shieldPulse = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 280),
+      duration: const Duration(milliseconds: 420),
     );
 
     _shieldScale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(begin: 1.0, end: 1.10)
             .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 50,
+        weight: 40,
       ),
       TweenSequenceItem(
         tween: Tween(begin: 1.10, end: 1.0)
             .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 50,
+        weight: 60,
       ),
     ]).animate(_shieldPulse);
 
-    _shieldGlow = Tween<double>(
-      begin: 0.0,
-      end: 0.8,
-    ).animate(
-      CurvedAnimation(
-        parent: _shieldPulse,
-        curve: Curves.easeOut,
+    _shieldGlow = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 0.8)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40,
       ),
-    );
+      TweenSequenceItem(
+        tween: Tween(begin: 0.8, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 60,
+      ),
+    ]).animate(_shieldPulse);
   }
 
   @override
@@ -143,25 +146,31 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                 alignment: Alignment.center,
                 children: [
 
-                  Container(
-                    width: 260,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.amber
-                              .withOpacity(_shieldGlow.value),
-                          blurRadius: 24,
-                          spreadRadius: 6,
-                        ),
-                      ],
+                  // Flash glow (temporary only)
+                  IgnorePointer(
+                    child: Container(
+                      width: 260,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber
+                                .withOpacity(_shieldGlow.value),
+                            blurRadius: 28,
+                            spreadRadius: 8,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
                   Transform.scale(
                     scale: _shieldScale.value,
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: (!_shieldPurchased && _canAffordShield)
                           ? _purchaseShield
                           : null,
