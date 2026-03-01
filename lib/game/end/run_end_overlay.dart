@@ -29,13 +29,11 @@ class RunEndOverlay extends StatefulWidget {
 class _RunEndOverlayState extends State<RunEndOverlay>
     with SingleTickerProviderStateMixin {
 
-  late final AnimationController _takeover;
-  late final Animation<double> _scale;
-  late final Animation<double> _glow;
+  late final AnimationController _shieldPulse;
+  late final Animation<double> _shieldScale;
+  late final Animation<double> _shieldGlow;
 
   static const int _reviveCost = 50;
-
-  bool get _isNewNumberOne => widget.placement == 1;
 
   bool get _canAffordRevive =>
       widget.engine.wallet.balance >= _reviveCost;
@@ -43,61 +41,53 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   bool get _canAffordShield =>
       widget.engine.wallet.balance >= TJEngine.shieldCost;
 
-  bool get _shieldAlreadyArmed =>
+  bool get _shieldArmed =>
       widget.engine.runLifecycle.isShieldActive;
 
   @override
   void initState() {
     super.initState();
 
-    _takeover = AnimationController(
+    _shieldPulse = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 650),
+      duration: const Duration(milliseconds: 280),
     );
 
-    _scale = TweenSequence<double>([
+    _shieldScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.06)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 45,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.06, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInCubic)),
-        weight: 55,
-      ),
-    ]).animate(_takeover);
-
-    _glow = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.0)
+        tween: Tween(begin: 1.0, end: 1.08)
             .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
+        weight: 50,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 0.0)
+        tween: Tween(begin: 1.08, end: 1.0)
             .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 60,
+        weight: 50,
       ),
-    ]).animate(_takeover);
+    ]).animate(_shieldPulse);
 
-    if (_isNewNumberOne) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _takeover.forward(from: 0);
-      });
-    }
+    _shieldGlow = Tween<double>(
+      begin: 0.0,
+      end: 0.6,
+    ).animate(
+      CurvedAnimation(
+        parent: _shieldPulse,
+        curve: Curves.easeOut,
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _takeover.dispose();
+    _shieldPulse.dispose();
     super.dispose();
   }
 
   Future<void> _purchaseShield() async {
     final success = await widget.engine.purchaseShield();
     if (!success) return;
+
+    _shieldPulse.forward(from: 0);
 
     if (!mounted) return;
     setState(() {});
@@ -109,29 +99,26 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       color: Colors.black.withOpacity(0.75),
       alignment: Alignment.center,
       child: AnimatedBuilder(
-        animation: _takeover,
-        builder: (context, child) {
-
-          final glowOpacity =
-              _isNewNumberOne ? (_glow.value * 0.25) : 0.0;
-
+        animation: _shieldPulse,
+        builder: (context, _) {
           return Stack(
             alignment: Alignment.center,
             children: [
 
-              if (_isNewNumberOne)
+              // Subtle glow behind shield button when animating
+              if (_shieldPulse.isAnimating)
                 IgnorePointer(
                   child: Container(
-                    width: 340,
-                    height: 220,
+                    width: 260,
+                    height: 50,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.cyanAccent
-                              .withOpacity(glowOpacity),
-                          blurRadius: 40,
-                          spreadRadius: 6,
+                          color: Colors.amber
+                              .withOpacity(_shieldGlow.value),
+                          blurRadius: 20,
+                          spreadRadius: 4,
                         ),
                       ],
                     ),
@@ -139,7 +126,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                 ),
 
               Transform.scale(
-                scale: _isNewNumberOne ? _scale.value : 1.0,
+                scale: _shieldScale.value,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -182,11 +169,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
                     // SHIELD PURCHASE
                     ElevatedButton(
-                      onPressed: (!_shieldAlreadyArmed && _canAffordShield)
+                      onPressed: (!_shieldArmed && _canAffordShield)
                           ? _purchaseShield
                           : null,
                       child: Text(
-                        _shieldAlreadyArmed
+                        _shieldArmed
                             ? '🛡 Shield Armed'
                             : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})',
                       ),
@@ -194,7 +181,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
                     const SizedBox(height: 12),
 
-                    // REPLAY
                     ElevatedButton(
                       onPressed: widget.onReplay,
                       child: const Text('REPLAY'),
@@ -203,8 +189,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                     if (widget.onViewLeaderboard != null) ...[
                       const SizedBox(height: 12),
                       TextButton(
-                        onPressed:
-                            widget.onViewLeaderboard,
+                        onPressed: widget.onViewLeaderboard,
                         child: const Text(
                           'VIEW LEADERBOARD',
                           style: TextStyle(
