@@ -55,12 +55,12 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _shieldScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.08)
+        tween: Tween(begin: 1.0, end: 1.10)
             .chain(CurveTween(curve: Curves.easeOut)),
         weight: 50,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.08, end: 1.0)
+        tween: Tween(begin: 1.10, end: 1.0)
             .chain(CurveTween(curve: Curves.easeIn)),
         weight: 50,
       ),
@@ -68,7 +68,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _shieldGlow = Tween<double>(
       begin: 0.0,
-      end: 0.6,
+      end: 0.8,
     ).animate(
       CurvedAnimation(
         parent: _shieldPulse,
@@ -93,92 +93,75 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     setState(() {});
   }
 
-  // SHIELD PURCHASE
-AnimatedBuilder(
-  animation: _shieldPulse,
-  builder: (context, child) {
-    return Stack(
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withOpacity(0.75),
       alignment: Alignment.center,
-      children: [
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
 
-        // Glow behind button
-        Container(
-          width: 260,
-          height: 48,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.amber.withOpacity(_shieldGlow.value),
-                blurRadius: 18,
-                spreadRadius: 4,
-              ),
-            ],
-          ),
-        ),
-
-        Transform.scale(
-          scale: _shieldScale.value,
-          child: ElevatedButton(
-            onPressed: (!_shieldArmed && _canAffordShield)
-                ? _purchaseShield
-                : null,
-            child: Text(
-              _shieldArmed
-                  ? '🛡 Shield Armed'
-                  : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})',
+          Text(
+            RunEndMessages.title(widget.state),
+            style: const TextStyle(
+              fontSize: 26,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
+            textAlign: TextAlign.center,
           ),
-        ),
-      ],
-    );
-  },
-),
 
-              Transform.scale(
-                scale: _shieldScale.value,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+          const SizedBox(height: 16),
 
-                    Text(
-                      RunEndMessages.title(widget.state),
-                      style: const TextStyle(
-                        fontSize: 26,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+          Text(
+            RunEndMessages.body(widget.state),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.white70,
+            ),
+            textAlign: TextAlign.center,
+          ),
 
-                    const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
-                    Text(
-                      RunEndMessages.body(widget.state),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+          if (widget.onRevive != null) ...[
+            ElevatedButton(
+              onPressed: _canAffordRevive
+                  ? widget.onRevive
+                  : null,
+              child: Text('REVIVE ($_reviveCost Coins)'),
+            ),
+            const SizedBox(height: 12),
+          ],
 
-                    const SizedBox(height: 24),
+          // 🛡 SHIELD BUTTON WITH ANIMATION
+          AnimatedBuilder(
+            animation: _shieldPulse,
+            builder: (context, _) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
 
-                    // REVIVE
-                    if (widget.onRevive != null) ...[
-                      ElevatedButton(
-                        onPressed: _canAffordRevive
-                            ? widget.onRevive
-                            : null,
-                        child: Text(
-                          'REVIVE ($_reviveCost Coins)',
+                  Container(
+                    width: 260,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber
+                              .withOpacity(_shieldGlow.value),
+                          blurRadius: 24,
+                          spreadRadius: 6,
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                      ],
+                    ),
+                  ),
 
-                    // SHIELD PURCHASE
-                    ElevatedButton(
+                  Transform.scale(
+                    scale: _shieldScale.value,
+                    child: ElevatedButton(
                       onPressed: (!_shieldArmed && _canAffordShield)
                           ? _purchaseShield
                           : null,
@@ -188,50 +171,50 @@ AnimatedBuilder(
                             : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})',
                       ),
                     ),
+                  ),
+                ],
+              );
+            },
+          ),
 
-                    const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-                    ElevatedButton(
-                      onPressed: widget.onReplay,
-                      child: const Text('REPLAY'),
-                    ),
+          ElevatedButton(
+            onPressed: widget.onReplay,
+            child: const Text('REPLAY'),
+          ),
 
-                    if (widget.onViewLeaderboard != null) ...[
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: widget.onViewLeaderboard,
-                        child: const Text(
-                          'VIEW LEADERBOARD',
-                          style: TextStyle(
-                            color: Colors.cyanAccent,
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 16),
-
-                    IconButton(
-                      icon: Icon(
-                        widget.engine.isMuted
-                            ? Icons.volume_off
-                            : Icons.volume_up,
-                        color: Colors.white70,
-                      ),
-                      onPressed: () async {
-                        final muted =
-                            await widget.engine.toggleMute();
-                        AudioPlayerService.setMuted(muted);
-                        if (!mounted) return;
-                        setState(() {});
-                      },
-                    ),
-                  ],
+          if (widget.onViewLeaderboard != null) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: widget.onViewLeaderboard,
+              child: const Text(
+                'VIEW LEADERBOARD',
+                style: TextStyle(
+                  color: Colors.cyanAccent,
                 ),
               ),
-            ],
-          );
-        },
+            ),
+          ],
+
+          const SizedBox(height: 16),
+
+          IconButton(
+            icon: Icon(
+              widget.engine.isMuted
+                  ? Icons.volume_off
+                  : Icons.volume_up,
+              color: Colors.white70,
+            ),
+            onPressed: () async {
+              final muted =
+                  await widget.engine.toggleMute();
+              AudioPlayerService.setMuted(muted);
+              if (!mounted) return;
+              setState(() {});
+            },
+          ),
+        ],
       ),
     );
   }
