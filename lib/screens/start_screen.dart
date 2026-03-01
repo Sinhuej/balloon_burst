@@ -140,6 +140,35 @@ class _StartScreenState extends State<StartScreen> {
 
             const SizedBox(height: 34),
 
+            const SizedBox(height: 20),
+
+            Builder(
+             builder: (context) {
+              final engine = widget.engine;
+              final canAfford = engine.wallet.balance >= TJEngine.shieldCost;
+              final alreadyActive = engine.runLifecycle.isShieldActive;
+
+              final enabled = canAfford && !alreadyActive;
+
+              return ElevatedButton(
+               onPressed: enabled
+                ? () async {
+                 final success = await engine.purchaseShield();
+                 if (!mounted) return;
+                 if (success) {
+                  setState(() {});
+                 }
+                }
+              : null,
+             child: Text(
+              alreadyActive
+            ? '🛡 Shield Ready'
+            : '🛡 Buy Shield (${TJEngine.shieldCost} Coins)',
+           ),
+          );
+         },
+        ),
+
             ElevatedButton(
               onPressed: _handleStart,
               child: const Text('START'),
