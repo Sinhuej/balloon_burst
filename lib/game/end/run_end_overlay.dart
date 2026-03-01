@@ -35,14 +35,13 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   static const int _reviveCost = 50;
 
+  bool _shieldPurchased = false;
+
   bool get _canAffordRevive =>
       widget.engine.wallet.balance >= _reviveCost;
 
   bool get _canAffordShield =>
       widget.engine.wallet.balance >= TJEngine.shieldCost;
-
-  bool get _shieldArmed =>
-      widget.engine.runLifecycle.isShieldActive;
 
   @override
   void initState() {
@@ -90,7 +89,9 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     _shieldPulse.forward(from: 0);
 
     if (!mounted) return;
-    setState(() {});
+    setState(() {
+      _shieldPurchased = true;
+    });
   }
 
   @override
@@ -135,7 +136,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             const SizedBox(height: 12),
           ],
 
-          // 🛡 SHIELD BUTTON WITH ANIMATION
           AnimatedBuilder(
             animation: _shieldPulse,
             builder: (context, _) {
@@ -162,11 +162,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                   Transform.scale(
                     scale: _shieldScale.value,
                     child: ElevatedButton(
-                      onPressed: (!_shieldArmed && _canAffordShield)
+                      onPressed: (!_shieldPurchased && _canAffordShield)
                           ? _purchaseShield
                           : null,
                       child: Text(
-                        _shieldArmed
+                        _shieldPurchased
                             ? '🛡 Shield Armed'
                             : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})',
                       ),
