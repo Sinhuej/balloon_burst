@@ -1,30 +1,27 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'dart:async';
 
-import 'package:balloon_burst/game/game_state.dart';
-import 'package:balloon_burst/debug/debug_log.dart';
-import 'package:balloon_burst/game/game_controller.dart';
-import 'package:balloon_burst/game/balloon_spawner.dart';
-import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+
 import 'package:balloon_burst/audio/audio_player.dart';
-
+import 'package:balloon_burst/debug/debug_log.dart';
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
-import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
-
-import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
-import 'package:balloon_burst/tj_engine/engine/run/models/run_state.dart';
-import 'package:balloon_burst/tj_engine/engine/run/models/run_event.dart';
-
-import 'package:balloon_burst/screens/game/render/game_canvas.dart';
+import 'package:balloon_burst/engine/tier/tier_controller.dart';
+import 'package:balloon_burst/game/balloon_spawner.dart';
+import 'package:balloon_burst/game/game_controller.dart';
+import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/game/end/run_end_overlay.dart';
+import 'package:balloon_burst/game/end/run_end_state.dart';
+import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 import 'package:balloon_burst/screens/game/input/tap_handler.dart';
 import 'package:balloon_burst/screens/game/intro/carnival_intro_overlay.dart';
+import 'package:balloon_burst/screens/game/render/game_canvas.dart';
 import 'package:balloon_burst/screens/leaderboard_screen.dart';
-
-import 'package:balloon_burst/game/end/run_end_overlay.dart';
-import 'package:balloon_burst/game/end/run_end_state.dart';
+import 'package:balloon_burst/tj_engine/engine/run/models/run_event.dart';
+import 'package:balloon_burst/tj_engine/engine/run/models/run_state.dart';
+import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -44,13 +41,21 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
-
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Ticker _ticker;
   late final GameController _controller;
   late final WorldSurgePulse _surge;
+
+  // Shield break flash timer
   Timer? _shieldFlashTimer;
+
+  // Revive protection timer
+  Timer? _reviveProtectionTimer;
+
+  // Wallet pulse animation
+  late final AnimationController _walletPulse;
+  late final Animation<double> _walletScale;
+  int _lastWalletBalance = 0;
 
   final List<Balloon> _balloons = [];
 
@@ -60,12 +65,14 @@ class _GameScreenState extends State<GameScreen>
   bool _showHud = false;
   bool _showIntro = true;
   bool _canCountMisses = false;
+
+  // Revive safety window + flash
   bool _reviveProtectionActive = false;
-  bool _reviveFlashActive = false;  
-  Timer? _reviveProtectionTimer;
-  
+  bool _reviveFlashActive = false;
+
+  // Shield state + flash
   bool _previousShieldState = false;
-  bool _showShieldFlash = false;  
+  bool _showShieldFlash = false;
 
   double _fps = 0.0;
 
@@ -77,8 +84,9 @@ class _GameScreenState extends State<GameScreen>
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
 
-  bool get _isRunEnded =>
-      widget.engine.runLifecycle.state == RunState.ended;
+  static const int _reviveCost = 50;
+
+  bool get _isRunEnded => widget.engine.runLifecycle.state == RunState.ended;
 
   @override
   void initState() {
@@ -90,7 +98,6 @@ class _GameScreenState extends State<GameScreen>
     );
 
     widget.engine.difficulty.reset();
-
     widget.engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
@@ -105,27 +112,48 @@ class _GameScreenState extends State<GameScreen>
     );
 
     _surge = WorldSurgePulse(vsync: this);
+
+    // Wallet pulse setup
+    _lastWalletBalance = widget.engine.wallet.balance;
+    _walletPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _walletScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.15).chain(
+          CurveTween(curve: Curves.easeOut),
+        ),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.15, end: 1.0).chain(
+          CurveTween(curve: Curves.easeIn),
+        ),
+        weight: 50,
+      ),
+    ]).animate(_walletPulse);
+
     _ticker = createTicker(_onTick)..start();
   }
-  
+
   void _triggerShieldBreakFeedback() {
-   // Visual flash
-   _showShieldFlash = true;
+    _showShieldFlash = true;
 
-   _shieldFlashTimer?.cancel();
-   _shieldFlashTimer = Timer(
-    const Duration(milliseconds: 250),
-    () {
-      if (!mounted) return;
-      setState(() {
-        _showShieldFlash = false;
-      });
-    },
-  );
+    _shieldFlashTimer?.cancel();
+    _shieldFlashTimer = Timer(
+      const Duration(milliseconds: 250),
+      () {
+        if (!mounted) return;
+        setState(() {
+          _showShieldFlash = false;
+        });
+      },
+    );
 
-  // Optional sound
-  AudioPlayerService.playShieldBreak();
-}
+    AudioPlayerService.playShieldBreak();
+    if (mounted) setState(() {});
+  }
 
   void _onTick(Duration elapsed) {
     if (_isRunEnded) {
@@ -146,22 +174,26 @@ class _GameScreenState extends State<GameScreen>
 
     widget.engine.update(dt);
 
+    // Detect shield consumption (active -> inactive)
     final shieldNow = widget.engine.runLifecycle.isShieldActive;
-
-    // Detect shield consumption
     if (_previousShieldState && !shieldNow) {
-     _triggerShieldBreakFeedback();
-   }
-
+      _triggerShieldBreakFeedback();
+    }
     _previousShieldState = shieldNow;
+
+    // Wallet deduction pulse (only when balance decreases)
+    final currentBalance = widget.engine.wallet.balance;
+    if (currentBalance < _lastWalletBalance) {
+      _walletPulse.forward(from: 0);
+    }
+    _lastWalletBalance = currentBalance;
 
     widget.spawner.update(
       dt: dt,
       tier: 0,
       balloons: _balloons,
       viewportHeight: _lastSize.height,
-      engineSpawnInterval:
-          widget.engine.difficulty.snapshot.spawnInterval,
+      engineSpawnInterval: widget.engine.difficulty.snapshot.spawnInterval,
       engineMaxSimultaneousSpawns:
           widget.engine.difficulty.snapshot.maxSimultaneousSpawns,
     );
@@ -181,8 +213,7 @@ class _GameScreenState extends State<GameScreen>
     for (int i = 0; i < _balloons.length; i++) {
       final b = _balloons[i];
 
-      final engineSpeed =
-          widget.engine.difficulty.snapshot.speedMultiplier;
+      final engineSpeed = widget.engine.difficulty.snapshot.speedMultiplier;
 
       final speed = baseRiseSpeed *
           widget.spawner.speedMultiplier *
@@ -209,13 +240,13 @@ class _GameScreenState extends State<GameScreen>
     }
 
     if (escapedThisTick > 0) {
-  if (!_reviveProtectionActive) {
-    _controller.registerEscapes(escapedThisTick);
-    widget.engine.runLifecycle.report(
-      EscapeEvent(count: escapedThisTick),
-    );
-  }
-}
+      if (!_reviveProtectionActive) {
+        _controller.registerEscapes(escapedThisTick);
+        widget.engine.runLifecycle.report(
+          EscapeEvent(count: escapedThisTick),
+        );
+      }
+    }
 
     _controller.update(_balloons, dt);
 
@@ -237,14 +268,13 @@ class _GameScreenState extends State<GameScreen>
 
     widget.engine.submitLatestRunToLeaderboard().then((placement) {
       if (!mounted) return;
-
       setState(() {
         _leaderboardPlacement = placement;
       });
     });
   }
 
-int _milestoneForStreak(int streak) {
+  int _milestoneForStreak(int streak) {
     if (streak >= 30) return 3;
     if (streak >= 20) return 2;
     if (streak >= 10) return 1;
@@ -255,9 +285,7 @@ int _milestoneForStreak(int streak) {
     if (_showIntro) return;
     if (_isRunEnded || !_canCountMisses) return;
 
-    final prevStreak =
-        widget.engine.runLifecycle.getSnapshot().streak;
-
+    final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
     final missesBefore = _controller.missCount;
 
     TapHandler.handleTap(
@@ -275,25 +303,20 @@ int _milestoneForStreak(int streak) {
     final missesAfter = _controller.missCount;
 
     if (missesAfter > missesBefore) {
-     if (!_reviveProtectionActive) {
-      widget.engine.runLifecycle.report(const MissEvent());
-    }
-     return;
+      if (!_reviveProtectionActive) {
+        widget.engine.runLifecycle.report(const MissEvent());
+      }
+      return;
     }
 
     widget.engine.runLifecycle.report(const PopEvent(points: 1));
 
-    final nextStreak =
-        widget.engine.runLifecycle.getSnapshot().streak;
-
-    final prevMilestone =
-        _milestoneForStreak(prevStreak);
-    final nextMilestone =
-        _milestoneForStreak(nextStreak);
+    final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
+    final prevMilestone = _milestoneForStreak(prevStreak);
+    final nextMilestone = _milestoneForStreak(nextStreak);
 
     if (nextMilestone > prevMilestone) {
-      AudioPlayerService.playStreakMilestone(
-          nextMilestone);
+      AudioPlayerService.playStreakMilestone(nextMilestone);
     }
   }
 
@@ -306,6 +329,7 @@ int _milestoneForStreak(int streak) {
   void _replay() {
     _balloons.clear();
     _canCountMisses = false;
+
     _leaderboardSubmitted = false;
     _leaderboardPlacement = null;
 
@@ -317,7 +341,6 @@ int _milestoneForStreak(int streak) {
     _lastTime = Duration.zero;
 
     widget.engine.difficulty.reset();
-
     widget.engine.runLifecycle.startRun(
       runId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
@@ -325,57 +348,53 @@ int _milestoneForStreak(int streak) {
     setState(() {});
   }
 
- static const int _reviveCost = 50;
+  Future<void> _revive() async {
+    final success = await widget.engine.wallet.spendCoins(_reviveCost);
+    if (!success) return;
 
- Future<void> _revive() async {
-  final success =
-      await widget.engine.wallet.spendCoins(_reviveCost);
+    _leaderboardSubmitted = false;
+    _leaderboardPlacement = null;
 
-  if (!success) return;
+    widget.engine.runLifecycle.revive();
 
-  _leaderboardSubmitted = false;
-  _leaderboardPlacement = null;
+    // 🔒 Protection window
+    _reviveProtectionActive = true;
+    _reviveProtectionTimer?.cancel();
+    _reviveProtectionTimer = Timer(
+      const Duration(milliseconds: 1250),
+      () {
+        if (!mounted) return;
+        setState(() {
+          _reviveProtectionActive = false;
+        });
+      },
+    );
 
-  widget.engine.runLifecycle.revive();
+    // ✨ Flash + sound
+    _reviveFlashActive = true;
+    AudioPlayerService.playStreakMilestone(1); // temporary reuse
 
-  // 🔒 Protection window
-  _reviveProtectionActive = true;
+    Future.delayed(
+      const Duration(milliseconds: 500),
+      () {
+        if (!mounted) return;
+        setState(() {
+          _reviveFlashActive = false;
+        });
+      },
+    );
 
-  _reviveProtectionTimer?.cancel();
-  _reviveProtectionTimer = Timer(
-    const Duration(milliseconds: 1250),
-    () {
-      if (!mounted) return;
-      setState(() {
-        _reviveProtectionActive = false;
-      });
-    },
-  );
-
-  // ✨ Flash + sound
-  _reviveFlashActive = true;
-  AudioPlayerService.playStreakMilestone(1); // temporary reuse or swap later
-
-  Future.delayed(
-    const Duration(milliseconds: 500),
-    () {
-      if (!mounted) return;
-      setState(() {
-        _reviveFlashActive = false;
-      });
-    },
-  );
-
-  setState(() {});
-}
+    setState(() {});
+  }
 
   @override
   void dispose() {
-  _shieldFlashTimer?.cancel(); 
-  _reviveProtectionTimer?.cancel();  
-  _surge.dispose();
-  _ticker.dispose();
-  super.dispose();
+    _shieldFlashTimer?.cancel();
+    _reviveProtectionTimer?.cancel();
+    _walletPulse.dispose();
+    _surge.dispose();
+    _ticker.dispose();
+    super.dispose();
   }
 
   @override
@@ -396,15 +415,14 @@ int _milestoneForStreak(int streak) {
 
           return Stack(
             children: [
-
               IgnorePointer(child: Container(color: bgColor)),
 
               if (_showShieldFlash)
-               IgnorePointer(
-                child: Container(
-                 color: Colors.amber.withOpacity(0.25),
+                IgnorePointer(
+                  child: Container(
+                    color: Colors.amber.withOpacity(0.25),
+                  ),
                 ),
-               ),
 
               GameCanvas(
                 currentWorld: currentWorld,
@@ -424,14 +442,13 @@ int _milestoneForStreak(int streak) {
                 streak: widget.engine.runLifecycle.getSnapshot().streak,
               ),
 
+              // 🔇 Global mute (top-right)
               Positioned(
                 top: 40,
                 right: 16,
                 child: IconButton(
                   icon: Icon(
-                    widget.engine.isMuted
-                        ? Icons.volume_off
-                        : Icons.volume_up,
+                    widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
                     color: Colors.white70,
                   ),
                   onPressed: () async {
@@ -443,53 +460,56 @@ int _milestoneForStreak(int streak) {
                 ),
               ),
 
+              // 💰 Wallet + 🛡 indicator (top-left)
               Positioned(
                 top: 40,
                 left: 16,
                 child: Column(
-                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: [
-
-                  // Wallet
-                  Text(
-                   '💰 ${widget.engine.wallet.balance}',
-                   style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber,
-                   ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // Shield Indicator (only visible if active)
-                  if (widget.engine.runLifecycle.isShieldActive)
-                   const Text(
-                    '🛡 SHIELD READY',
-                    style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.cyanAccent,
-                   ),
-                  ),
-               ],
-              ),
-             ),
-
-               if (_reviveFlashActive)
-                Positioned.fill(
-                 child: IgnorePointer(
-                  child: AnimatedOpacity(
-                   opacity: _reviveFlashActive ? 0.35 : 0.0,
-                   duration: const Duration(milliseconds: 250),
-                  child: Container(
-                 color: Colors.amber,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimatedBuilder(
+                      animation: _walletPulse,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _walletScale.value,
+                          child: child,
+                        );
+                      },
+                      child: Text(
+                        '💰 ${widget.engine.wallet.balance}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    if (widget.engine.runLifecycle.isShieldActive)
+                      const Text(
+                        '🛡 SHIELD READY',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.cyanAccent,
+                        ),
+                      ),
+                  ],
                 ),
-               ),
               ),
-             ),
 
-               if (_showIntro)
+              if (_reviveFlashActive)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedOpacity(
+                      opacity: _reviveFlashActive ? 0.35 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      child: Container(color: Colors.amber),
+                    ),
+                  ),
+                ),
+
+              if (_showIntro)
                 CarnivalIntroOverlay(
                   onComplete: () {
                     if (!mounted) return;
@@ -498,11 +518,11 @@ int _milestoneForStreak(int streak) {
                 ),
 
               if (_isRunEnded && summary != null)
-               RunEndOverlay(
-                state: RunEndState.fromSummary(summary),
-                onReplay: _replay,
-                onRevive: _revive,
-                placement: _leaderboardPlacement,
+                RunEndOverlay(
+                  state: RunEndState.fromSummary(summary),
+                  onReplay: _replay,
+                  onRevive: _revive,
+                  placement: _leaderboardPlacement,
                   onViewLeaderboard: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
