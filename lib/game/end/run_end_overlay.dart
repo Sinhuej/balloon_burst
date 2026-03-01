@@ -28,6 +28,7 @@ class RunEndOverlay extends StatefulWidget {
 
 class _RunEndOverlayState extends State<RunEndOverlay>
     with SingleTickerProviderStateMixin {
+
   late final AnimationController _takeover;
   late final Animation<double> _scale;
   late final Animation<double> _glow;
@@ -35,8 +36,15 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   static const int _reviveCost = 50;
 
   bool get _isNewNumberOne => widget.placement == 1;
-  bool get _canAfford =>
+
+  bool get _canAffordRevive =>
       widget.engine.wallet.balance >= _reviveCost;
+
+  bool get _canAffordShield =>
+      widget.engine.wallet.balance >= TJEngine.shieldCost;
+
+  bool get _shieldAlreadyArmed =>
+      widget.engine.runLifecycle.isShieldActive;
 
   @override
   void initState() {
@@ -87,6 +95,14 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     super.dispose();
   }
 
+  Future<void> _purchaseShield() async {
+    final success = await widget.engine.purchaseShield();
+    if (!success) return;
+
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -95,12 +111,14 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       child: AnimatedBuilder(
         animation: _takeover,
         builder: (context, child) {
+
           final glowOpacity =
               _isNewNumberOne ? (_glow.value * 0.25) : 0.0;
 
           return Stack(
             alignment: Alignment.center,
             children: [
+
               if (_isNewNumberOne)
                 IgnorePointer(
                   child: Container(
@@ -119,11 +137,13 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                     ),
                   ),
                 ),
+
               Transform.scale(
                 scale: _isNewNumberOne ? _scale.value : 1.0,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+
                     Text(
                       RunEndMessages.title(widget.state),
                       style: const TextStyle(
@@ -133,7 +153,9 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       ),
                       textAlign: TextAlign.center,
                     ),
+
                     const SizedBox(height: 16),
+
                     Text(
                       RunEndMessages.body(widget.state),
                       style: const TextStyle(
@@ -142,11 +164,13 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       ),
                       textAlign: TextAlign.center,
                     ),
+
                     const SizedBox(height: 24),
 
+                    // REVIVE
                     if (widget.onRevive != null) ...[
                       ElevatedButton(
-                        onPressed: _canAfford
+                        onPressed: _canAffordRevive
                             ? widget.onRevive
                             : null,
                         child: Text(
@@ -156,6 +180,21 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       const SizedBox(height: 12),
                     ],
 
+                    // SHIELD PURCHASE
+                    ElevatedButton(
+                      onPressed: (!_shieldAlreadyArmed && _canAffordShield)
+                          ? _purchaseShield
+                          : null,
+                      child: Text(
+                        _shieldAlreadyArmed
+                            ? '🛡 Shield Armed'
+                            : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})',
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // REPLAY
                     ElevatedButton(
                       onPressed: widget.onReplay,
                       child: const Text('REPLAY'),
