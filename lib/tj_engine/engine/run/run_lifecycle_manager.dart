@@ -1,9 +1,33 @@
-import 'models/run_state.dart';
+// lib/tj_engine/engine/run/run_lifecycle_manager.dart
+
 import 'models/run_event.dart';
+import 'models/run_state.dart';
 import 'models/run_status_snapshot.dart';
 import 'models/run_summary.dart';
 
+/// ===============================================================
+/// SHIELD ACCESS (interface only)
+/// ===============================================================
+///
+/// Keeps RunLifecycleManager pure Dart.
+/// Persistence is owned by an engine subsystem (ShieldManager).
+abstract class ShieldAccess {
+  bool get isPending;
+  bool get isActive;
+
+  Future<void> armForNextRun();
+  Future<void> activateIfPending();
+  Future<void> consume();
+}
+
+/// ===============================================================
+/// SYSTEM: RunLifecycleManager
+/// ===============================================================
 class RunLifecycleManager {
+  final ShieldAccess _shield;
+
+  RunLifecycleManager({required ShieldAccess shield}) : _shield = shield;
+
   RunState _state = RunState.idle;
 
   String _runId = '';
@@ -15,35 +39,7 @@ class RunLifecycleManager {
   int _misses = 0;
   int _escapes = 0;
 
-  // ============================================================
-  // SHIELD SYSTEM (Model C)
-  // ============================================================
-
-  bool _shieldPending = false;
-  bool _shieldActive = false;
-
-  bool get isShieldActive => _shieldActive;
-
-  // ✅ NEW — used by StartScreen
-  bool get isShieldArmedForNextRun => _shieldPending;
-
-  void armShieldForNextRun() {
-    _shieldPending = true;
-  }
-
-  void _activateShieldIfPending() {
-    if (_shieldPending) {
-      _shieldActive = true;
-      _shieldPending = false;
-    }
-  }
-
-  void _consumeShield() {
-    _shieldActive = false;
-  }
-
-  // ============================================================
-
+  // STREAK (competitive precision arcade)
   int _streak = 0;
   int _bestStreak = 0;
 
@@ -57,6 +53,22 @@ class RunLifecycleManager {
 
   RunState get state => _state;
   RunSummary? get latestSummary => _latestSummary;
+
+  // ============================================================
+  // SHIELD (persistent via ShieldManager)
+  // ============================================================
+  bool get isShieldActive => _shield.isActive;
+
+  /// Useful for Start Screen UX / purchase button state.
+  bool get isShieldArmedForNextRun => _shield.isPending;
+
+  Future<void> armShieldForNextRun() async {
+    await _shield.armForNextRun();
+  }
+
+  // ============================================================
+  // RUN LIFECYCLE
+  // ============================================================
 
   void startRun({required String runId}) {
     if (_state == RunState.running) return;
@@ -74,6 +86,7 @@ class RunLifecycleManager {
 
     _streak = 0;
     _bestStreak = 0;
+
     _currentWorldLevel = 1;
     _maxWorldLevelReached = 1;
 
@@ -81,8 +94,9 @@ class RunLifecycleManager {
     _endReason = null;
     _latestSummary = null;
 
-    // Activate shield if purchased before run
-    _activateShieldIfPending();
+    // Activate shield (async) if it was purchased earlier.
+    // Fire-and-forget by design (never block run start).
+    _shield.activateIfPending();
   }
 
   void report(RunEvent event) {
@@ -97,8 +111,10 @@ class RunLifecycleManager {
 
       _streak++;
       if (_streak > _bestStreak) _bestStreak = _streak;
+      return;
+    }
 
-    } else if (event is MissEvent) {
+    if (event is MissEvent) {
       _misses++;
 
       final attempts = _pops + _misses;
@@ -108,35 +124,40 @@ class RunLifecycleManager {
 
       if (_misses >= 10) {
         endRun(EndReason.missLimit);
-        return;
       }
+      return;
+    }
 
-    } else if (event is EscapeEvent) {
-
-      if (_shieldActive && event.count > 0) {
-        _consumeShield();
+    if (event is EscapeEvent) {
+      // 🛡 Shield absorbs FIRST escape (if any occurred this event)
+      if (_shield.isActive && event.count > 0) {
+        // Consume shield (async) but do not block gameplay.
+        _shield.consume();
         _streak = 0;
         return;
       }
 
       _escapes += event.count;
-
       if (event.count > 0) _streak = 0;
 
       if (_escapes >= 3) {
         endRun(EndReason.escapeLimit);
-        return;
       }
+      return;
+    }
 
-    } else if (event is WorldTransitionEvent) {
+    if (event is WorldTransitionEvent) {
       _currentWorldLevel = event.newWorldLevel;
       if (_currentWorldLevel > _maxWorldLevelReached) {
         _maxWorldLevelReached = _currentWorldLevel;
       }
+      return;
+    }
 
-    } else if (event is ScoreDeltaEvent) {
+    if (event is ScoreDeltaEvent) {
       _score += event.delta;
       if (_score < 0) _score = 0;
+      return;
     }
   }
 
@@ -172,14 +193,17 @@ class RunLifecycleManager {
 
     _state = RunState.running;
 
+    // Reset fail counters so player doesn’t instantly die again
     _misses = 0;
     _escapes = 0;
 
+    // Clear end markers
     _endReason = null;
     _endTime = null;
     _latestSummary = null;
 
-    _activateShieldIfPending();
+    // If a shield is pending (purchased on RunEndOverlay), activate it now.
+    _shield.activateIfPending();
   }
 
   RunStatusSnapshot getSnapshot() {

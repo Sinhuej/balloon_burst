@@ -1,17 +1,21 @@
 // lib/tj_engine/engine/tj_engine.dart
 
-import 'core/difficulty_manager.dart';
-import 'run/run_lifecycle_manager.dart';
-import 'daily/daily_reward_manager.dart';
-import 'leaderboard/leaderboard_manager.dart';
-import 'leaderboard/leaderboard_entry.dart';
-import 'wallet/wallet_manager.dart';
 import 'audio/audio_settings_manager.dart';
+import 'core/difficulty_manager.dart';
+import 'daily/daily_reward_manager.dart';
 import 'daily/models/daily_reward_model.dart';
-import 'run/models/run_state.dart';
+import 'leaderboard/leaderboard_entry.dart';
+import 'leaderboard/leaderboard_manager.dart';
+import 'run/run_lifecycle_manager.dart';
+import 'shield/shield_manager.dart';
+import 'wallet/wallet_manager.dart';
 
 class TJEngine {
-  final RunLifecycleManager runLifecycle;
+  // NOTE: we intentionally initialize these in the constructor body
+  // to avoid creating duplicate ShieldManager instances.
+  late final ShieldManager shield;
+  late final RunLifecycleManager runLifecycle;
+
   final DifficultyManager difficulty;
   final DailyRewardManager dailyReward;
   final LeaderboardManager leaderboard;
@@ -19,18 +23,21 @@ class TJEngine {
   final WalletManager wallet;
 
   TJEngine({
-    RunLifecycleManager? runLifecycle,
+    ShieldManager? shieldManager,
+    RunLifecycleManager? runLifecycleManager,
     DifficultyManager? difficulty,
     DailyRewardManager? dailyReward,
     LeaderboardManager? leaderboard,
     AudioSettingsManager? audio,
     WalletManager? wallet,
-  })  : runLifecycle = runLifecycle ?? RunLifecycleManager(),
-        difficulty = difficulty ?? DifficultyManager(),
+  })  : difficulty = difficulty ?? DifficultyManager(),
         dailyReward = dailyReward ?? DailyRewardManager(),
         leaderboard = leaderboard ?? LeaderboardManager(),
         audio = audio ?? AudioSettingsManager(),
-        wallet = wallet ?? WalletManager();
+        wallet = wallet ?? WalletManager() {
+    shield = shieldManager ?? ShieldManager();
+    runLifecycle = runLifecycleManager ?? RunLifecycleManager(shield: shield);
+  }
 
   void update(double dt) {
     difficulty.update(dt);
@@ -42,9 +49,10 @@ class TJEngine {
     await dailyReward.load();
     await audio.load();
     await wallet.load();
+    await shield.load(); // ✅ persist shield across full restart
   }
 
- /// Claim daily reward and credit wallet.
+  /// Claim daily reward and credit wallet.
   Future<DailyRewardModel?> claimDailyRewardAndCredit({
     required int currentWorldLevel,
   }) async {
@@ -55,7 +63,6 @@ class TJEngine {
     if (reward == null) return null;
 
     await wallet.addCoins(reward.coins);
-
     return reward;
   }
 
@@ -74,21 +81,21 @@ class TJEngine {
   Future<bool> toggleMute() async {
     return audio.toggleMuted();
   }
-  
+
   // ============================================================
   // SHIELD PURCHASE
   // ============================================================
 
   static const int shieldCost = 75;
 
-  /// Deduct coins and arm shield for next run.
+  /// Deduct coins and arm shield (persisted) until consumed.
   Future<bool> purchaseShield() async {
-   final success = await wallet.spendCoins(shieldCost);
+    final success = await wallet.spendCoins(shieldCost);
     if (!success) return false;
 
-    runLifecycle.armShieldForNextRun();
+    await shield.armForNextRun();
     return true;
-   }
+  }
 
   /// Submit latest run to leaderboard
   Future<int?> submitLatestRunToLeaderboard() async {
