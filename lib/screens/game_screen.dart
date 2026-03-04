@@ -266,6 +266,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _leaderboardSubmitted = true;
 
+    final summary = widget.engine.runLifecycle.latestSummary;
+
+    if (summary != null) {
+      widget.engine.creditRunCoins(summary);
+    }
+
     widget.engine.submitLatestRunToLeaderboard().then((placement) {
       if (!mounted) return;
       setState(() {

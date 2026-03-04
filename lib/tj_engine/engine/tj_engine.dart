@@ -7,6 +7,7 @@ import 'daily/models/daily_reward_model.dart';
 import 'leaderboard/leaderboard_entry.dart';
 import 'leaderboard/leaderboard_manager.dart';
 import 'run/run_lifecycle_manager.dart';
+import 'run/models/run_summary.dart';
 import 'shield/shield_manager.dart';
 import 'wallet/wallet_manager.dart';
 
@@ -49,7 +50,7 @@ class TJEngine {
     await dailyReward.load();
     await audio.load();
     await wallet.load();
-    await shield.load(); // ✅ persist shield across full restart
+    await shield.load(); // persist shield across full restart
   }
 
   /// Claim daily reward and credit wallet.
@@ -95,6 +96,23 @@ class TJEngine {
 
     await shield.armForNextRun();
     return true;
+  }
+
+  // ============================================================
+  // RUN COIN REWARD
+  // ============================================================
+
+  Future<int> creditRunCoins(RunSummary summary) async {
+    int coins = summary.pops;
+
+    // accuracy bonus
+    if (summary.accuracy01 >= 0.90) {
+      coins += 5;
+    }
+
+    await wallet.addCoins(coins);
+
+    return coins;
   }
 
   /// Submit latest run to leaderboard
