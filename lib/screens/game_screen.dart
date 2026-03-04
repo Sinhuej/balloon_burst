@@ -487,7 +487,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     const SizedBox(height: 6),
                     if (widget.engine.runLifecycle.isShieldActive)
                       const Text(
-                        '🛡 SHIELD READY',
+                        '🛡 SHIELD ARMED',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
