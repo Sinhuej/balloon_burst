@@ -37,24 +37,27 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   Timer? _flashTimer;
 
-  bool _shieldPurchased = false;
   bool _purchasingShield = false;
 
   // Short-lived “reward flash” flag (separate from pulse animation)
   bool _showRewardFlash = false;
 
-  bool get _canAffordRevive =>
-      widget.engine.wallet.balance >= _reviveCost;
+  bool get _canAffordRevive => widget.engine.wallet.balance >= _reviveCost;
 
   bool get _canAffordShield =>
       widget.engine.wallet.balance >= TJEngine.shieldCost;
+
+  /// Engine-truth: shield is “owned/ready” if it is either active OR armed-for-next-run.
+  bool get _shieldOwned =>
+      widget.engine.runLifecycle.isShieldActive ||
+      widget.engine.runLifecycle.isShieldArmedForNextRun;
 
   ButtonStyle _pillStyle({
     required bool enabled,
   }) {
     // Match your other ElevatedButtons: pill shape, comfy padding.
     // Override disabled colors so text remains readable and button doesn’t “disappear”.
-    const baseBg = Color(0xFFF3F1FF); // soft light (matches your current UI vibe)
+    const baseBg = Color(0xFFF3F1FF); // soft light
     const baseFg = Color(0xFF5A4FCF); // purple-ish text
     const disabledBg = Color(0xFFDCD7F5);
     const disabledFg = Color(0xFF7A74B8);
@@ -101,7 +104,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   }
 
   Future<void> _purchaseShield() async {
-    if (_shieldPurchased || _purchasingShield) return;
+    if (_purchasingShield) return;
+
+    // If already owned (active or armed), do nothing.
+    if (_shieldOwned) return;
+
     if (!_canAffordShield) return;
 
     setState(() {
@@ -109,7 +116,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     });
 
     final success = await widget.engine.purchaseShield();
-
     if (!mounted) return;
 
     setState(() {
@@ -122,7 +128,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     _shieldPulse.forward(from: 0);
 
     setState(() {
-      _shieldPurchased = true;
       _showRewardFlash = true;
     });
 
@@ -141,9 +146,15 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final shieldEnabled = !_shieldPurchased && !_purchasingShield && _canAffordShield;
+    // Re-evaluated every build so it stays consistent across:
+    // - shield purchased on start screen
+    // - shield purchased here
+    // - app restart
+    // - revive vs replay
+    final shieldEnabled =
+        !_shieldOwned && !_purchasingShield && _canAffordShield;
 
-    final shieldLabel = _shieldPurchased
+    final shieldLabel = _shieldOwned
         ? '🛡 Shield Armed'
         : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
 
@@ -178,7 +189,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ElevatedButton(
               style: _pillStyle(enabled: _canAffordRevive),
               onPressed: _canAffordRevive ? widget.onRevive : null,
-              child: Text('REVIVE ($_reviveCost Coins)'),
+              child: const Text('REVIVE (50 Coins)'),
             ),
             const SizedBox(height: 12),
           ],
@@ -212,7 +223,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       ),
                     ),
                   ),
-
                   Transform.scale(
                     scale: _shieldPulse.isAnimating ? _shieldScale.value : 1.0,
                     child: ElevatedButton(
