@@ -114,16 +114,18 @@ class _StartScreenState extends State<StartScreen> {
     final canAfford =
         engine.wallet.balance >= TJEngine.shieldCost;
 
-    final alreadyActive =
+    // 🔥 Unified shield existence check
+    final shieldExists =
+        engine.runLifecycle.isShieldActive ||
         engine.runLifecycle.isShieldArmedForNextRun;
 
-    final shieldEnabled = canAfford && !alreadyActive;
+    final shieldEnabled = canAfford && !shieldExists;
 
     String shieldLabel;
     String? helperText;
 
-    if (alreadyActive) {
-      shieldLabel = '🛡 Shield Ready';
+    if (shieldExists) {
+      shieldLabel = '🛡 Shield Armed';
       helperText = 'Absorbs your first escape';
     } else if (canAfford) {
       shieldLabel =
