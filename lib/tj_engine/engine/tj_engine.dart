@@ -8,12 +8,11 @@ import 'leaderboard/leaderboard_entry.dart';
 import 'leaderboard/leaderboard_manager.dart';
 import 'run/run_lifecycle_manager.dart';
 import 'run/models/run_summary.dart';
+import 'run/models/run_reward.dart';
 import 'shield/shield_manager.dart';
 import 'wallet/wallet_manager.dart';
 
 class TJEngine {
-  // NOTE: we intentionally initialize these in the constructor body
-  // to avoid creating duplicate ShieldManager instances.
   late final ShieldManager shield;
   late final RunLifecycleManager runLifecycle;
 
@@ -22,6 +21,8 @@ class TJEngine {
   final LeaderboardManager leaderboard;
   final AudioSettingsManager audio;
   final WalletManager wallet;
+
+  RunReward? _lastRunReward;
 
   TJEngine({
     ShieldManager? shieldManager,
@@ -44,16 +45,14 @@ class TJEngine {
     difficulty.update(dt);
   }
 
-  /// Load all engine subsystems that require async storage.
   Future<void> loadAll() async {
     await leaderboard.load();
     await dailyReward.load();
     await audio.load();
     await wallet.load();
-    await shield.load(); // persist shield across full restart
+    await shield.load();
   }
 
-  /// Claim daily reward and credit wallet.
   Future<DailyRewardModel?> claimDailyRewardAndCredit({
     required int currentWorldLevel,
   }) async {
@@ -67,12 +66,10 @@ class TJEngine {
     return reward;
   }
 
-  /// Back-compat method (safe)
   Future<void> loadDailyReward() async {
     await dailyReward.load();
   }
 
-  /// Audio helpers
   bool get isMuted => audio.muted;
 
   Future<void> setMuted(bool value) async {
@@ -83,13 +80,8 @@ class TJEngine {
     return audio.toggleMuted();
   }
 
-  // ============================================================
-  // SHIELD PURCHASE
-  // ============================================================
-
   static const int shieldCost = 75;
 
-  /// Deduct coins and arm shield (persisted) until consumed.
   Future<bool> purchaseShield() async {
     final success = await wallet.spendCoins(shieldCost);
     if (!success) return false;
@@ -98,24 +90,6 @@ class TJEngine {
     return true;
   }
 
-  // ============================================================
-  // RUN COIN REWARD
-  // ============================================================
-
-  Future<int> creditRunCoins(RunSummary summary) async {
-    int coins = summary.pops;
-
-    // accuracy bonus
-    if (summary.accuracy01 >= 0.90) {
-      coins += 5;
-    }
-
-    await wallet.addCoins(coins);
-
-    return coins;
-  }
-
-  /// Submit latest run to leaderboard
   Future<int?> submitLatestRunToLeaderboard() async {
     final summary = runLifecycle.latestSummary;
     if (summary == null) return null;
@@ -129,5 +103,43 @@ class TJEngine {
     );
 
     return leaderboard.submit(entry);
+  }
+
+  // ============================================================
+  // RUN REWARD SYSTEM
+  // ============================================================
+
+  RunReward? get lastRunReward => _lastRunReward;
+
+  RunReward calculateRunReward(RunSummary summary) {
+    const base = 5;
+
+    final popCoins = summary.pops;
+
+    final worldCoins = summary.worldReached * 3;
+
+    final accuracyCoins = (summary.accuracy01 * 10).round();
+
+    final streakCoins = (summary.bestStreak / 3).floor();
+
+    final total =
+        base + popCoins + worldCoins + accuracyCoins + streakCoins;
+
+    return RunReward(
+      baseCoins: base,
+      popCoins: popCoins,
+      worldCoins: worldCoins,
+      accuracyCoins: accuracyCoins,
+      streakCoins: streakCoins,
+      totalCoins: total,
+    );
+  }
+
+  Future<void> creditRunCoins(RunSummary summary) async {
+    final reward = calculateRunReward(summary);
+
+    _lastRunReward = reward;
+
+    await wallet.addCoins(reward.totalCoins);
   }
 }
