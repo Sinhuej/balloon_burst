@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'run_end_state.dart';
 import 'run_end_messages.dart';
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
+import 'package:balloon_burst/tj_engine/engine/run/models/run_reward.dart';
 import 'package:balloon_burst/audio/audio_player.dart';
 
 class RunEndOverlay extends StatefulWidget {
@@ -38,16 +39,14 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   Timer? _flashTimer;
 
   bool _purchasingShield = false;
-
-  // Short-lived “reward flash” flag (separate from pulse animation)
   bool _showRewardFlash = false;
 
-  bool get _canAffordRevive => widget.engine.wallet.balance >= _reviveCost;
+  bool get _canAffordRevive =>
+      widget.engine.wallet.balance >= _reviveCost;
 
   bool get _canAffordShield =>
       widget.engine.wallet.balance >= TJEngine.shieldCost;
 
-  /// Engine-truth: shield is “owned/ready” if it is either active OR armed-for-next-run.
   bool get _shieldOwned =>
       widget.engine.runLifecycle.isShieldActive ||
       widget.engine.runLifecycle.isShieldArmedForNextRun;
@@ -55,10 +54,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   ButtonStyle _pillStyle({
     required bool enabled,
   }) {
-    // Match your other ElevatedButtons: pill shape, comfy padding.
-    // Override disabled colors so text remains readable and button doesn’t “disappear”.
-    const baseBg = Color(0xFFF3F1FF); // soft light
-    const baseFg = Color(0xFF5A4FCF); // purple-ish text
+    const baseBg = Color(0xFFF3F1FF);
+    const baseFg = Color(0xFF5A4FCF);
     const disabledBg = Color(0xFFDCD7F5);
     const disabledFg = Color(0xFF7A74B8);
 
@@ -70,6 +67,104 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
       elevation: 0,
+    );
+  }
+
+  Widget _buildRewardBreakdown(RunReward reward) {
+    Widget row(String label, int value) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white70)),
+            Text(
+              '+$value',
+              style: const TextStyle(
+                color: Colors.amber,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+
+        const Text(
+          'RUN REWARD',
+          style: TextStyle(
+            color: Colors.amber,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 60),
+          child: Column(
+            children: [
+              row('Base', reward.baseCoins),
+              row('Pops', reward.popCoins),
+              row('World', reward.worldCoins),
+              row('Accuracy', reward.accuracyCoins),
+              row('Streak', reward.streakCoins),
+
+              const SizedBox(height: 8),
+
+              const Divider(color: Colors.white24),
+
+              const SizedBox(height: 6),
+
+              row('TOTAL', reward.totalCoins),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Future<void> _purchaseShield() async {
+    if (_purchasingShield) return;
+    if (_shieldOwned) return;
+    if (!_canAffordShield) return;
+
+    setState(() {
+      _purchasingShield = true;
+    });
+
+    final success = await widget.engine.purchaseShield();
+
+    if (!mounted) return;
+
+    setState(() {
+      _purchasingShield = false;
+    });
+
+    if (!success) return;
+
+    _shieldPulse.forward(from: 0);
+
+    setState(() {
+      _showRewardFlash = true;
+    });
+
+    _flashTimer?.cancel();
+    _flashTimer = Timer(
+      const Duration(milliseconds: 380),
+      () {
+        if (!mounted) return;
+        setState(() {
+          _showRewardFlash = false;
+        });
+      },
     );
   }
 
@@ -103,54 +198,10 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     super.dispose();
   }
 
-  Future<void> _purchaseShield() async {
-    if (_purchasingShield) return;
-
-    // If already owned (active or armed), do nothing.
-    if (_shieldOwned) return;
-
-    if (!_canAffordShield) return;
-
-    setState(() {
-      _purchasingShield = true;
-    });
-
-    final success = await widget.engine.purchaseShield();
-    if (!mounted) return;
-
-    setState(() {
-      _purchasingShield = false;
-    });
-
-    if (!success) return;
-
-    // Trigger pulse + reward flash
-    _shieldPulse.forward(from: 0);
-
-    setState(() {
-      _showRewardFlash = true;
-    });
-
-    // Fade the flash away cleanly after a short burst
-    _flashTimer?.cancel();
-    _flashTimer = Timer(
-      const Duration(milliseconds: 380),
-      () {
-        if (!mounted) return;
-        setState(() {
-          _showRewardFlash = false;
-        });
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Re-evaluated every build so it stays consistent across:
-    // - shield purchased on start screen
-    // - shield purchased here
-    // - app restart
-    // - revive vs replay
+    final reward = widget.engine.lastRunReward;
+
     final shieldEnabled =
         !_shieldOwned && !_purchasingShield && _canAffordShield;
 
@@ -164,6 +215,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+
           Text(
             RunEndMessages.title(widget.state),
             style: const TextStyle(
@@ -173,7 +225,9 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: 16),
+
           Text(
             RunEndMessages.body(widget.state),
             style: const TextStyle(
@@ -182,9 +236,10 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
 
-          // REVIVE
+          if (reward != null)
+            _buildRewardBreakdown(reward),
+
           if (widget.onRevive != null) ...[
             ElevatedButton(
               style: _pillStyle(enabled: _canAffordRevive),
@@ -194,51 +249,14 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             const SizedBox(height: 12),
           ],
 
-          // SHIELD (pulse + flash)
-          AnimatedBuilder(
-            animation: _shieldPulse,
-            builder: (context, _) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Amber reward flash behind button (bursts, then fades cleanly)
-                  IgnorePointer(
-                    child: AnimatedOpacity(
-                      opacity: _showRewardFlash ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOut,
-                      child: Container(
-                        width: 320,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.amber.withOpacity(0.55),
-                              blurRadius: 26,
-                              spreadRadius: 6,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Transform.scale(
-                    scale: _shieldPulse.isAnimating ? _shieldScale.value : 1.0,
-                    child: ElevatedButton(
-                      style: _pillStyle(enabled: shieldEnabled),
-                      onPressed: shieldEnabled ? _purchaseShield : null,
-                      child: Text(shieldLabel),
-                    ),
-                  ),
-                ],
-              );
-            },
+          ElevatedButton(
+            style: _pillStyle(enabled: shieldEnabled),
+            onPressed: shieldEnabled ? _purchaseShield : null,
+            child: Text(shieldLabel),
           ),
 
           const SizedBox(height: 12),
 
-          // REPLAY
           ElevatedButton(
             style: _pillStyle(enabled: true),
             onPressed: widget.onReplay,
