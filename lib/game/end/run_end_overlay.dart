@@ -238,6 +238,27 @@ void initState() {
   }
 }
 
+@override
+void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+  super.didUpdateWidget(oldWidget);
+
+  final reward = widget.engine.lastRunReward;
+
+  if (reward != null && _coinCounter.value == 0) {
+    _coinCounter = IntTween(
+      begin: 0,
+      end: reward.totalCoins,
+    ).animate(
+      CurvedAnimation(
+        parent: _coinController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _coinController.forward(from: 0);
+  }
+}
+
   @override
 void dispose() {
   _flashTimer?.cancel();
