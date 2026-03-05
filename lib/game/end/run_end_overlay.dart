@@ -35,6 +35,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   late final AnimationController _shieldPulse;
   late final Animation<double> _shieldScale;
+  late AnimationController _coinController;
+  late Animation<int> _coinCounter;
 
   Timer? _flashTimer;
 
@@ -121,7 +123,31 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
               const SizedBox(height: 6),
 
-              row('TOTAL', reward.totalCoins),
+              AnimatedBuilder(
+  animation: _coinCounter,
+  builder: (context, _) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'TOTAL',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          '+${_coinCounter.value}',
+          style: const TextStyle(
+            color: Colors.amber,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+      ],
+    );
+  },
+),
             ],
           ),
         ),
@@ -169,34 +195,56 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   }
 
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
 
-    _shieldPulse = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 420),
-    );
+  _shieldPulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
 
-    _shieldScale = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.10)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.10, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 60,
-      ),
-    ]).animate(_shieldPulse);
+  _shieldScale = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(begin: 1.0, end: 1.10)
+          .chain(CurveTween(curve: Curves.easeOut)),
+      weight: 40,
+    ),
+    TweenSequenceItem(
+      tween: Tween(begin: 1.10, end: 1.0)
+          .chain(CurveTween(curve: Curves.easeIn)),
+      weight: 60,
+    ),
+  ]).animate(_shieldPulse);
+
+  final reward = widget.engine.lastRunReward;
+
+  _coinController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  );
+
+  _coinCounter = IntTween(
+    begin: 0,
+    end: reward?.totalCoins ?? 0,
+  ).animate(
+    CurvedAnimation(
+      parent: _coinController,
+      curve: Curves.easeOutCubic,
+    ),
+  );
+
+  if (reward != null) {
+    _coinController.forward();
   }
+}
 
   @override
-  void dispose() {
-    _flashTimer?.cancel();
-    _shieldPulse.dispose();
-    super.dispose();
-  }
+void dispose() {
+  _flashTimer?.cancel();
+  _shieldPulse.dispose();
+  _coinController.dispose();
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
