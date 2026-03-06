@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
-
-// 🧃 score bursts model
+import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
 import 'package:balloon_burst/tj_engine/juice/models/score_burst.dart';
 
 import '../effects/world_surge_pulse.dart';
@@ -20,6 +19,8 @@ class GameCanvas extends StatefulWidget {
 
   final WorldSurgePulse surge;
   final List<Balloon> balloons;
+  final List<PopParticle> particles;
+  final List<ScoreBurst> scoreBursts;
   final GameState gameState;
 
   final VoidCallback onLongPress;
@@ -30,12 +31,7 @@ class GameCanvas extends StatefulWidget {
   final double speedMultiplier;
   final double recentAccuracy;
   final int recentMisses;
-
-  // 🔥 streak display input
   final int streak;
-
-  // 🧃 Score bursts (engine-owned, UI-rendered)
-  final List<ScoreBurst> scoreBursts;
 
   const GameCanvas({
     super.key,
@@ -45,6 +41,8 @@ class GameCanvas extends StatefulWidget {
     required this.pulseColor,
     required this.surge,
     required this.balloons,
+    required this.particles,
+    required this.scoreBursts,
     required this.gameState,
     required this.onLongPress,
     required this.onTapDown,
@@ -54,7 +52,6 @@ class GameCanvas extends StatefulWidget {
     required this.recentAccuracy,
     required this.recentMisses,
     required this.streak,
-    required this.scoreBursts,
   });
 
   @override
@@ -77,7 +74,7 @@ class _GameCanvasState extends State<GameCanvas>
     _milestoneController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
-      value: 1.0, // idle at end (scale = 1.0)
+      value: 1.0,
     );
 
     _milestoneScale = Tween<double>(begin: 1.25, end: 1.0).animate(
@@ -95,7 +92,6 @@ class _GameCanvasState extends State<GameCanvas>
     final prevMilestone = _milestoneFor(oldWidget.streak);
     final nextMilestone = _milestoneFor(widget.streak);
 
-    // Reset visuals on streak reset.
     if (widget.streak <= 0) {
       _currentMilestone = 0;
       _milestoneController.value = 1.0;
@@ -104,7 +100,6 @@ class _GameCanvasState extends State<GameCanvas>
 
     _currentMilestone = nextMilestone;
 
-    // Trigger ONLY once when crossing 10/20/30 upward.
     if (nextMilestone > prevMilestone) {
       _milestoneController.forward(from: 0.0);
     }
@@ -117,9 +112,9 @@ class _GameCanvasState extends State<GameCanvas>
   }
 
   int _milestoneFor(int streak) {
-    if (streak >= 30) return 3; // “you are locked in”
-    if (streak >= 20) return 2; // dramatic
-    if (streak >= 10) return 1; // noticeable but controlled
+    if (streak >= 30) return 3;
+    if (streak >= 20) return 2;
+    if (streak >= 10) return 1;
     return 0;
   }
 
@@ -215,24 +210,44 @@ class _GameCanvasState extends State<GameCanvas>
     );
   }
 
-  // 🧃 Classic arcade score burst overlay (WHITE)
+  Widget _buildParticlesOverlay() {
+    if (widget.particles.isEmpty) return const SizedBox.shrink();
+
+    return IgnorePointer(
+      child: Stack(
+        children: widget.particles.map((p) {
+          return Positioned(
+            left: p.x,
+            top: p.y,
+            child: Opacity(
+              opacity: p.opacity,
+              child: Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: p.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildScoreBurstsOverlay() {
     if (widget.scoreBursts.isEmpty) return const SizedBox.shrink();
 
     return IgnorePointer(
       child: Stack(
         children: widget.scoreBursts.map((b) {
-          // Rise + fade
           final t = b.t01;
-
-          // Ease out upward movement
           final rise = 44.0 * Curves.easeOut.transform(t);
-
-          // Fade out near the end (stays visible early)
           final fade = 1.0 - Curves.easeIn.transform(t);
 
           return Positioned(
-            left: b.x - 10, // slight center offset for text width
+            left: b.x - 10,
             top: (b.y - rise) - 18,
             child: Opacity(
               opacity: fade.clamp(0.0, 1.0),
@@ -289,7 +304,6 @@ class _GameCanvasState extends State<GameCanvas>
 
             return Stack(
               children: [
-                // Atmosphere (SHAKEN)
                 Positioned.fill(
                   child: Transform.translate(
                     offset: Offset(0, atmosphereShakeY),
@@ -299,7 +313,6 @@ class _GameCanvasState extends State<GameCanvas>
                           Positioned.fill(
                             child: ColoredBox(color: effectiveBg),
                           ),
-
                         if (paintPulseOverlay)
                           Positioned.fill(
                             child: Opacity(
@@ -307,7 +320,6 @@ class _GameCanvasState extends State<GameCanvas>
                               child: ColoredBox(color: pulseOverlayColor),
                             ),
                           ),
-
                         if (lightningActive &&
                             widget.surge.lightningDarkenOpacity > 0.0)
                           Positioned.fill(
@@ -318,7 +330,6 @@ class _GameCanvasState extends State<GameCanvas>
                               ),
                             ),
                           ),
-
                         if (lightningActive && widget.surge.lightningT > 0.0)
                           Positioned.fill(
                             child: IgnorePointer(
@@ -336,7 +347,6 @@ class _GameCanvasState extends State<GameCanvas>
                   ),
                 ),
 
-                // Gameplay (NOT SHAKEN)
                 Positioned.fill(
                   child: CustomPaint(
                     painter: BalloonPainter(
@@ -357,13 +367,10 @@ class _GameCanvasState extends State<GameCanvas>
                     ),
                   ),
 
-                // 🧃 Score bursts (ABOVE gameplay, NOT shaken)
+                _buildParticlesOverlay(),
                 _buildScoreBurstsOverlay(),
-
-                // Streak overlay
                 _buildStreakOverlay(),
 
-                // Debug HUD
                 if (widget.showHud)
                   DebugHud(
                     fps: widget.fps,

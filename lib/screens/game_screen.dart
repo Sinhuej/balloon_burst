@@ -14,6 +14,7 @@ import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/end/run_end_overlay.dart';
 import 'package:balloon_burst/game/end/run_end_state.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 import 'package:balloon_burst/screens/game/input/tap_handler.dart';
 import 'package:balloon_burst/screens/game/intro/carnival_intro_overlay.dart';
@@ -46,18 +47,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final GameController _controller;
   late final WorldSurgePulse _surge;
 
-  // Shield break flash timer
   Timer? _shieldFlashTimer;
-
-  // Revive protection timer
   Timer? _reviveProtectionTimer;
 
-  // Wallet pulse animation
   late final AnimationController _walletPulse;
   late final Animation<double> _walletScale;
   int _lastWalletBalance = 0;
 
   final List<Balloon> _balloons = [];
+  final List<PopParticle> _particles = [];
 
   Duration _lastTime = Duration.zero;
   Size _lastSize = Size.zero;
@@ -66,11 +64,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _showIntro = true;
   bool _canCountMisses = false;
 
-  // Revive safety window + flash
   bool _reviveProtectionActive = false;
   bool _reviveFlashActive = false;
 
-  // Shield state + flash
   bool _previousShieldState = false;
   bool _showShieldFlash = false;
 
@@ -113,7 +109,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _surge = WorldSurgePulse(vsync: this);
 
-    // Wallet pulse setup
     _lastWalletBalance = widget.engine.wallet.balance;
     _walletPulse = AnimationController(
       vsync: this,
@@ -174,14 +169,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     widget.engine.update(dt);
 
-    // Detect shield consumption (active -> inactive)
     final shieldNow = widget.engine.runLifecycle.isShieldActive;
     if (_previousShieldState && !shieldNow) {
       _triggerShieldBreakFeedback();
     }
     _previousShieldState = shieldNow;
 
-    // Wallet deduction pulse (only when balance decreases)
     final currentBalance = widget.engine.wallet.balance;
     if (currentBalance < _lastWalletBalance) {
       _walletPulse.forward(from: 0);
@@ -228,6 +221,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       _balloons[i] = moved.withXOffset(driftX);
     }
+
+    for (int i = 0; i < _particles.length; i++) {
+      _particles[i] = _particles[i].advance(dt);
+    }
+    _particles.removeWhere((p) => !p.alive);
 
     int escapedThisTick = 0;
 
@@ -317,14 +315,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     widget.engine.runLifecycle.report(const PopEvent(points: 1));
 
-    // 🧃 TapJunkie Juice — spawn +1 burst
-final p = details.localPosition;
+    final p = details.localPosition;
 
-widget.engine.juice.spawnScoreBurst(
-  x: p.dx,
-  y: p.dy,
-  value: 1,
-);
+    widget.engine.juice.spawnScoreBurst(
+      x: p.dx,
+      y: p.dy,
+      value: 1,
+    );
+
+    _particles.addAll(
+      PopParticle.burst(p.dx, p.dy),
+    );
 
     final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
     final prevMilestone = _milestoneForStreak(prevStreak);
@@ -343,6 +344,7 @@ widget.engine.juice.spawnScoreBurst(
 
   void _replay() {
     _balloons.clear();
+    _particles.clear();
     _canCountMisses = false;
 
     _leaderboardSubmitted = false;
@@ -372,7 +374,6 @@ widget.engine.juice.spawnScoreBurst(
 
     widget.engine.runLifecycle.revive();
 
-    // 🔒 Protection window
     _reviveProtectionActive = true;
     _reviveProtectionTimer?.cancel();
     _reviveProtectionTimer = Timer(
@@ -385,9 +386,8 @@ widget.engine.juice.spawnScoreBurst(
       },
     );
 
-    // ✨ Flash + sound
     _reviveFlashActive = true;
-    AudioPlayerService.playStreakMilestone(1); // temporary reuse
+    AudioPlayerService.playStreakMilestone(1);
 
     Future.delayed(
       const Duration(milliseconds: 500),
@@ -446,6 +446,8 @@ widget.engine.juice.spawnScoreBurst(
                 pulseColor: _backgroundForWorld(nextWorld),
                 surge: _surge,
                 balloons: _balloons,
+                particles: _particles,
+                scoreBursts: widget.engine.juice.scoreBursts,
                 gameState: widget.gameState,
                 onTapDown: _handleTap,
                 onLongPress: _handleLongPress,
@@ -455,10 +457,8 @@ widget.engine.juice.spawnScoreBurst(
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
                 streak: widget.engine.runLifecycle.getSnapshot().streak,
-                scoreBursts: widget.engine.juice.scoreBursts,
-               ),
+              ),
 
-              // 🔇 Global mute (top-right)
               Positioned(
                 top: 40,
                 right: 16,
@@ -476,7 +476,6 @@ widget.engine.juice.spawnScoreBurst(
                 ),
               ),
 
-              // 💰 Wallet + 🛡 indicator (top-left)
               Positioned(
                 top: 40,
                 left: 16,
