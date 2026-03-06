@@ -4,6 +4,9 @@ import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 
+// 🧃 score bursts model
+import 'package:balloon_burst/tj_engine/juice/models/score_burst.dart';
+
 import '../effects/world_surge_pulse.dart';
 import '../effects/lightning_painter.dart';
 import '../debug/debug_hud.dart';
@@ -28,8 +31,11 @@ class GameCanvas extends StatefulWidget {
   final double recentAccuracy;
   final int recentMisses;
 
-  // 🔥 NEW: streak display input
+  // 🔥 streak display input
   final int streak;
+
+  // 🧃 Score bursts (engine-owned, UI-rendered)
+  final List<ScoreBurst> scoreBursts;
 
   const GameCanvas({
     super.key,
@@ -48,6 +54,7 @@ class GameCanvas extends StatefulWidget {
     required this.recentAccuracy,
     required this.recentMisses,
     required this.streak,
+    required this.scoreBursts,
   });
 
   @override
@@ -117,29 +124,26 @@ class _GameCanvasState extends State<GameCanvas>
   }
 
   TextStyle _streakStyleFor(int milestone) {
-    // Keep it consistent across worlds. Escalate by milestone only.
     switch (milestone) {
       case 3:
-       return const TextStyle(
-        fontSize: 21,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 0.5,
-        color: Colors.white,
-        shadows: [
-         // Depth shadow (crisp)
-         Shadow(
-          color: Colors.black,
-          blurRadius: 4,
-          offset: Offset(0, 2),
-        ),
-         // Thin cyan edge (brand accent, not flood)
-         Shadow(
-          color: Color(0xFF00E5FF),
-          blurRadius: 6,
-          offset: Offset(0, 0),
-        ),
-      ],
-    );
+        return const TextStyle(
+          fontSize: 21,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+          color: Colors.white,
+          shadows: [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+            Shadow(
+              color: Color(0xFF00E5FF),
+              blurRadius: 6,
+              offset: Offset(0, 0),
+            ),
+          ],
+        );
       case 2:
         return const TextStyle(
           fontSize: 20,
@@ -191,14 +195,14 @@ class _GameCanvasState extends State<GameCanvas>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-               color: Colors.black.withOpacity(_currentMilestone >= 3 ? 0.55 : 0.22),
-               borderRadius: BorderRadius.circular(14),
-               border: _currentMilestone >= 3
-                ? Border.all(
-                 color: const Color(0xFF00E5FF),
-                 width: 1.8,
-                )
-               : null,
+                color: Colors.black.withOpacity(_currentMilestone >= 3 ? 0.55 : 0.22),
+                borderRadius: BorderRadius.circular(14),
+                border: _currentMilestone >= 3
+                    ? Border.all(
+                        color: const Color(0xFF00E5FF),
+                        width: 1.8,
+                      )
+                    : null,
               ),
               child: Text(
                 'STREAK ×${widget.streak}',
@@ -207,6 +211,49 @@ class _GameCanvasState extends State<GameCanvas>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // 🧃 Classic arcade score burst overlay (WHITE)
+  Widget _buildScoreBurstsOverlay() {
+    if (widget.scoreBursts.isEmpty) return const SizedBox.shrink();
+
+    return IgnorePointer(
+      child: Stack(
+        children: widget.scoreBursts.map((b) {
+          // Rise + fade
+          final t = b.t01;
+
+          // Ease out upward movement
+          final rise = 44.0 * Curves.easeOut.transform(t);
+
+          // Fade out near the end (stays visible early)
+          final fade = 1.0 - Curves.easeIn.transform(t);
+
+          return Positioned(
+            left: b.x - 10, // slight center offset for text width
+            top: (b.y - rise) - 18,
+            child: Opacity(
+              opacity: fade.clamp(0.0, 1.0),
+              child: Text(
+                '+${b.value}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black87,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -225,12 +272,8 @@ class _GameCanvasState extends State<GameCanvas>
                 ? widget.pulseColor
                 : widget.backgroundColor;
 
-            // If GameScreen is doing parallax behind us, it will pass transparent here.
-            // In that case, we must NOT paint a base background, or we’ll reintroduce
-            // scaffold/white during transitions.
             final bool paintBaseBg = effectiveBg.opacity > 0.0;
 
-            // Pulse overlay color: opposite of effectiveBg (fade-back wash).
             final Color pulseOverlayColor = widget.surge.showNextWorldColor
                 ? widget.backgroundColor
                 : widget.pulseColor;
@@ -241,29 +284,22 @@ class _GameCanvasState extends State<GameCanvas>
 
             final bool lightningActive = widget.surge.isLightningActive;
 
-            // IMPORTANT:
-            // Shake should NOT affect gameplay (balloons), only atmosphere layers.
             final double atmosphereShakeY =
                 widget.surge.shakeYOffset + widget.surge.lightningShakeAmp;
 
             return Stack(
               children: [
-                // -----------------------------
-                // Atmosphere layer (SHAKEN)
-                // background + pulse + lightning
-                // -----------------------------
+                // Atmosphere (SHAKEN)
                 Positioned.fill(
                   child: Transform.translate(
                     offset: Offset(0, atmosphereShakeY),
                     child: Stack(
                       children: [
-                        // Base background (ONLY if not transparent)
                         if (paintBaseBg)
                           Positioned.fill(
                             child: ColoredBox(color: effectiveBg),
                           ),
 
-                        // Pulse fade-back layer (subtle energy wash)
                         if (paintPulseOverlay)
                           Positioned.fill(
                             child: Opacity(
@@ -272,7 +308,6 @@ class _GameCanvasState extends State<GameCanvas>
                             ),
                           ),
 
-                        // Lightning pre-darken (psych bump)
                         if (lightningActive &&
                             widget.surge.lightningDarkenOpacity > 0.0)
                           Positioned.fill(
@@ -284,7 +319,6 @@ class _GameCanvasState extends State<GameCanvas>
                             ),
                           ),
 
-                        // Lightning bolt (visual-only) — BELOW balloons
                         if (lightningActive && widget.surge.lightningT > 0.0)
                           Positioned.fill(
                             child: IgnorePointer(
@@ -302,10 +336,7 @@ class _GameCanvasState extends State<GameCanvas>
                   ),
                 ),
 
-                // -----------------------------
-                // Gameplay layer (NOT SHAKEN)
-                // This preserves tap accuracy.
-                // -----------------------------
+                // Gameplay (NOT SHAKEN)
                 Positioned.fill(
                   child: CustomPaint(
                     painter: BalloonPainter(
@@ -316,8 +347,6 @@ class _GameCanvasState extends State<GameCanvas>
                   ),
                 ),
 
-                // Illuminate balloons briefly during strike (ABOVE balloons)
-                // Keep this unshaken so it doesn’t “slide” relative to taps.
                 if (lightningActive && widget.surge.lightningFlashOpacity > 0.0)
                   Positioned.fill(
                     child: IgnorePointer(
@@ -328,13 +357,13 @@ class _GameCanvasState extends State<GameCanvas>
                     ),
                   ),
 
-                // -----------------------------
-                // STREAK overlay (prestige-only)
-                // Trigger + persistent milestone styling
-                // -----------------------------
+                // 🧃 Score bursts (ABOVE gameplay, NOT shaken)
+                _buildScoreBurstsOverlay(),
+
+                // Streak overlay
                 _buildStreakOverlay(),
 
-                // Debug HUD (dev only) — topmost
+                // Debug HUD
                 if (widget.showHud)
                   DebugHud(
                     fps: widget.fps,

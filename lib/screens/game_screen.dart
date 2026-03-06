@@ -317,6 +317,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     widget.engine.runLifecycle.report(const PopEvent(points: 1));
 
+    // 🧃 TapJunkie Juice — spawn +1 burst
+final p = details.localPosition;
+
+widget.engine.juice.spawnScoreBurst(
+  x: p.dx,
+  y: p.dy,
+  value: 1,
+);
+
     final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
     final prevMilestone = _milestoneForStreak(prevStreak);
     final nextMilestone = _milestoneForStreak(nextStreak);
@@ -446,7 +455,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
                 streak: widget.engine.runLifecycle.getSnapshot().streak,
-              ),
+                scoreBursts: widget.engine.juice.scoreBursts,
+               ),
 
               // 🔇 Global mute (top-right)
               Positioned(

@@ -12,6 +12,9 @@ import 'run/models/run_reward.dart';
 import 'shield/shield_manager.dart';
 import 'wallet/wallet_manager.dart';
 
+// 🧃 Arcade Juice
+import '../juice/juice_manager.dart';
+
 class TJEngine {
   late final ShieldManager shield;
   late final RunLifecycleManager runLifecycle;
@@ -21,6 +24,9 @@ class TJEngine {
   final LeaderboardManager leaderboard;
   final AudioSettingsManager audio;
   final WalletManager wallet;
+
+  // 🧃 Engine-owned juice module (optional, UI renders)
+  final JuiceManager juice;
 
   RunReward? _lastRunReward;
 
@@ -32,17 +38,20 @@ class TJEngine {
     LeaderboardManager? leaderboard,
     AudioSettingsManager? audio,
     WalletManager? wallet,
+    JuiceManager? juice,
   })  : difficulty = difficulty ?? DifficultyManager(),
         dailyReward = dailyReward ?? DailyRewardManager(),
         leaderboard = leaderboard ?? LeaderboardManager(),
         audio = audio ?? AudioSettingsManager(),
-        wallet = wallet ?? WalletManager() {
+        wallet = wallet ?? WalletManager(),
+        juice = juice ?? JuiceManager() {
     shield = shieldManager ?? ShieldManager();
     runLifecycle = runLifecycleManager ?? RunLifecycleManager(shield: shield);
   }
 
   void update(double dt) {
     difficulty.update(dt);
+    juice.update(dt);
   }
 
   Future<void> loadAll() async {
@@ -115,11 +124,8 @@ class TJEngine {
     const base = 5;
 
     final popCoins = summary.pops;
-
     final worldCoins = summary.worldReached * 3;
-
     final accuracyCoins = (summary.accuracy01 * 10).round();
-
     final streakCoins = (summary.bestStreak / 3).floor();
 
     final total =
@@ -137,9 +143,7 @@ class TJEngine {
 
   Future<void> creditRunCoins(RunSummary summary) async {
     final reward = calculateRunReward(summary);
-
     _lastRunReward = reward;
-
     await wallet.addCoins(reward.totalCoins);
   }
 }
