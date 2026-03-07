@@ -21,6 +21,7 @@ class GameCanvas extends StatefulWidget {
   final List<Balloon> balloons;
   final List<PopParticle> particles;
   final List<ScoreBurst> scoreBursts;
+  final double popShake;
   final GameState gameState;
 
   final VoidCallback onLongPress;
@@ -43,6 +44,7 @@ class GameCanvas extends StatefulWidget {
     required this.balloons,
     required this.particles,
     required this.scoreBursts,
+    required this.popShake,
     required this.gameState,
     required this.onLongPress,
     required this.onTapDown,
@@ -348,14 +350,20 @@ class _GameCanvasState extends State<GameCanvas>
                 ),
 
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: BalloonPainter(
-                      widget.balloons,
-                      widget.gameState,
-                      widget.currentWorld,
-                    ),
-                  ),
-                ),
+  child: Transform.translate(
+    offset: Offset(
+      (widget.popShake * (0.5 - (DateTime.now().microsecond % 1000) / 1000)),
+      (widget.popShake * (0.5 - (DateTime.now().millisecond % 1000) / 1000)),
+    ),
+    child: CustomPaint(
+      painter: BalloonPainter(
+        widget.balloons,
+        widget.gameState,
+        widget.currentWorld,
+      ),
+    ),
+  ),
+),
 
                 if (lightningActive && widget.surge.lightningFlashOpacity > 0.0)
                   Positioned.fill(

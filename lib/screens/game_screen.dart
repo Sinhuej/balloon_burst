@@ -56,6 +56,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   final List<Balloon> _balloons = [];
   final List<PopParticle> _particles = [];
+  
+  double _popShake = 0.0;  
 
   Duration _lastTime = Duration.zero;
   Size _lastSize = Size.zero;
@@ -227,6 +229,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     _particles.removeWhere((p) => !p.alive);
 
+    // micro screen shake decay
+_popShake *= 0.85;
+
+if (_popShake < 0.1) {
+  _popShake = 0;
+}
+
     int escapedThisTick = 0;
 
     for (int i = _balloons.length - 1; i >= 0; i--) {
@@ -326,6 +335,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _particles.addAll(
       PopParticle.burst(p.dx, p.dy),
     );
+
+    _popShake = 6.0;
 
     final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
     final prevMilestone = _milestoneForStreak(prevStreak);
@@ -456,6 +467,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 speedMultiplier: widget.spawner.speedMultiplier,
                 recentAccuracy: _controller.accuracy01,
                 recentMisses: widget.spawner.recentMisses,
+                popShake: _popShake,
                 streak: widget.engine.runLifecycle.getSnapshot().streak,
               ),
 
