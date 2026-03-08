@@ -305,7 +305,6 @@ List<Shadow> _burstShadows() {
     shadows: _burstShadows(),
   ),
 ),
-                  ],
                 ),
               ),
             ),
