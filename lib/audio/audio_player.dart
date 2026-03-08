@@ -8,6 +8,15 @@ class AudioPlayerService {
     _muted = value;
   }
 
+  static const int _popPoolSize = 4;
+
+static final List<AudioPlayer> _popPlayers = List.generate(
+  _popPoolSize,
+  (_) => AudioPlayer()..setAudioContext(_gameAudioContext),
+);
+
+static int _popIndex = 0;
+  
   static final AudioContext _gameAudioContext = AudioContext(
     android: AudioContextAndroid(
       usageType: AndroidUsageType.game,
@@ -39,13 +48,24 @@ class AudioPlayerService {
   if (_muted) return;
 
   try {
-    final player = AudioPlayer();
-    await player.setAudioContext(_gameAudioContext);
+    final player = _popPlayers[_popIndex];
+
+    _popIndex++;
+    if (_popIndex >= _popPoolSize) {
+      _popIndex = 0;
+    }
+
+    await player.stop();
+    await player.setPlaybackRate(pitch);
 
     await player.play(
       AssetSource('audio/pop.mp3'),
       volume: volume,
     );
+  } catch (_) {
+    // Never block gameplay on audio
+  }
+}
 
     // Apply pitch AFTER playback starts
     if (pitch != 1.0) {
