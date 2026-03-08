@@ -57,9 +57,6 @@ static int _popIndex = 0;
 
     await player.setPlaybackRate(pitch);
 
-    // reset playback position instead of stop()
-    await player.seek(Duration.zero);
-
     await player.play(
       AssetSource('audio/pop.wav'),
       volume: volume,
