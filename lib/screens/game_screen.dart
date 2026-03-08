@@ -345,6 +345,7 @@ if (_popShake < 0.1) {
     widget.engine.runLifecycle.report(PopEvent(points: 1, pitch: (1.0 + widget.engine.runLifecycle.getSnapshot().streak * 0.02).clamp(1.0, 1.5)));
     
     final streak = widget.engine.runLifecycle.getSnapshot().streak;
+AudioPlayerService.playPop(streak: streak);
 
 double pitch = 1.0 + (streak * 0.05);
 pitch += (Random().nextDouble() - 0.5) * 0.06;

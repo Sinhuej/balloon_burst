@@ -44,7 +44,7 @@ static int _popIndex = 0;
     ..setAudioContext(_gameAudioContext);
 
   /// Balloon pop (rapid overlapping instances)
-  static Future<void> playPop({double volume = 1.0, double pitch = 1.0}) async {
+  static Future<void> playPop({required int streak}) async {
   if (_muted) return;
 
   try {
@@ -55,11 +55,19 @@ static int _popIndex = 0;
       _popIndex = 0;
     }
 
-    await player.setPlaybackRate(pitch);
+    String asset;
+
+    if (streak >= 20) {
+      asset = 'audio/pop_high.wav';
+    } else if (streak >= 10) {
+      asset = 'audio/pop_mid.wav';
+    } else {
+      asset = 'audio/pop_low.wav';
+    }
 
     await player.play(
-      AssetSource('audio/pop.wav'),
-      volume: volume,
+      AssetSource(asset),
+      volume: 1.0,
     );
 
   } catch (_) {
