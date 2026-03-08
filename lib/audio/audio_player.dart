@@ -55,7 +55,6 @@ static int _popIndex = 0;
       _popIndex = 0;
     }
 
-    await player.stop();
     await player.setPlaybackRate(pitch);
 
     await player.play(
