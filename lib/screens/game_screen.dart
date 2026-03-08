@@ -342,7 +342,7 @@ if (_popShake < 0.1) {
   return;
 }
 
-    widget.engine.runLifecycle.report(const PopEvent(points: 1));
+    widget.engine.runLifecycle.report(PopEvent(points: 1, pitch: (1.0 + widget.engine.runLifecycle.getSnapshot().streak * 0.02).clamp(1.0, 1.5)));
 
     final p = details.localPosition;
 

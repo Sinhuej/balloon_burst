@@ -37,7 +37,12 @@ abstract class RunEvent {
 /// -> Modify RunLifecycleManager event handling
 class PopEvent extends RunEvent {
   final int points;
-  const PopEvent({required this.points});
+  final double pitch;
+
+  const PopEvent({
+    required this.points,
+    this.pitch = 1.0,
+  });
 }
 
 /// ===============================================================
