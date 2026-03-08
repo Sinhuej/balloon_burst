@@ -67,16 +67,6 @@ static int _popIndex = 0;
   }
 }
 
-    // Apply pitch AFTER playback starts
-    if (pitch != 1.0) {
-      await player.setPlaybackRate(pitch);
-    }
-
-  } catch (_) {
-    // Never block gameplay on audio
-  }
-}
-
   /// World transition anticipation cue
   static Future<void> playSurge() async {
     if (_muted) return;
