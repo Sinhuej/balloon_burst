@@ -8,7 +8,7 @@ class AudioPlayerService {
     _muted = value;
   }
 
-  static const int _popPoolSize = 4;
+  static const int _popPoolSize = 8;
 
 static final List<AudioPlayer> _popPlayers = List.generate(
   _popPoolSize,
@@ -57,12 +57,16 @@ static int _popIndex = 0;
 
     await player.setPlaybackRate(pitch);
 
+    // reset playback position instead of stop()
+    await player.seek(Duration.zero);
+
     await player.play(
       AssetSource('audio/pop.wav'),
       volume: volume,
     );
+
   } catch (_) {
-    // Never block gameplay on audio
+    // never block gameplay
   }
 }
 
