@@ -12,7 +12,7 @@ class AudioPlayerService {
     android: AudioContextAndroid(
       usageType: AndroidUsageType.game,
       contentType: AndroidContentType.sonification,
-      audioFocus: AndroidAudioFocus.none, // allow mixing
+      audioFocus: AndroidAudioFocus.none,
     ),
     iOS: AudioContextIOS(
       category: AVAudioSessionCategory.ambient,
@@ -22,19 +22,19 @@ class AudioPlayerService {
     ),
   );
 
-  // 🔔 World surge cue (single instance, gated)
+  // 🔔 World surge cue
   static final AudioPlayer _surgePlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
-  // 🏁 Milestone cue (single instance, gated)
+  // 🏁 Milestone cue
   static final AudioPlayer _milestonePlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
-  // 🛡 Shield break cue (single instance, gated)
+  // 🛡 Shield break cue
   static final AudioPlayer _shieldPlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
-  /// Balloon pop (rapid, overlapping, fire-and-forget)
+  /// Balloon pop (rapid overlapping instances)
   static Future<void> playPop({double volume = 1.0, double pitch = 1.0}) async {
     if (_muted) return;
 
@@ -43,13 +43,10 @@ class AudioPlayerService {
       await player.setAudioContext(_gameAudioContext);
       await player.setPlaybackRate(pitch);
       await player.play(
-        AssetSource("audio/pop.mp3"),
+        AssetSource('audio/pop.mp3'),
         volume: volume,
       );
     } catch (_) {
-      // Never block gameplay on audio
-    }
-  }
       // Never block gameplay on audio
     }
   }
@@ -64,14 +61,10 @@ class AudioPlayerService {
         AssetSource('audio/surge.mp3'),
         volume: 1.0,
       );
-    } catch (_) {
-      // Fail silently
-    }
+    } catch (_) {}
   }
 
   /// Streak milestone cues (10 / 20 / 30)
-  /// milestoneIndex:
-  /// 1 => 10, 2 => 20, 3 => 30
   static Future<void> playStreakMilestone(int milestoneIndex) async {
     if (_muted) return;
 
@@ -96,12 +89,10 @@ class AudioPlayerService {
         AssetSource(asset),
         volume: 1.0,
       );
-    } catch (_) {
-      // Fail silently
-    }
+    } catch (_) {}
   }
 
-  /// Shield break sound (subtle reinforcement cue)
+  /// Shield break sound
   static Future<void> playShieldBreak() async {
     if (_muted) return;
 
@@ -111,8 +102,6 @@ class AudioPlayerService {
         AssetSource('audio/milestone_30.mp3'),
         volume: 0.9,
       );
-    } catch (_) {
-      // Fail silently
-    }
+    } catch (_) {}
   }
 }
