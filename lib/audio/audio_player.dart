@@ -36,20 +36,26 @@ class AudioPlayerService {
 
   /// Balloon pop (rapid overlapping instances)
   static Future<void> playPop({double volume = 1.0, double pitch = 1.0}) async {
-    if (_muted) return;
+  if (_muted) return;
 
-    try {
-      final player = AudioPlayer();
-      await player.setAudioContext(_gameAudioContext);
+  try {
+    final player = AudioPlayer();
+    await player.setAudioContext(_gameAudioContext);
+
+    await player.play(
+      AssetSource('audio/pop.mp3'),
+      volume: volume,
+    );
+
+    // Apply pitch AFTER playback starts
+    if (pitch != 1.0) {
       await player.setPlaybackRate(pitch);
-      await player.play(
-        AssetSource('audio/pop.mp3'),
-        volume: volume,
-      );
-    } catch (_) {
-      // Never block gameplay on audio
     }
+
+  } catch (_) {
+    // Never block gameplay on audio
   }
+}
 
   /// World transition anticipation cue
   static Future<void> playSurge() async {
