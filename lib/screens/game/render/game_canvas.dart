@@ -67,6 +67,49 @@ class _GameCanvasState extends State<GameCanvas>
 
   int _currentMilestone = 0;
 
+  Color _burstColor() {
+  if (widget.streak >= 30) {
+    return const Color(0xFF00E5FF); // elite cyan
+  }
+
+  if (widget.streak >= 20) {
+    return const Color(0xFFFFD54F); // strong gold
+  }
+
+  if (widget.streak >= 10) {
+    return const Color(0xFFFFF176); // light gold
+  }
+
+  return Colors.white;
+}
+
+List<Shadow> _burstShadows() {
+  if (widget.streak >= 30) {
+    return const [
+      Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2)),
+      Shadow(color: Color(0xFF00E5FF), blurRadius: 10, offset: Offset(0, 0)),
+    ];
+  }
+
+  if (widget.streak >= 20) {
+    return const [
+      Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2)),
+      Shadow(color: Color(0xFFFFC107), blurRadius: 10, offset: Offset(0, 0)),
+    ];
+  }
+
+  if (widget.streak >= 10) {
+    return const [
+      Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2)),
+      Shadow(color: Color(0xFFFFE082), blurRadius: 6, offset: Offset(0, 0)),
+    ];
+  }
+
+  return const [
+    Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2)),
+  ];
+}
+
   @override
   void initState() {
     super.initState();
@@ -254,17 +297,14 @@ class _GameCanvasState extends State<GameCanvas>
             child: Opacity(
               opacity: fade.clamp(0.0, 1.0),
               child: Text(
-                '+${b.value}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black87,
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
+  '+${b.value}',
+  style: TextStyle(
+    color: _burstColor(),
+    fontSize: 18,
+    fontWeight: FontWeight.w900,
+    shadows: _burstShadows(),
+  ),
+),
                   ],
                 ),
               ),
