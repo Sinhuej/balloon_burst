@@ -58,7 +58,7 @@ class TapHandler {
 
       if (dist <= effectiveRadius) {
         balloons[i] = b.pop();
-        AudioPlayerService.playPop();
+        AudioPlayerService.playPop(streak: 0);
         spawner.registerPop(gameState);
 
         surge.maybeTrigger(

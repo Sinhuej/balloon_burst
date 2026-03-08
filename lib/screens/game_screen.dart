@@ -352,7 +352,8 @@ pitch += (Random().nextDouble() - 0.5) * 0.06;
 
 if (pitch > 1.8) pitch = 1.8;
 
-AudioPlayerService.playPop(pitch: pitch);
+final streak = widget.engine.runLifecycle.getSnapshot().streak;
+AudioPlayerService.playPop(streak: streak);
 
     final p = details.localPosition;
 
