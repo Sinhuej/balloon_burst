@@ -345,7 +345,7 @@ if (_popShake < 0.1) {
     widget.engine.runLifecycle.report(PopEvent(points: 1));
 
 final streak = widget.engine.runLifecycle.getSnapshot().streak;
-AudioPlayerService.playPop(streak: streak);
+AudioPlayerService.playPop();
 
 final p = details.localPosition;
 
