@@ -59,7 +59,7 @@ static int _popIndex = 0;
     await player.setPlaybackRate(pitch);
 
     await player.play(
-      AssetSource('audio/pop.mp3'),
+      AssetSource('audio/pop.wav'),
       volume: volume,
     );
   } catch (_) {
@@ -74,7 +74,7 @@ static int _popIndex = 0;
     try {
       await _surgePlayer.stop();
       await _surgePlayer.play(
-        AssetSource('audio/surge.mp3'),
+        AssetSource('audio/surge.wav'),
         volume: 1.0,
       );
     } catch (_) {}
