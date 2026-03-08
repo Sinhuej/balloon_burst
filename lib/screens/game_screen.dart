@@ -342,32 +342,24 @@ if (_popShake < 0.1) {
   return;
 }
 
-    widget.engine.runLifecycle.report(PopEvent(points: 1, pitch: (1.0 + widget.engine.runLifecycle.getSnapshot().streak * 0.02).clamp(1.0, 1.5)));
-    
-    final streak = widget.engine.runLifecycle.getSnapshot().streak;
-AudioPlayerService.playPop(streak: streak);
-
-double pitch = 1.0 + (streak * 0.05);
-pitch += (Random().nextDouble() - 0.5) * 0.06;
-
-if (pitch > 1.8) pitch = 1.8;
+    widget.engine.runLifecycle.report(PopEvent(points: 1));
 
 final streak = widget.engine.runLifecycle.getSnapshot().streak;
 AudioPlayerService.playPop(streak: streak);
 
-    final p = details.localPosition;
+final p = details.localPosition;
 
-    widget.engine.juice.spawnScoreBurst(
-      x: p.dx,
-      y: p.dy,
-      value: 1,
-    );
+widget.engine.juice.spawnScoreBurst(
+  x: p.dx,
+  y: p.dy,
+  value: 1,
+);
 
-    _particles.addAll(
-      PopParticle.burst(p.dx, p.dy),
-    );
+_particles.addAll(
+  PopParticle.burst(p.dx, p.dy),
+);
 
-    _popShake = 6.0;
+_popShake = 6.0;
 
     final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
     final prevMilestone = _milestoneForStreak(prevStreak);
