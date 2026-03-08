@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:math';
 
 class AudioPlayerService {
   static bool _muted = false;
@@ -44,7 +45,7 @@ static int _popIndex = 0;
     ..setAudioContext(_gameAudioContext);
 
   /// Balloon pop (rapid overlapping instances)
-  static Future<void> playPop({required int streak}) async {
+  static Future<void> playPop() async {
   if (_muted) return;
 
   try {
@@ -55,19 +56,23 @@ static int _popIndex = 0;
       _popIndex = 0;
     }
 
-    String asset;
+    final pops = [
+      'audio/pop_low.wav',
+      'audio/pop_mid.wav',
+      'audio/pop_high.wav',
+    ];
 
-    if (streak >= 20) {
-      asset = 'audio/pop_high.wav';
-    } else if (streak >= 10) {
-      asset = 'audio/pop_mid.wav';
-    } else {
-      asset = 'audio/pop_low.wav';
-    }
+    final asset = pops[Random().nextInt(pops.length)];
+
+    final volume = 0.9 + Random().nextDouble() * 0.2;
+
+    await player.stop();
+
+    await Future.delayed(const Duration(milliseconds: 8));
 
     await player.play(
       AssetSource(asset),
-      volume: 1.0,
+      volume: volume,
     );
 
   } catch (_) {
