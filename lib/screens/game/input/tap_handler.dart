@@ -87,7 +87,19 @@ class TapHandler {
         );
       }
 
-      spawner.registerMiss(gameState);
+    // Near-miss spark effect
+if (closestDist != null) {
+  final nearMissRadius = balloonRadius + 18;
+
+  if (closestDist! > balloonRadius &&
+      closestDist! <= nearMissRadius) {
+    gameState.log(
+      'NEAR MISS dist=${closestDist!.toStringAsFixed(1)}'
+    );
+  }
+}  
+
+    spawner.registerMiss(gameState);
     }
 
     controller.registerTap(hit: hit);
