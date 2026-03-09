@@ -488,12 +488,12 @@ if (_dangerMode)
       child: Container(
         decoration: BoxDecoration(
           gradient: RadialGradient(
-            radius: 1.15,
+            radius: 1.0,
             colors: [
               Colors.transparent,
-              Colors.red.withOpacity(0.35),
+              Colors.red.withOpacity(0.75),
             ],
-            stops: const [0.68, 1.0],
+            stops: const [0.55, 1.0],
           ),
         ),
       ),

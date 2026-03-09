@@ -99,8 +99,15 @@ if (closestDist != null) {
 
   if (closestDist! > balloonRadius &&
       closestDist! <= nearMissRadius) {
+
     gameState.log(
       'NEAR MISS dist=${closestDist!.toStringAsFixed(1)}'
+    );
+
+    // trigger spark burst
+    controller.spawnNearMissSpark(
+      tapPos.dx,
+      tapPos.dy,
     );
   }
 }  
