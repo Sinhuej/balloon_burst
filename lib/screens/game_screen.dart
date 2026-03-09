@@ -328,38 +328,21 @@ if (_popShake < 0.1) {
     final dist = sqrt(dx * dx + dy * dy);
 
     if (dist < balloonRadius + 18 && dist > balloonRadius) {
-      _particles.addAll(
-        PopParticle.burst(p.dx, p.dy),
-      );
-      break;
-    }
-  }
-
-  if (!_reviveProtectionActive) {
-    widget.engine.runLifecycle.report(const MissEvent());
-  }
-
-  return;
-}
-
-    widget.engine.runLifecycle.report(PopEvent(points: 1));
-
-final streak = widget.engine.runLifecycle.getSnapshot().streak;
-AudioPlayerService.playPop();
-
-final p = details.localPosition;
-
-widget.engine.juice.spawnScoreBurst(
-  x: p.dx,
-  y: p.dy,
-  value: 1,
-);
-
+      // Normal pop particles
 _particles.addAll(
   PopParticle.burst(p.dx, p.dy),
 );
 
-_popShake = 6.0;
+// Occasional bonus burst (Perfect-hit style feedback)
+if (Random().nextDouble() < 0.35) {
+  _particles.addAll(
+    PopParticle.burst(p.dx, p.dy),
+  );
+
+  _popShake = 9.0;
+} else {
+  _popShake = 6.0;
+}
 
     final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
     final prevMilestone = _milestoneForStreak(prevStreak);
