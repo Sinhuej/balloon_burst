@@ -324,22 +324,25 @@ _dangerMode =
   final missesAfter = _controller.missCount;
 
   if (missesAfter > missesBefore) {
-    // Near-miss spark detection
-    final p = details.localPosition;
+    
+// Near-miss spark detection
+final p = details.localPosition;
 
-    for (final b in _balloons) {
-      final dx = p.dx - b.xOffset * _lastSize.width - (_lastSize.width / 2);
-      final dy = p.dy - b.y;
+for (final b in _balloons) {
+  final dx = p.dx - b.xOffset * _lastSize.width - (_lastSize.width / 2);
+  final dy = p.dy - b.y;
 
-      final dist = sqrt(dx * dx + dy * dy);
+  final dist = sqrt(dx * dx + dy * dy);
 
-      if (dist < balloonRadius + 18 && dist > balloonRadius) {
-        _particles.addAll(
-          PopParticle.burst(p.dx, p.dy),
-        );
-        break;
-      }
-    }
+  if (dist < balloonRadius + 18 && dist > balloonRadius) {
+
+    _particles.addAll(
+      PopParticle.burst(p.dx, p.dy),
+    );
+
+    break;
+  }
+}
 
     if (!_reviveProtectionActive) {
       widget.engine.runLifecycle.report(const MissEvent());

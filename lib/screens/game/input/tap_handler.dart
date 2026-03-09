@@ -103,12 +103,6 @@ if (closestDist != null) {
     gameState.log(
       'NEAR MISS dist=${closestDist!.toStringAsFixed(1)}'
     );
-
-    // trigger spark burst
-    controller.spawnNearMissSpark(
-      tapPos.dx,
-      tapPos.dy,
-    );
   }
 }  
 
