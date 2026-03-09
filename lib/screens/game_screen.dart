@@ -69,6 +69,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   bool _reviveProtectionActive = false;
   bool _reviveFlashActive = false;
+  bool _dangerMode = false;
 
   bool _previousShieldState = false;
   bool _showShieldFlash = false;
@@ -257,6 +258,12 @@ if (_popShake < 0.1) {
     }
 
     _controller.update(_balloons, dt);
+
+    final escapesNow = widget.engine.runLifecycle.getSnapshot().escapes;
+
+_dangerMode =
+    _controller.missCount >= 9 ||
+    escapesNow >= 2;
 
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
@@ -463,6 +470,35 @@ if (_popShake < 0.1) {
           return Stack(
             children: [
               IgnorePointer(child: Container(color: bgColor)),
+
+          // Danger Mode darkening
+if (_dangerMode)
+  Positioned.fill(
+    child: IgnorePointer(
+      child: Container(
+        color: Colors.black.withOpacity(0.25),
+      ),
+    ),
+  ),
+
+// Danger Mode red edge alarm
+if (_dangerMode)
+  Positioned.fill(
+    child: IgnorePointer(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            radius: 1.15,
+            colors: [
+              Colors.transparent,
+              Colors.red.withOpacity(0.35),
+            ],
+            stops: const [0.68, 1.0],
+          ),
+        ),
+      ),
+    ),
+  ),
 
               if (_showShieldFlash)
                 IgnorePointer(
