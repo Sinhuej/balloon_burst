@@ -40,8 +40,14 @@ class PopParticle {
   }
 
   static List<PopParticle> burst(double x, double y) {
-    final rand = Random();
-    const count = 7;
+  final rand = Random();
+
+  int count = 7;
+
+  // occasional stronger burst
+  if (rand.nextDouble() < 0.25) {
+    count = 14;
+  }
 
     return List.generate(count, (_) {
       final angle = rand.nextDouble() * pi * 2;
