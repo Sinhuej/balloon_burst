@@ -296,62 +296,77 @@ if (_popShake < 0.1) {
   }
 
   void _handleTap(TapDownDetails details) {
-    if (_showIntro) return;
-    if (_isRunEnded || !_canCountMisses) return;
+  if (_showIntro) return;
+  if (_isRunEnded || !_canCountMisses) return;
 
-    final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
-    final missesBefore = _controller.missCount;
+  final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
+  final missesBefore = _controller.missCount;
 
-    TapHandler.handleTap(
-      details: details,
-      lastSize: _lastSize,
-      balloons: _balloons,
-      gameState: widget.gameState,
-      spawner: widget.spawner,
-      controller: _controller,
-      surge: _surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
-    );
+  TapHandler.handleTap(
+    details: details,
+    lastSize: _lastSize,
+    balloons: _balloons,
+    gameState: widget.gameState,
+    spawner: widget.spawner,
+    controller: _controller,
+    surge: _surge,
+    balloonRadius: balloonRadius,
+    hitForgiveness: hitForgiveness,
+  );
 
-    final missesAfter = _controller.missCount;
+  final missesAfter = _controller.missCount;
 
-    if (missesAfter > missesBefore) {
+  if (missesAfter > missesBefore) {
+    // Near-miss spark detection
+    final p = details.localPosition;
 
-  // Near-miss spark detection
+    for (final b in _balloons) {
+      final dx = p.dx - b.xOffset * _lastSize.width - (_lastSize.width / 2);
+      final dy = p.dy - b.y;
+
+      final dist = sqrt(dx * dx + dy * dy);
+
+      if (dist < balloonRadius + 18 && dist > balloonRadius) {
+        _particles.addAll(
+          PopParticle.burst(p.dx, p.dy),
+        );
+        break;
+      }
+    }
+
+    if (!_reviveProtectionActive) {
+      widget.engine.runLifecycle.report(const MissEvent());
+    }
+
+    return;
+  }
+
+  widget.engine.runLifecycle.report(PopEvent(points: 1));
+
+  AudioPlayerService.playPop();
+
   final p = details.localPosition;
 
-  for (final b in _balloons) {
-    final dx = p.dx - b.xOffset * _lastSize.width - (_lastSize.width / 2);
-    final dy = p.dy - b.y;
+  widget.engine.juice.spawnScoreBurst(
+    x: p.dx,
+    y: p.dy,
+    value: 1,
+  );
 
-    final dist = sqrt(dx * dx + dy * dy);
-
-    if (dist < balloonRadius + 18 && dist > balloonRadius) {
-      // Normal pop particles
-_particles.addAll(
-  PopParticle.burst(p.dx, p.dy),
-);
-
-// Occasional bonus burst (Perfect-hit style feedback)
-if (Random().nextDouble() < 0.35) {
   _particles.addAll(
     PopParticle.burst(p.dx, p.dy),
   );
 
-  _popShake = 9.0;
-} else {
   _popShake = 6.0;
-}
 
-    final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
-    final prevMilestone = _milestoneForStreak(prevStreak);
-    final nextMilestone = _milestoneForStreak(nextStreak);
+  final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
+  final prevMilestone = _milestoneForStreak(prevStreak);
+  final nextMilestone = _milestoneForStreak(nextStreak);
 
-    if (nextMilestone > prevMilestone) {
-      AudioPlayerService.playStreakMilestone(nextMilestone);
-    }
+  if (nextMilestone > prevMilestone) {
+    AudioPlayerService.playStreakMilestone(nextMilestone);
   }
+}
 
   void _handleLongPress() {
     if (_showIntro) return;
