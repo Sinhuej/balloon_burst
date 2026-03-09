@@ -58,7 +58,13 @@ class TapHandler {
 
       if (dist <= effectiveRadius) {
         balloons[i] = b.pop();
-        AudioPlayerService.playPop();
+        
+        // Perfect hit detection
+if (dist <= balloonRadius * 0.35) {
+  gameState.log('PERFECT HIT dist=${dist.toStringAsFixed(1)}');
+}
+
+AudioPlayerService.playPop();
         spawner.registerPop(gameState);
 
         surge.maybeTrigger(
