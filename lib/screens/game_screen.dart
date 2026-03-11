@@ -186,12 +186,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     _lastWalletBalance = currentBalance;
 
+   final accuracy = _controller.accuracy01;
+
+double adaptiveFactor = 1.0;
+
+if (accuracy > 0.93) {
+  adaptiveFactor = 0.94; // slightly harder
+} else if (accuracy < 0.75) {
+  adaptiveFactor = 1.08; // slightly easier
+}
+
+final adaptiveSpawnInterval =
+    widget.engine.difficulty.snapshot.spawnInterval * adaptiveFactor;
+
     widget.spawner.update(
       dt: dt,
       tier: 0,
       balloons: _balloons,
       viewportHeight: _lastSize.height,
-      engineSpawnInterval: widget.engine.difficulty.snapshot.spawnInterval,
+      engineSpawnInterval: adaptiveSpawnInterval,
       engineMaxSimultaneousSpawns:
           widget.engine.difficulty.snapshot.maxSimultaneousSpawns,
     );
