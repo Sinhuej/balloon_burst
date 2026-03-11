@@ -70,6 +70,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _reviveProtectionActive = false;
   bool _reviveFlashActive = false;
   bool _dangerMode = false;
+  double _dangerPulseT = 0.0;  
 
   bool _previousShieldState = false;
   bool _showShieldFlash = false;
@@ -265,6 +266,11 @@ _dangerMode =
     _controller.missCount >= 9 ||
     escapesNow >= 2;
 
+if (_dangerMode) {
+  _dangerPulseT += dt * 1.8;
+} else {
+  _dangerPulseT = 0.0;
+}
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
       currentWorld: widget.spawner.currentWorld,
@@ -484,7 +490,7 @@ if (_dangerMode)
     ),
   ),
 
-// Danger Mode red edge alarm
+// Danger Mode red edge alarm (slow heartbeat pulse)
 if (_dangerMode)
   Positioned.fill(
     child: IgnorePointer(
@@ -494,7 +500,9 @@ if (_dangerMode)
             radius: 1.0,
             colors: [
               Colors.transparent,
-              Colors.red.withOpacity(0.75),
+              Colors.red.withOpacity(
+                0.55 + ((sin(_dangerPulseT) * 0.5 + 0.5) * 0.25),
+              ),
             ],
             stops: const [0.55, 1.0],
           ),
