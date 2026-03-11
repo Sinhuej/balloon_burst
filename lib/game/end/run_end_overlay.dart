@@ -72,6 +72,29 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     );
   }
 
+String _accuracyRank(double accuracy) {
+  if (accuracy >= 0.95) return 'S';
+  if (accuracy >= 0.90) return 'A';
+  if (accuracy >= 0.80) return 'B';
+  if (accuracy >= 0.70) return 'C';
+  return 'D';
+}
+
+Color _rankColor(String rank) {
+  switch (rank) {
+    case 'S':
+      return Colors.cyanAccent;
+    case 'A':
+      return Colors.greenAccent;
+    case 'B':
+      return Colors.amber;
+    case 'C':
+      return Colors.orangeAccent;
+    default:
+      return Colors.redAccent;
+  }
+}
+
   Widget _buildRewardBreakdown(RunReward reward) {
     Widget row(String label, int value) {
       return Padding(
@@ -306,8 +329,61 @@ void dispose() {
             textAlign: TextAlign.center,
           ),
 
-          if (reward != null)
-            _buildRewardBreakdown(reward),
+          if (reward != null) ...[
+  const SizedBox(height: 12),
+
+  Builder(
+    builder: (context) {
+      final snapshot = widget.engine.runLifecycle.getSnapshot();
+
+      final accuracy = snapshot.accuracy01;
+      final rank = _accuracyRank(accuracy);
+
+      return Column(
+        children: [
+          const Text(
+            'RUN STATS',
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
+            style: const TextStyle(color: Colors.white),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            'Rank $rank',
+            style: TextStyle(
+              color: _rankColor(rank),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            'Best Streak ×${snapshot.bestStreak}',
+            style: const TextStyle(
+              color: Colors.cyanAccent,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+    },
+  ),
+
+  _buildRewardBreakdown(reward),
+],
 
           if (widget.onRevive != null) ...[
             ElevatedButton(
