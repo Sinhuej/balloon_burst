@@ -1,5 +1,6 @@
 // lib/tj_engine/engine/tj_engine.dart
 
+import 'input/input_latch.dart';
 import 'audio/audio_settings_manager.dart';
 import 'core/difficulty_manager.dart';
 import 'daily/daily_reward_manager.dart';
@@ -24,6 +25,7 @@ class TJEngine {
   final LeaderboardManager leaderboard;
   final AudioSettingsManager audio;
   final WalletManager wallet;
+  final input = InputLatch();
 
   // 🧃 Engine-owned juice module (optional, UI renders)
   final JuiceManager juice;

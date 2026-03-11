@@ -70,7 +70,7 @@ class BalloonPainter extends CustomPainter {
     // Tap feedback pulse
     if (gameState.tapPulse) {
       final pulsePaint = Paint()
-        ..color = const Color.fromARGB(18, 80, 160, 255);
+        ..color = const Color.fromARGB(28, 80, 160, 255);
       canvas.drawRect(Offset.zero & size, pulsePaint);
       gameState.tapPulse = false;
     }
