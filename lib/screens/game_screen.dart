@@ -391,6 +391,9 @@ for (final b in _balloons) {
 
   _popShake = 6.0;
 
+  // micro time dilation for juicy impact
+  _lastTime -= const Duration(milliseconds: 8);
+
   final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
   final prevMilestone = _milestoneForStreak(prevStreak);
   final nextMilestone = _milestoneForStreak(nextStreak);
