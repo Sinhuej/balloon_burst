@@ -315,6 +315,8 @@ if (_dangerMode) {
   final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
   final missesBefore = _controller.missCount;
 
+  widget.gameState.tapPulse = true;
+
   TapHandler.handleTap(
     details: details,
     lastSize: _lastSize,
