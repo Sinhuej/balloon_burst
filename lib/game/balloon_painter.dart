@@ -7,8 +7,14 @@ class BalloonPainter extends CustomPainter {
   final List<Balloon> balloons;
   final GameState gameState;
   final int currentWorld;
+  final int streak;
 
-  BalloonPainter(this.balloons, this.gameState, this.currentWorld);
+  BalloonPainter(
+    this.balloons,
+    this.gameState,
+    this.currentWorld, {
+    required this.streak,
+  });
 
   static const double baseBalloonRadius = 16.0;
 
@@ -69,7 +75,7 @@ class BalloonPainter extends CustomPainter {
       gameState.tapPulse = false;
     }
 
-    // ---- BALLOONS (Step 2: depth + scale + color) ----
+    // ---- BALLOONS (depth + scale + color + combo glow) ----
 
     final centerX = size.width / 2;
 
@@ -84,18 +90,56 @@ class BalloonPainter extends CustomPainter {
       if (balloon.isPopped) continue;
 
       final cfg = balloonTypeConfig[balloon.type]!;
-
       final radius = baseBalloonRadius * cfg.visualScale;
 
       final x = centerX + (balloon.xOffset * size.width * 0.5);
       final y = balloon.y;
+      final center = Offset(x, y);
+
+      // Combo Glow (streak power mode)
+      if (streak >= 10) {
+        final glowOpacity = streak >= 30
+            ? 0.42
+            : streak >= 20
+                ? 0.30
+                : 0.18;
+
+        final glowBlur = streak >= 30
+            ? 18.0
+            : streak >= 20
+                ? 14.0
+                : 10.0;
+
+        final glowRadius = streak >= 30
+            ? radius + 10
+            : streak >= 20
+                ? radius + 8
+                : radius + 6;
+
+        final glowColor = streak >= 30
+            ? const Color(0xFF00E5FF)
+            : streak >= 20
+                ? const Color(0xFFFFD54F)
+                : Colors.white;
+
+        final glowPaint = Paint()
+          ..color = glowColor.withOpacity(glowOpacity)
+          ..style = PaintingStyle.fill
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowBlur);
+
+        canvas.drawCircle(
+          center,
+          glowRadius,
+          glowPaint,
+        );
+      }
 
       final paint = Paint()
         ..color = _colorForWorld(currentWorld)
         ..style = PaintingStyle.fill;
 
       canvas.drawCircle(
-        Offset(x, y),
+        center,
         radius,
         paint,
       );

@@ -421,6 +421,7 @@ class _GameCanvasState extends State<GameCanvas>
                         widget.balloons,
                         widget.gameState,
                         widget.currentWorld,
+                        streak: widget.streak,
                       ),
                     ),
                   ),
