@@ -9,20 +9,23 @@ class Balloon {
   final String id;
   final bool isPopped;
 
-  /// Vertical position in world units.
+  /// Vertical position
   final double y;
 
-  /// Horizontal offset from center (used by renderer + tap hit logic).
+  /// Horizontal render offset
   final double xOffset;
 
-  /// Spawn/base offset (sway is applied around this).
+  /// Spawn/base offset
   final double baseXOffset;
 
-  /// Unique phase per balloon for deterministic motion.
+  /// Unique deterministic phase
   final double phase;
 
-  /// Balloon behavior type (Step 1)
+  /// Balloon type
   final BalloonType type;
+
+  /// Age in seconds (used for smooth motion)
+  final double age;
 
   const Balloon({
     required this.id,
@@ -32,6 +35,7 @@ class Balloon {
     this.baseXOffset = 0.0,
     this.phase = 0.0,
     this.type = BalloonType.standard,
+    this.age = 0.0,
   });
 
   Balloon pop() => Balloon(
@@ -42,6 +46,7 @@ class Balloon {
         baseXOffset: baseXOffset,
         phase: phase,
         type: type,
+        age: age,
       );
 
   Balloon movedBy(double dy) => Balloon(
@@ -52,6 +57,7 @@ class Balloon {
         baseXOffset: baseXOffset,
         phase: phase,
         type: type,
+        age: age + 0.016, // ~60fps time step
       );
 
   Balloon withXOffset(double newX) => Balloon(
@@ -62,32 +68,38 @@ class Balloon {
         baseXOffset: baseXOffset,
         phase: phase,
         type: type,
+        age: age,
       );
 
-  /// Micro speed variance per balloon.
-  /// Deterministic and stable: derived from phase.
-  /// Range ~[0.92 .. 1.08]
+  /// Micro speed variance
   double get riseSpeedMultiplier {
     final m = 1.0 + sin(phase) * 0.10;
     return m.clamp(0.92, 1.08);
   }
 
-  /// Horizontal drift + micro wobble
-  /// This is the Fruit Ninja style motion trick.
+  /// 🎈 Arcade Balloon Motion Model
+  ///
+  /// vertical rise handled by engine
+  /// + sine drift
+  /// + buoyancy wobble
+  /// + slight rotation illusion
   double driftedX({
     required double amplitude,
     required double frequency,
   }) {
+    /// horizontal drift
     final drift = sin(phase + y * frequency) * amplitude;
 
-    // ✨ micro wobble (very subtle)
-    final wobble = sin(phase + y * frequency * 0.6) * amplitude * 0.15;
+    /// buoyancy wobble (time based)
+    final wobble = sin(phase + age * 3.2) * amplitude * 0.35;
 
-    return baseXOffset + drift + wobble;
+    /// subtle tilt illusion
+    final tilt = sin(phase + age * 1.3) * amplitude * 0.15;
+
+    return baseXOffset + drift + wobble + tilt;
   }
 
-  /// Rising Worlds spawn helper
-  /// Balloons spawn BELOW the viewport and rise upward.
+  /// Spawn helper
   static Balloon spawnAt(
     int index, {
     required int total,
@@ -113,6 +125,7 @@ class Balloon {
       baseXOffset: baseX,
       phase: phase,
       type: type,
+      age: 0.0,
     );
   }
 }
