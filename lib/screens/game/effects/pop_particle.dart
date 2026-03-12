@@ -17,7 +17,7 @@ class PopParticle {
     required this.vy,
     required this.age,
     required this.life,
-    this.color = Colors.white,
+    required this.color,
   });
 
   PopParticle advance(double dt) {
@@ -39,19 +39,25 @@ class PopParticle {
     return 1.0 - t;
   }
 
+  static final _colors = [
+    Colors.white,
+    Colors.yellow,
+    Colors.orange,
+    Colors.redAccent,
+  ];
+
   static List<PopParticle> burst(double x, double y) {
-  final rand = Random();
+    final rand = Random();
 
-  int count = 7;
+    int count = 10;
 
-  // occasional stronger burst
-  if (rand.nextDouble() < 0.25) {
-    count = 14;
-  }
+    if (rand.nextDouble() < 0.25) {
+      count = 18;
+    }
 
     return List.generate(count, (_) {
       final angle = rand.nextDouble() * pi * 2;
-      final speed = 80 + rand.nextDouble() * 80;
+      final speed = 80 + rand.nextDouble() * 120;
 
       return PopParticle(
         x: x,
@@ -59,7 +65,8 @@ class PopParticle {
         vx: cos(angle) * speed,
         vy: sin(angle) * speed,
         age: 0,
-        life: 0.35,
+        life: 0.45,
+        color: _colors[rand.nextInt(_colors.length)],
       );
     });
   }

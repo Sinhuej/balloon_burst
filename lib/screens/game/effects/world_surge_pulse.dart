@@ -26,8 +26,8 @@ class WorldSurgePulse {
   // Haptics (toggle-ready)
   bool _hapticsEnabled = true;
 
-  static const double pulseMaxOpacity = 0.08;
-  static const double shakeAmpPx = 2.5;
+  static const double pulseMaxOpacity = 0.16;
+  static const double shakeAmpPx = 6.0;
 
   WorldSurgePulse({
     required TickerProvider vsync,
