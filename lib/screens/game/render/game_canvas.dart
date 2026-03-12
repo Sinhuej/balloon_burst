@@ -68,40 +68,52 @@ class _GameCanvasState extends State<GameCanvas>
   int _currentMilestone = 0;
 
   Color _burstColor() {
+    if (widget.streak >= 100) {
+      return const Color(0xFFFFF176);
+    }
+
     if (widget.streak >= 30) {
-      return const Color(0xFF00E5FF); // elite cyan
+      return const Color(0xFF00E5FF);
     }
 
     if (widget.streak >= 20) {
-      return const Color(0xFFFFD54F); // strong gold
+      return const Color(0xFFFFD54F);
     }
 
     if (widget.streak >= 10) {
-      return const Color(0xFFFFF176); // light gold
+      return const Color(0xFFFFF176);
     }
 
     return Colors.white;
   }
 
   List<Shadow> _burstShadows() {
+    if (widget.streak >= 100) {
+      return const [
+        Shadow(color: Colors.black, blurRadius: 6),
+        Shadow(color: Colors.orange, blurRadius: 18),
+        Shadow(color: Colors.yellow, blurRadius: 32),
+      ];
+    }
+
     if (widget.streak >= 30) {
       return const [
         Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2)),
-        Shadow(color: Color(0xFF00E5FF), blurRadius: 10, offset: Offset(0, 0)),
+        Shadow(color: Color(0xFF00E5FF), blurRadius: 10),
       ];
     }
 
     if (widget.streak >= 20) {
       return const [
         Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2)),
-        Shadow(color: Color(0xFFFFC107), blurRadius: 10, offset: Offset(0, 0)),
+        Shadow(color: Color(0xFFFFC107), blurRadius: 10),
       ];
     }
 
     if (widget.streak >= 10) {
       return const [
         Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2)),
-        Shadow(color: Color(0xFFFFE082), blurRadius: 6, offset: Offset(0, 0)),
+        Shadow(color: Color(0xFFFFE082), blurRadius: 6),
       ];
     }
 
@@ -157,6 +169,7 @@ class _GameCanvasState extends State<GameCanvas>
   }
 
   int _milestoneFor(int streak) {
+    if (streak >= 100) return 4;
     if (streak >= 30) return 3;
     if (streak >= 20) return 2;
     if (streak >= 10) return 1;
@@ -164,6 +177,20 @@ class _GameCanvasState extends State<GameCanvas>
   }
 
   TextStyle _streakStyleFor(int milestone) {
+    if (milestone == 4) {
+      return const TextStyle(
+        fontSize: 26,
+        fontWeight: FontWeight.w900,
+        color: Colors.white,
+        letterSpacing: 1.0,
+        shadows: [
+          Shadow(color: Colors.black, blurRadius: 6),
+          Shadow(color: Colors.orange, blurRadius: 18),
+          Shadow(color: Colors.yellow, blurRadius: 32),
+        ],
+      );
+    }
+
     switch (milestone) {
       case 3:
         return const TextStyle(
@@ -172,16 +199,8 @@ class _GameCanvasState extends State<GameCanvas>
           letterSpacing: 0.5,
           color: Colors.white,
           shadows: [
-            Shadow(
-              color: Colors.black,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-            Shadow(
-              color: Color(0xFF00E5FF),
-              blurRadius: 6,
-              offset: Offset(0, 0),
-            ),
+            Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 2)),
+            Shadow(color: Color(0xFF00E5FF), blurRadius: 6),
           ],
         );
       case 2:
@@ -191,16 +210,8 @@ class _GameCanvasState extends State<GameCanvas>
           letterSpacing: 0.8,
           color: Color(0xFFFFE28A),
           shadows: [
-            Shadow(
-              color: Colors.black54,
-              blurRadius: 10,
-              offset: Offset(0, 2),
-            ),
-            Shadow(
-              color: Color(0xFFFFC107),
-              blurRadius: 12,
-              offset: Offset(0, 0),
-            ),
+            Shadow(color: Colors.black54, blurRadius: 10),
+            Shadow(color: Color(0xFFFFC107), blurRadius: 12),
           ],
         );
       case 1:
@@ -210,16 +221,8 @@ class _GameCanvasState extends State<GameCanvas>
           letterSpacing: 0.6,
           color: Color(0xFFFFE9A6),
           shadows: [
-            Shadow(
-              color: Colors.black45,
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-            Shadow(
-              color: Color(0xFFFFD54F),
-              blurRadius: 8,
-              offset: Offset(0, 0),
-            ),
+            Shadow(color: Colors.black45, blurRadius: 8),
+            Shadow(color: Color(0xFFFFD54F), blurRadius: 8),
           ],
         );
       default:
@@ -229,11 +232,7 @@ class _GameCanvasState extends State<GameCanvas>
           letterSpacing: 0.4,
           color: Colors.white,
           shadows: [
-            Shadow(
-              color: Colors.black45,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
+            Shadow(color: Colors.black45, blurRadius: 6),
           ],
         );
     }
@@ -244,6 +243,10 @@ class _GameCanvasState extends State<GameCanvas>
 
     final style = _streakStyleFor(_currentMilestone);
 
+    final label = widget.streak >= 100
+        ? 'ULTRA STREAK ×${widget.streak}'
+        : 'STREAK ×${widget.streak}';
+
     return Positioned(
       top: 18,
       left: 0,
@@ -253,22 +256,19 @@ class _GameCanvasState extends State<GameCanvas>
           scale: _milestoneScale,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color:
-                    Colors.black.withOpacity(_currentMilestone >= 3 ? 0.55 : 0.22),
-                borderRadius: BorderRadius.circular(14),
-                border: _currentMilestone >= 3
-                    ? Border.all(
-                        color: const Color(0xFF00E5FF),
-                        width: 1.8,
-                      )
-                    : null,
+                color: Colors.black.withOpacity(
+                    _currentMilestone >= 3 ? 0.60 : 0.25),
+                borderRadius: BorderRadius.circular(16),
+                border: _currentMilestone >= 4
+                    ? Border.all(color: Colors.amber, width: 2)
+                    : _currentMilestone >= 3
+                        ? Border.all(
+                            color: const Color(0xFF00E5FF), width: 1.8)
+                        : null,
               ),
-              child: Text(
-                'STREAK ×${widget.streak}',
-                style: style,
-              ),
+              child: Text(label, style: style),
             ),
           ),
         ),
