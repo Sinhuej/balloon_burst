@@ -91,11 +91,10 @@ class BalloonPainter extends CustomPainter {
       final shadeVariance = 0.92 + ((seed % 10) / 100);
 
       final radius =
-          baseBalloonRadius * cfg.visualScale * sizeVariance;
+      (baseBalloonRadius * cfg.visualScale * sizeVariance).roundToDouble();
 
-      final x = centerX + (balloon.xOffset * size.width * 0.5);
-      final y = balloon.y;
-
+      final x = (centerX + (balloon.xOffset * size.width * 0.5)).roundToDouble();
+      final y = balloon.y.roundToDouble();
       final center = Offset(x, y);
 
       if (streak >= 10) {
