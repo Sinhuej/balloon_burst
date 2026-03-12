@@ -410,12 +410,10 @@ class _GameCanvasState extends State<GameCanvas>
                 Positioned.fill(
                   child: Transform.translate(
                     offset: Offset(
-                      (widget.popShake *
-                          (0.5 -
-                              (DateTime.now().microsecond % 1000) / 1000)),
-                      (widget.popShake *
-                          (0.5 - (DateTime.now().millisecond % 1000) / 1000)),
+                     widget.popShake * sin(widget.surge.lightningT * 12),
+                     widget.popShake * cos(widget.surge.lightningT * 10),
                     ),
+
                     child: CustomPaint(
                       painter: BalloonPainter(
                         widget.balloons,
