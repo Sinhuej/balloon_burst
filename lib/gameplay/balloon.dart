@@ -81,7 +81,7 @@ class Balloon {
     final drift = sin(phase + y * frequency) * amplitude;
 
     // ✨ micro wobble (very subtle)
-    final wobble = sin((phase * 2) + y * frequency * 3) * amplitude * 0.25;
+    final wobble = sin(phase + y * frequency * 0.6) * amplitude * 0.15;
 
     return baseXOffset + drift + wobble;
   }
