@@ -134,8 +134,11 @@ class BalloonPainter extends CustomPainter {
           _colorForWorld(currentWorld).withOpacity(shadeVariance);
 
       final paint = Paint()
-        ..color = baseColor
-        ..style = PaintingStyle.fill;
+      ..color = baseColor
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true
+      ..filterQuality = FilterQuality.medium
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.01);
 
       canvas.drawCircle(center, radius, paint);
 
