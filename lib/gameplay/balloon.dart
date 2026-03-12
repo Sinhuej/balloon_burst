@@ -68,17 +68,23 @@ class Balloon {
   /// Deterministic and stable: derived from phase.
   /// Range ~[0.92 .. 1.08]
   double get riseSpeedMultiplier {
-    final m = 1.0 + sin(phase) * 0.10; // 👈 TUNING KNOB
+    final m = 1.0 + sin(phase) * 0.10;
     return m.clamp(0.92, 1.08);
   }
- /// Horizontal drift based on vertical position.
- /// Pure, deterministic, frame-rate independent.
- double driftedX({
-  required double amplitude,
-  required double frequency,
- }) {
-  return baseXOffset + sin(phase + y * frequency) * amplitude;
-}
+
+  /// Horizontal drift + micro wobble
+  /// This is the Fruit Ninja style motion trick.
+  double driftedX({
+    required double amplitude,
+    required double frequency,
+  }) {
+    final drift = sin(phase + y * frequency) * amplitude;
+
+    // ✨ micro wobble (very subtle)
+    final wobble = sin((phase * 2) + y * frequency * 3) * amplitude * 0.25;
+
+    return baseXOffset + drift + wobble;
+  }
 
   /// Rising Worlds spawn helper
   /// Balloons spawn BELOW the viewport and rise upward.
@@ -91,17 +97,13 @@ class Balloon {
   }) {
     final rand = Random(index * 997 + tier * 7919);
 
-    // Horizontal spread grows with tier
-    final clusterSpread = 0.22; // 👈 TUNING KNOB
+    final clusterSpread = 0.22;
     final baseX = (rand.nextDouble() * 2 - 1) * clusterSpread;
 
-    // Vertical spacing compresses as tier rises
     final spacing = max(40.0, 70.0 - tier * 3.0);
 
-    // Spawn BELOW screen
     final startY = viewportHeight - (index * spacing);
 
-    // Unique deterministic phase (0..2π)
     final phase = rand.nextDouble() * pi * 2;
 
     return Balloon(
