@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
@@ -20,11 +21,9 @@ class BalloonPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Viewport truth
     gameState.viewportHeight = size.height;
     gameState.framesSinceStart++;
 
-    // Subtle bottom danger affordance
     final dangerHeight = 40.0;
     final dangerRect = Rect.fromLTWH(
       0,
@@ -45,7 +44,6 @@ class BalloonPainter extends CustomPainter {
 
     canvas.drawRect(dangerRect, dangerPaint);
 
-    // Intro banner (first ~1.5s)
     if (gameState.framesSinceStart < 90) {
       final textPainter = TextPainter(
         text: const TextSpan(
@@ -67,7 +65,6 @@ class BalloonPainter extends CustomPainter {
       textPainter.paint(canvas, offset);
     }
 
-    // Tap feedback pulse
     if (gameState.tapPulse) {
       final pulsePaint = Paint()
         ..color = const Color.fromARGB(28, 80, 160, 255);
@@ -75,11 +72,8 @@ class BalloonPainter extends CustomPainter {
       gameState.tapPulse = false;
     }
 
-    // ---- BALLOONS (depth + scale + color + combo glow) ----
-
     final centerX = size.width / 2;
 
-    // Sort by visual depth (background → foreground)
     final sorted = balloons.toList()
       ..sort((a, b) =>
           balloonTypeConfig[a.type]!.zLayer.compareTo(
@@ -90,13 +84,20 @@ class BalloonPainter extends CustomPainter {
       if (balloon.isPopped) continue;
 
       final cfg = balloonTypeConfig[balloon.type]!;
-      final radius = baseBalloonRadius * cfg.visualScale;
+
+      final seed = balloon.hashCode;
+
+      final sizeVariance = 0.85 + ((seed % 20) / 100);
+      final shadeVariance = 0.92 + ((seed % 10) / 100);
+
+      final radius =
+          baseBalloonRadius * cfg.visualScale * sizeVariance;
 
       final x = centerX + (balloon.xOffset * size.width * 0.5);
       final y = balloon.y;
+
       final center = Offset(x, y);
 
-      // Combo Glow (streak power mode)
       if (streak >= 10) {
         final glowOpacity = streak >= 30
             ? 0.42
@@ -127,35 +128,65 @@ class BalloonPainter extends CustomPainter {
           ..style = PaintingStyle.fill
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowBlur);
 
-        canvas.drawCircle(
-          center,
-          glowRadius,
-          glowPaint,
-        );
+        canvas.drawCircle(center, glowRadius, glowPaint);
       }
 
+      final baseColor =
+          _colorForWorld(currentWorld).withOpacity(shadeVariance);
+
       final paint = Paint()
-        ..color = _colorForWorld(currentWorld)
+        ..color = baseColor
         ..style = PaintingStyle.fill;
 
+      canvas.drawCircle(center, radius, paint);
+
+      final shadowPaint = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.4, 0.4),
+          radius: 1.0,
+          colors: [
+            Colors.black.withOpacity(0.18),
+            Colors.transparent,
+          ],
+        ).createShader(
+          Rect.fromCircle(center: center, radius: radius),
+        );
+
+      canvas.drawCircle(center, radius, shadowPaint);
+
+      final highlightPaint = Paint()
+        ..color = Colors.white.withOpacity(0.35);
+
       canvas.drawCircle(
-        center,
-        radius,
-        paint,
+        Offset(x - radius * 0.35, y - radius * 0.35),
+        radius * 0.25,
+        highlightPaint,
       );
+
+      if (seed % 3 == 0) {
+        final stringPaint = Paint()
+          ..color = Colors.black.withOpacity(0.35)
+          ..strokeWidth = 1.2;
+
+        canvas.drawLine(
+          Offset(x, y + radius),
+          Offset(x + sin(y) * 6, y + radius + 18),
+          stringPaint,
+        );
+      }
     }
   }
 
   Color _colorForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF4DA3FF); // Sky Blue
+        return const Color(0xFF4DA3FF);
       case 3:
-        return const Color(0xFFB04DFF); // Neon Purple
+        return const Color(0xFFB04DFF);
       case 4:
-        return const Color(0xFF9FA8DA); // Deep Space glow
+        return const Color(0xFF9FA8DA);
       default:
-        return const Color(0xFFE53935); // Carnival Red
+        return const Color(0xFFE53935);
     }
   }
 
