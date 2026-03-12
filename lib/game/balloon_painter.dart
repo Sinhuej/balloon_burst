@@ -193,5 +193,8 @@ class BalloonPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant BalloonPainter oldDelegate) => true;
+  bool shouldRepaint(covariant BalloonPainter oldDelegate) =>
+    oldDelegate.balloons != balloons ||
+    oldDelegate.streak != streak ||
+    oldDelegate.currentWorld != currentWorld;
 }
