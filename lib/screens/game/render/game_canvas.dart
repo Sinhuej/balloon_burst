@@ -485,7 +485,7 @@ class _ShockwavePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
+      ..strokeWidth = 3.5
       ..blendMode = BlendMode.plus;
 
     for (final w in waves) {

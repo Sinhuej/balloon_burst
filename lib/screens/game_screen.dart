@@ -364,7 +364,7 @@ for (final b in _balloons) {
 
   final dist = sqrt(dx * dx + dy * dy);
 
-  if (dist < balloonRadius + 18 && dist > balloonRadius) {
+  if (dist < balloonRadius + 32 && dist > balloonRadius) {
 
     _particles.addAll(
       PopParticle.burst(p.dx, p.dy),
@@ -375,7 +375,7 @@ for (final b in _balloons) {
     x: p.dx,
     y: p.dy,
     age: 0,
-    life: 0.35,
+    life: 0.28,
   ),
 );
 
