@@ -16,6 +16,7 @@ import 'package:balloon_burst/game/end/run_end_overlay.dart';
 import 'package:balloon_burst/game/end/run_end_state.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
+import 'package:balloon_burst/screens/game/effects/pop_shockwave.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 import 'package:balloon_burst/screens/game/input/tap_handler.dart';
 import 'package:balloon_burst/screens/game/intro/carnival_intro_overlay.dart';
@@ -57,7 +58,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   final List<Balloon> _balloons = [];
   final List<PopParticle> _particles = [];
-  
+  final List<PopShockwave> _shockwaves = [];  
+
   double _popShake = 0.0;  
 
   Duration _lastTime = Duration.zero;
@@ -244,6 +246,11 @@ final adaptiveSpawnInterval =
       _particles[i] = _particles[i].advance(dt);
     }
     _particles.removeWhere((p) => !p.alive);
+   
+    for (int i = 0; i < _shockwaves.length; i++) {
+  _shockwaves[i] = _shockwaves[i].advance(dt);
+}
+_shockwaves.removeWhere((s) => !s.alive);
 
     // micro screen shake decay
 _popShake *= 0.85;
