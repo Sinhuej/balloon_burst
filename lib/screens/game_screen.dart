@@ -250,7 +250,8 @@ final adaptiveSpawnInterval =
     for (int i = 0; i < _shockwaves.length; i++) {
   _shockwaves[i] = _shockwaves[i].advance(dt);
 }
-_shockwaves.removeWhere((s) => !s.alive);
+
+_shockwaves.removeWhere((w) => !w.alive);
 
     // micro screen shake decay
 _popShake *= 0.85;
@@ -404,6 +405,15 @@ for (final b in _balloons) {
   _particles.addAll(
     PopParticle.burst(p.dx, p.dy),
   );
+  
+  _shockwaves.add(
+  PopShockwave(
+    x: p.dx,
+    y: p.dy,
+    age: 0,
+    life: 0.35,
+  ),
+);
 
   _popShake = 6.0;
 
