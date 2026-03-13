@@ -368,6 +368,15 @@ for (final b in _balloons) {
     _particles.addAll(
       PopParticle.burst(p.dx, p.dy),
     );
+    
+    _shockwaves.add(
+  PopShockwave(
+    x: p.dx,
+    y: p.dy,
+    age: 0,
+    life: 0.35,
+  ),
+);
 
     break;
   }
