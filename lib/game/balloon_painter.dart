@@ -85,7 +85,7 @@ class BalloonPainter extends CustomPainter {
 
       final cfg = balloonTypeConfig[balloon.type]!;
 
-      final seed = balloon.hashCode;
+      final seed = balloon.id.hashCode;
 
       final sizeVariance = 0.85 + ((seed % 20) / 100);
       final shadeVariance = 0.92 + ((seed % 10) / 100);
