@@ -561,6 +561,7 @@ if (_dangerMode)
                 surge: _surge,
                 balloons: _balloons,
                 particles: _particles,
+                shockwaves: _shockwaves,                
                 scoreBursts: widget.engine.juice.scoreBursts,
                 gameState: widget.gameState,
                 onTapDown: _handleTap,

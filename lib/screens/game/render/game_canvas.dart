@@ -5,6 +5,7 @@ import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
+import 'package:balloon_burst/screens/game/effects/pop_shockwave.dart';
 import 'package:balloon_burst/tj_engine/juice/models/score_burst.dart';
 
 import '../effects/world_surge_pulse.dart';
@@ -22,6 +23,7 @@ class GameCanvas extends StatefulWidget {
   final List<Balloon> balloons;
   final List<PopParticle> particles;
   final List<ScoreBurst> scoreBursts;
+  final List<PopShockwave> shockwaves;
   final double popShake;
   final GameState gameState;
 
@@ -45,6 +47,7 @@ class GameCanvas extends StatefulWidget {
     required this.balloons,
     required this.particles,
     required this.scoreBursts,
+    required this.shockwaves,
     required this.popShake,
     required this.gameState,
     required this.onLongPress,
@@ -334,6 +337,17 @@ class _GameCanvasState extends State<GameCanvas>
     );
   }
 
+  Widget _buildShockwaveOverlay() {
+  if (widget.shockwaves.isEmpty) return const SizedBox.shrink();
+
+  return IgnorePointer(
+    child: CustomPaint(
+      painter: _ShockwavePainter(widget.shockwaves),
+      size: Size.infinite,
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
@@ -438,7 +452,8 @@ class _GameCanvasState extends State<GameCanvas>
                       ),
                     ),
                   ),
-
+                
+                _buildShockwaveOverlay(),
                 _buildParticlesOverlay(),
                 _buildScoreBurstsOverlay(),
                 _buildStreakOverlay(),
@@ -459,4 +474,31 @@ class _GameCanvasState extends State<GameCanvas>
       ),
     );
   }
+}
+
+class _ShockwavePainter extends CustomPainter {
+  final List<PopShockwave> waves;
+
+  _ShockwavePainter(this.waves);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..blendMode = BlendMode.plus;
+
+    for (final w in waves) {
+      paint.color = Colors.white.withOpacity(w.opacity * 0.8);
+
+      canvas.drawCircle(
+        Offset(w.x, w.y),
+        w.radius,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ShockwavePainter oldDelegate) => true;
 }
