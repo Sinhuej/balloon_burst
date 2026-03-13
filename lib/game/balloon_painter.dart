@@ -142,8 +142,7 @@ final paint = Paint()
   ..color = baseColor
   ..style = PaintingStyle.fill
   ..isAntiAlias = true
-  ..filterQuality = FilterQuality.medium
-  ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.01);
+  ..filterQuality = FilterQuality.medium;
 
       canvas.drawCircle(center, radius, paint);
 
@@ -162,13 +161,17 @@ final paint = Paint()
       canvas.drawCircle(center, radius, shadowPaint);
 
       final highlightPaint = Paint()
-        ..color = Colors.white.withOpacity(0.35);
+  ..color = Colors.white.withOpacity(0.28)
+  ..isAntiAlias = true;
 
-      canvas.drawCircle(
-        Offset(x - radius * 0.35, y - radius * 0.35),
-        radius * 0.25,
-        highlightPaint,
-      );
+final highlightX = (x - radius * 0.35).roundToDouble();
+final highlightY = (y - radius * 0.35).roundToDouble();
+
+canvas.drawCircle(
+  Offset(highlightX, highlightY),
+  radius * 0.25,
+  highlightPaint,
+);
 
       if (seed % 3 == 0) {
         final stringPaint = Paint()
