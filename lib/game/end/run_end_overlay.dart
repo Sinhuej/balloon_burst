@@ -43,6 +43,15 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   late final AnimationController _coinController;
   late Animation<int> _coinCounter;
 
+  late final AnimationController _statsController;
+  late final Animation<double> _statsSlide;
+
+  late final AnimationController _titleController;
+  late final Animation<double> _titleFade;
+
+  late final AnimationController _buttonsController;
+  late final Animation<double> _buttonsFade;
+
   Timer? _flashTimer;
 
   bool _purchasingShield = false;
@@ -71,7 +80,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       foregroundColor: enabled ? baseFg : disabledFg,
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
-      elevation: enabled ? 3 : 0,
+      elevation: enabled ? 6 : 0,
       shadowColor: const Color(0x665A4FCF),
     );
   }
@@ -326,6 +335,41 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       duration: const Duration(milliseconds: 420),
     );
 
+    _titleController = AnimationController(
+  vsync: this,
+  duration: const Duration(milliseconds: 500),
+);
+
+_titleFade = CurvedAnimation(
+  parent: _titleController,
+  curve: Curves.easeOut,
+);
+
+_statsController = AnimationController(
+  vsync: this,
+  duration: const Duration(milliseconds: 500),
+);
+
+_statsSlide = Tween<double>(
+  begin: 20,
+  end: 0,
+).animate(
+  CurvedAnimation(
+    parent: _statsController,
+    curve: Curves.easeOut,
+  ),
+);
+
+_buttonsController = AnimationController(
+  vsync: this,
+  duration: const Duration(milliseconds: 500),
+);
+
+_buttonsFade = CurvedAnimation(
+  parent: _buttonsController,
+  curve: Curves.easeOut,
+);
+
     _rankScale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(begin: 0.8, end: 1.2)
@@ -339,11 +383,21 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       ),
     ]).animate(_rankController);
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        _rankController.forward();
-      }
-    });
+    Future.delayed(const Duration(milliseconds: 0), () {
+  if (mounted) _titleController.forward();
+});
+
+Future.delayed(const Duration(milliseconds: 150), () {
+  if (mounted) _statsController.forward();
+});
+
+Future.delayed(const Duration(milliseconds: 300), () {
+  if (mounted) _rankController.forward();
+});
+
+Future.delayed(const Duration(milliseconds: 600), () {
+  if (mounted) _buttonsController.forward();
+});
 
     final reward = widget.engine.lastRunReward;
 
@@ -380,34 +434,49 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   }
 
   @override
-  void didUpdateWidget(covariant RunEndOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
+void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+  super.didUpdateWidget(oldWidget);
 
-    final reward = widget.engine.lastRunReward;
+  final reward = widget.engine.lastRunReward;
 
-    if (reward != null && _coinCounter.value == 0) {
-      _coinCounter = IntTween(
-        begin: 0,
-        end: reward.totalCoins,
-      ).animate(
-        CurvedAnimation(
-          parent: _coinController,
-          curve: Curves.easeOutCubic,
-        ),
-      );
+  if (reward != null && oldWidget.engine.lastRunReward != reward) {
+    _coinCounter = IntTween(
+      begin: 0,
+      end: reward.totalCoins,
+    ).animate(
+      CurvedAnimation(
+        parent: _coinController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
-      _coinController.forward(from: 0);
-    }
+    _coinController.forward(from: 0);
+
+    _coinController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() => _rewardSparkle = true);
+
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (mounted) {
+            setState(() => _rewardSparkle = false);
+          }
+        });
+      }
+    });
   }
+}
 
   @override
-  void dispose() {
-    _flashTimer?.cancel();
-    _shieldPulse.dispose();
-    _rankController.dispose();
-    _coinController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  _flashTimer?.cancel();
+  _shieldPulse.dispose();
+  _rankController.dispose();
+  _coinController.dispose();
+  _titleController.dispose();
+  _statsController.dispose();
+  _buttonsController.dispose();
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -421,13 +490,31 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
 
     return Container(
-      color: Colors.black.withOpacity(0.75),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            RunEndMessages.title(widget.state),
+  decoration: const BoxDecoration(
+    gradient: RadialGradient(
+      colors: [
+        Color(0xFF0D1B2A),
+        Color(0xFF000000),
+      ],
+      radius: 1.2,
+    ),
+  ),
+  child: FadeTransition(
+    opacity: _titleFade,
+    child: Text(
+      RunEndMessages.title(widget.state),
+      style: const TextStyle(
+        fontSize: 26,
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    ),
+  ),
+),
+  
+child: Text(
+    RunEndMessages.title(widget.state),
             style: const TextStyle(
               fontSize: 26,
               color: Colors.white,
@@ -446,53 +533,75 @@ class _RunEndOverlayState extends State<RunEndOverlay>
           ),
           if (reward != null) ...[
             const SizedBox(height: 12),
-            _buildStatsHeader(),
-            _buildRewardBreakdown(reward),
-          ],
-          if (widget.onRevive != null) ...[
-            ElevatedButton(
-              style: _pillStyle(enabled: _canAffordRevive),
-              onPressed: _canAffordRevive ? widget.onRevive : null,
-              child: const Text('REVIVE (50 Coins)'),
-            ),
-            const SizedBox(height: 12),
-          ],
-          ElevatedButton(
-            style: _pillStyle(enabled: shieldEnabled),
-            onPressed: shieldEnabled ? _purchaseShield : null,
-            child: Text(shieldLabel),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            style: _pillStyle(enabled: true),
-            onPressed: widget.onReplay,
-            child: const Text('REPLAY'),
-          ),
-          if (widget.onViewLeaderboard != null) ...[
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: widget.onViewLeaderboard,
-              child: const Text(
-                'VIEW LEADERBOARD',
-                style: TextStyle(color: Colors.cyanAccent),
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          IconButton(
-            icon: Icon(
-              widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
-              color: Colors.white70,
-            ),
-            onPressed: () async {
-              final muted = await widget.engine.toggleMute();
-              AudioPlayerService.setMuted(muted);
-              if (!mounted) return;
-              setState(() {});
-            },
-          ),
-        ],
+            AnimatedBuilder(
+  animation: _statsController,
+  builder: (_, child) {
+    return Transform.translate(
+      offset: Offset(0, _statsSlide.value),
+      child: Opacity(
+        opacity: _statsController.value,
+        child: child,
       ),
     );
-  }
-}
+  },
+  child: _buildStatsHeader(),
+),
+            _buildRewardBreakdown(reward),
+          ],
+          FadeTransition(
+  opacity: _buttonsFade,
+  child: Column(
+    children: [
+
+      if (widget.onRevive != null) ...[
+        ElevatedButton(
+          style: _pillStyle(enabled: _canAffordRevive),
+          onPressed: _canAffordRevive ? widget.onRevive : null,
+          child: const Text('REVIVE (50 Coins)'),
+        ),
+        const SizedBox(height: 12),
+      ],
+
+      ElevatedButton(
+        style: _pillStyle(enabled: shieldEnabled),
+        onPressed: shieldEnabled ? _purchaseShield : null,
+        child: Text(shieldLabel),
+      ),
+
+      const SizedBox(height: 12),
+
+      ElevatedButton(
+        style: _pillStyle(enabled: true),
+        onPressed: widget.onReplay,
+        child: const Text('REPLAY'),
+      ),
+
+      if (widget.onViewLeaderboard != null) ...[
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: widget.onViewLeaderboard,
+          child: const Text(
+            'VIEW LEADERBOARD',
+            style: TextStyle(color: Colors.cyanAccent),
+          ),
+        ),
+      ],
+
+      const SizedBox(height: 16),
+
+      IconButton(
+        icon: Icon(
+          widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
+          color: Colors.white70,
+        ),
+        onPressed: () async {
+          final muted = await widget.engine.toggleMute();
+          AudioPlayerService.setMuted(muted);
+          if (!mounted) return;
+          setState(() {});
+        },
+      ),
+
+    ],
+  ),
+),
