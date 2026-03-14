@@ -32,21 +32,21 @@ class RunEndOverlay extends StatefulWidget {
 
 class _RunEndOverlayState extends State<RunEndOverlay>
     with SingleTickerProviderStateMixin {
+
   static const int _reviveCost = 50;
 
-  late final AnimationController _shieldPulse;
-  late final Animation<double> _shieldScale;
+  late final AnimationController _cinematic;
 
-  late final AnimationController _rankController;
+  late final Animation<double> _titleFade;
+  late final Animation<double> _statsSlide;
   late final Animation<double> _rankScale;
+  late final Animation<double> _buttonsFade;
 
   late final AnimationController _coinController;
   late Animation<int> _coinCounter;
 
-  Timer? _flashTimer;
-
-  bool _purchasingShield = false;
   bool _rewardSparkle = false;
+  bool _purchasingShield = false;
 
   bool get _canAffordRevive =>
       widget.engine.wallet.balance >= _reviveCost;
@@ -59,18 +59,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       widget.engine.runLifecycle.isShieldArmedForNextRun;
 
   ButtonStyle _pillStyle({required bool enabled}) {
-    const baseBg = Color(0xFFF3F1FF);
-    const baseFg = Color(0xFF5A4FCF);
-    const disabledBg = Color(0xFFDCD7F5);
-    const disabledFg = Color(0xFF7A74B8);
-
     return ElevatedButton.styleFrom(
       shape: const StadiumBorder(),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      backgroundColor: enabled ? baseBg : disabledBg,
-      foregroundColor: enabled ? baseFg : disabledFg,
-      disabledBackgroundColor: disabledBg,
-      disabledForegroundColor: disabledFg,
+      backgroundColor: enabled ? const Color(0xFFF3F1FF) : const Color(0xFFDCD7F5),
+      foregroundColor: enabled ? const Color(0xFF5A4FCF) : const Color(0xFF7A74B8),
       elevation: enabled ? 3 : 0,
       shadowColor: const Color(0x665A4FCF),
     );
@@ -109,241 +102,34 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     }
   }
 
-  Widget _buildStatsHeader() {
-    final snapshot = widget.engine.runLifecycle.getSnapshot();
-    final accuracy = snapshot.accuracy01;
-    final rank = _accuracyRank(accuracy);
-
-    return Column(
-      children: [
-        const Text(
-          'RUN STATS',
-          style: TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ScaleTransition(
-          scale: _rankScale,
-          child: Text(
-            _rankLabel(rank),
-            style: TextStyle(
-              color: _rankColor(rank),
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Best Streak ×${snapshot.bestStreak}',
-          style: const TextStyle(
-            color: Colors.cyanAccent,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Rank tiers: 🏆 Elite • 🥇 Pro • 🥈 Skilled • 🥉 Rookie',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white54,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRewardBreakdown(RunReward reward) {
-    Widget row(String label, int value) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(color: Colors.white70)),
-            Text(
-              '+$value',
-              style: const TextStyle(
-                color: Colors.amber,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        const Text(
-          'RUN REWARD',
-          style: TextStyle(
-            color: Colors.amber,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 60),
-          child: Column(
-            children: [
-              row('Base', reward.baseCoins),
-              row('Pops', reward.popCoins),
-              row('World', reward.worldCoins),
-              row('Accuracy', reward.accuracyCoins),
-              row('Streak', reward.streakCoins),
-              const SizedBox(height: 8),
-              const Divider(color: Colors.white24),
-              const SizedBox(height: 6),
-              AnimatedBuilder(
-                animation: _coinCounter,
-                builder: (context, _) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'TOTAL EARNED',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Stack(
-                        alignment: Alignment.centerRight,
-                        children: [
-                          if (_rewardSparkle)
-                            const Positioned(
-                              right: 40,
-                              child: Icon(
-                                Icons.auto_awesome,
-                                color: Colors.amber,
-                                size: 18,
-                              ),
-                            ),
-                          Text(
-                            '+${_coinCounter.value}',
-                            style: const TextStyle(
-                              color: Colors.amber,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'BANK',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    '${widget.engine.wallet.balance}',
-                    style: const TextStyle(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-      ],
-    );
-  }
-
-  Future<void> _purchaseShield() async {
-    if (_purchasingShield) return;
-    if (_shieldOwned) return;
-    if (!_canAffordShield) return;
-
-    setState(() {
-      _purchasingShield = true;
-    });
-
-    final success = await widget.engine.purchaseShield();
-
-    if (!mounted) return;
-
-    setState(() {
-      _purchasingShield = false;
-    });
-
-    if (!success) return;
-
-    _shieldPulse.forward(from: 0);
-  }
-
   @override
   void initState() {
     super.initState();
 
-    _shieldPulse = AnimationController(
+    _cinematic = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: const Duration(milliseconds: 600),
     );
 
-    _shieldScale = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.10)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.10, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 60,
-      ),
-    ]).animate(_shieldPulse);
-
-    _rankController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 420),
+    _titleFade = CurvedAnimation(
+      parent: _cinematic,
+      curve: const Interval(0.0, 0.15, curve: Curves.easeOut),
     );
 
-    _rankScale = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.8, end: 1.2)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.2, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 60,
-      ),
-    ]).animate(_rankController);
+    _statsSlide = CurvedAnimation(
+      parent: _cinematic,
+      curve: const Interval(0.15, 0.35, curve: Curves.easeOut),
+    );
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        _rankController.forward();
-      }
-    });
+    _rankScale = CurvedAnimation(
+      parent: _cinematic,
+      curve: const Interval(0.35, 0.55, curve: Curves.elasticOut),
+    );
+
+    _buttonsFade = CurvedAnimation(
+      parent: _cinematic,
+      curve: const Interval(0.55, 1.0, curve: Curves.easeIn),
+    );
 
     final reward = widget.engine.lastRunReward;
 
@@ -362,51 +148,190 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       ),
     );
 
-    if (reward != null) {
-      _coinController.forward();
+    _cinematic.forward();
 
-      _coinController.addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          setState(() => _rewardSparkle = true);
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (reward != null) {
+        _coinController.forward();
 
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              setState(() => _rewardSparkle = false);
-            }
-          });
-        }
-      });
-    }
-  }
+        _coinController.addStatusListener((status) {
+          if (status == AnimationStatus.completed) {
+            setState(() => _rewardSparkle = true);
 
-  @override
-  void didUpdateWidget(covariant RunEndOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    final reward = widget.engine.lastRunReward;
-
-    if (reward != null && _coinCounter.value == 0) {
-      _coinCounter = IntTween(
-        begin: 0,
-        end: reward.totalCoins,
-      ).animate(
-        CurvedAnimation(
-          parent: _coinController,
-          curve: Curves.easeOutCubic,
-        ),
-      );
-
-      _coinController.forward(from: 0);
-    }
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                setState(() => _rewardSparkle = false);
+              }
+            });
+          }
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
-    _flashTimer?.cancel();
-    _shieldPulse.dispose();
-    _rankController.dispose();
+    _cinematic.dispose();
     _coinController.dispose();
     super.dispose();
+  }
+
+  Widget _buildStats() {
+    final snapshot = widget.engine.runLifecycle.getSnapshot();
+    final accuracy = snapshot.accuracy01;
+    final rank = _accuracyRank(accuracy);
+
+    return Transform.translate(
+      offset: Offset(0, 40 * (1 - _statsSlide.value)),
+      child: Opacity(
+        opacity: _statsSlide.value,
+        child: Column(
+          children: [
+            const Text(
+              'RUN STATS',
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            ScaleTransition(
+              scale: _rankScale,
+              child: Text(
+                _rankLabel(rank),
+                style: TextStyle(
+                  color: _rankColor(rank),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Best Streak ×${snapshot.bestStreak}',
+              style: const TextStyle(
+                color: Colors.cyanAccent,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Rank tiers: 🏆 Elite • 🥇 Pro • 🥈 Skilled • 🥉 Rookie',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReward(RunReward reward) {
+    Widget row(String label, int value) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70)),
+          Text(
+            '+$value',
+            style: const TextStyle(
+              color: Colors.amber,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 60),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          const Text(
+            'RUN REWARD',
+            style: TextStyle(
+              color: Colors.amber,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          row('Base', reward.baseCoins),
+          row('Pops', reward.popCoins),
+          row('World', reward.worldCoins),
+          row('Accuracy', reward.accuracyCoins),
+          row('Streak', reward.streakCoins),
+          const Divider(color: Colors.white24),
+          AnimatedBuilder(
+            animation: _coinCounter,
+            builder: (context, _) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'TOTAL EARNED',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      if (_rewardSparkle)
+                        const Positioned(
+                          right: 40,
+                          child: Icon(
+                            Icons.auto_awesome,
+                            color: Colors.amber,
+                            size: 18,
+                          ),
+                        ),
+                      Text(
+                        '+${_coinCounter.value}',
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'BANK',
+                style: TextStyle(
+                  color: Colors.white70,
+                ),
+              ),
+              Text(
+                '${widget.engine.wallet.balance}',
+                style: const TextStyle(
+                  color: Colors.amber,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -426,59 +351,88 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            RunEndMessages.title(widget.state),
-            style: const TextStyle(
-              fontSize: 26,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            RunEndMessages.body(widget.state),
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (reward != null) ...[
-            const SizedBox(height: 12),
-            _buildStatsHeader(),
-            _buildRewardBreakdown(reward),
-          ],
-          if (widget.onRevive != null) ...[
-            ElevatedButton(
-              style: _pillStyle(enabled: _canAffordRevive),
-              onPressed: _canAffordRevive ? widget.onRevive : null,
-              child: const Text('REVIVE (50 Coins)'),
-            ),
-            const SizedBox(height: 12),
-          ],
-          ElevatedButton(
-            style: _pillStyle(enabled: shieldEnabled),
-            onPressed: shieldEnabled ? _purchaseShield : null,
-            child: Text(shieldLabel),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            style: _pillStyle(enabled: true),
-            onPressed: widget.onReplay,
-            child: const Text('REPLAY'),
-          ),
-          if (widget.onViewLeaderboard != null) ...[
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: widget.onViewLeaderboard,
-              child: const Text(
-                'VIEW LEADERBOARD',
-                style: TextStyle(color: Colors.cyanAccent),
+
+          FadeTransition(
+            opacity: _titleFade,
+            child: Text(
+              RunEndMessages.title(widget.state),
+              style: const TextStyle(
+                fontSize: 26,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
+          ),
+
           const SizedBox(height: 16),
+
+          FadeTransition(
+            opacity: _titleFade,
+            child: Text(
+              RunEndMessages.body(widget.state),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
+          if (reward != null) ...[
+            const SizedBox(height: 12),
+            AnimatedBuilder(
+              animation: _cinematic,
+              builder: (_, __) => _buildStats(),
+            ),
+            _buildReward(reward),
+          ],
+
+          const SizedBox(height: 20),
+
+          FadeTransition(
+            opacity: _buttonsFade,
+            child: Column(
+              children: [
+
+                if (widget.onRevive != null) ...[
+                  ElevatedButton(
+                    style: _pillStyle(enabled: _canAffordRevive),
+                    onPressed: _canAffordRevive ? widget.onRevive : null,
+                    child: const Text('REVIVE (50 Coins)'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                ElevatedButton(
+                  style: _pillStyle(enabled: shieldEnabled),
+                  onPressed: shieldEnabled ? () {} : null,
+                  child: Text(shieldLabel),
+                ),
+
+                const SizedBox(height: 12),
+
+                ElevatedButton(
+                  style: _pillStyle(enabled: true),
+                  onPressed: widget.onReplay,
+                  child: const Text('REPLAY'),
+                ),
+
+                if (widget.onViewLeaderboard != null) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: widget.onViewLeaderboard,
+                    child: const Text(
+                      'VIEW LEADERBOARD',
+                      style: TextStyle(color: Colors.cyanAccent),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           IconButton(
             icon: Icon(
               widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
