@@ -36,13 +36,17 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   late final AnimationController _shieldPulse;
   late final Animation<double> _shieldScale;
+
+  late final AnimationController _rankController;
+  late final Animation<double> _rankScale;
+
   late final AnimationController _coinController;
   late Animation<int> _coinCounter;
 
   Timer? _flashTimer;
 
   bool _purchasingShield = false;
-  bool _showRewardFlash = false;
+  bool _rewardSparkle = false;
 
   bool get _canAffordRevive =>
       widget.engine.wallet.balance >= _reviveCost;
@@ -54,9 +58,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       widget.engine.runLifecycle.isShieldActive ||
       widget.engine.runLifecycle.isShieldArmedForNextRun;
 
-  ButtonStyle _pillStyle({
-    required bool enabled,
-  }) {
+  ButtonStyle _pillStyle({required bool enabled}) {
     const baseBg = Color(0xFFF3F1FF);
     const baseFg = Color(0xFF5A4FCF);
     const disabledBg = Color(0xFFDCD7F5);
@@ -69,7 +71,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       foregroundColor: enabled ? baseFg : disabledFg,
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
-      elevation: 0,
+      elevation: enabled ? 3 : 0,
+      shadowColor: const Color(0x665A4FCF),
     );
   }
 
@@ -83,13 +86,13 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   String _rankLabel(String rank) {
     switch (rank) {
       case 'S':
-        return '🏆 ELITE (S)';
+        return '🏆 ELITE PLAYER';
       case 'A':
-        return '🥇 PRO (A)';
+        return '🥇 PRO PLAYER';
       case 'B':
-        return '🥈 SKILLED (B)';
+        return '🥈 SKILLED PLAYER';
       default:
-        return '🥉 ROOKIE (C)';
+        return '🥉 ROOKIE';
     }
   }
 
@@ -130,12 +133,15 @@ class _RunEndOverlayState extends State<RunEndOverlay>
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          _rankLabel(rank),
-          style: TextStyle(
-            color: _rankColor(rank),
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+        ScaleTransition(
+          scale: _rankScale,
+          child: Text(
+            _rankLabel(rank),
+            style: TextStyle(
+              color: _rankColor(rank),
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -166,10 +172,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white70),
-            ),
+            Text(label, style: const TextStyle(color: Colors.white70)),
             Text(
               '+$value',
               style: const TextStyle(
@@ -219,13 +222,27 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        '+${_coinCounter.value}',
-                        style: const TextStyle(
-                          color: Colors.amber,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                      Stack(
+                        alignment: Alignment.centerRight,
+                        children: [
+                          if (_rewardSparkle)
+                            const Positioned(
+                              right: 40,
+                              child: Icon(
+                                Icons.auto_awesome,
+                                color: Colors.amber,
+                                size: 18,
+                              ),
+                            ),
+                          Text(
+                            '+${_coinCounter.value}',
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   );
@@ -280,21 +297,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     if (!success) return;
 
     _shieldPulse.forward(from: 0);
-
-    setState(() {
-      _showRewardFlash = true;
-    });
-
-    _flashTimer?.cancel();
-    _flashTimer = Timer(
-      const Duration(milliseconds: 380),
-      () {
-        if (!mounted) return;
-        setState(() {
-          _showRewardFlash = false;
-        });
-      },
-    );
   }
 
   @override
@@ -308,18 +310,40 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _shieldScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.10).chain(
-          CurveTween(curve: Curves.easeOut),
-        ),
+        tween: Tween(begin: 1.0, end: 1.10)
+            .chain(CurveTween(curve: Curves.easeOut)),
         weight: 40,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.10, end: 1.0).chain(
-          CurveTween(curve: Curves.easeIn),
-        ),
+        tween: Tween(begin: 1.10, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
         weight: 60,
       ),
     ]).animate(_shieldPulse);
+
+    _rankController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+
+    _rankScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.8, end: 1.2)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.2, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 60,
+      ),
+    ]).animate(_rankController);
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _rankController.forward();
+      }
+    });
 
     final reward = widget.engine.lastRunReward;
 
@@ -340,6 +364,18 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     if (reward != null) {
       _coinController.forward();
+
+      _coinController.addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          setState(() => _rewardSparkle = true);
+
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              setState(() => _rewardSparkle = false);
+            }
+          });
+        }
+      });
     }
   }
 
@@ -368,6 +404,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   void dispose() {
     _flashTimer?.cancel();
     _shieldPulse.dispose();
+    _rankController.dispose();
     _coinController.dispose();
     super.dispose();
   }
