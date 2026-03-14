@@ -352,43 +352,48 @@ if (_dangerMode) {
   );
 
   final missesAfter = _controller.missCount;
-
-  if (missesAfter > missesBefore) {
-    
+   
 // Near-miss spark detection
-final p = details.localPosition;
+  if (missesAfter > missesBefore) {
 
-for (final b in _balloons) {
-  final dx = p.dx - b.xOffset * _lastSize.width - (_lastSize.width / 2);
-  final dy = p.dy - b.y;
+  final p = details.localPosition;
 
-  final dist = sqrt(dx * dx + dy * dy);
+  for (final b in _balloons) {
+    if (b.isPopped) continue;
 
-  if (dist < balloonRadius + 32 && dist > balloonRadius) {
+    final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
+    final by = b.y;
 
-    _particles.addAll(
-      PopParticle.burst(p.dx, p.dy),
-    );
-    
-    _shockwaves.add(
-  PopShockwave(
-    x: p.dx,
-    y: p.dy,
-    age: 0,
-    life: 0.28,
-  ),
-);
+    final dx = p.dx - bx;
+    final dy = p.dy - by;
 
-    break;
-  }
-}
+    final dist = sqrt(dx * dx + dy * dy);
 
-    if (!_reviveProtectionActive) {
-      widget.engine.runLifecycle.report(const MissEvent());
+    if (dist < balloonRadius + 32 && dist > balloonRadius) {
+
+      _particles.addAll(
+        PopParticle.burst(p.dx, p.dy),
+      );
+
+      _shockwaves.add(
+        PopShockwave(
+          x: p.dx,
+          y: p.dy,
+          age: 0,
+          life: 0.28,
+        ),
+      );
+
+      break;
     }
-
-    return;
   }
+
+  if (!_reviveProtectionActive) {
+    widget.engine.runLifecycle.report(const MissEvent());
+  }
+
+  return;
+}
 
   widget.engine.runLifecycle.report(PopEvent(points: 1));
 
