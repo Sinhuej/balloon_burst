@@ -371,21 +371,22 @@ if (_dangerMode) {
 
     if (dist < balloonRadius + 32 && dist > balloonRadius) {
 
-      _particles.addAll(
-        PopParticle.burst(p.dx, p.dy),
-      );
+  _particles.addAll(
+    PopParticle.burst(p.dx, p.dy)
+        .map((p) => PopParticle(
+              x: p.x,
+              y: p.y,
+              vx: p.vx * 0.45,
+              vy: p.vy * 0.45,
+              age: p.age,
+              life: 0.18,
+              color: Colors.white,
+            ))
+        .toList(),
+  );
 
-      _shockwaves.add(
-        PopShockwave(
-          x: p.dx,
-          y: p.dy,
-          age: 0,
-          life: 0.28,
-        ),
-      );
-
-      break;
-    }
+    break;
+   }
   }
 
   if (!_reviveProtectionActive) {
