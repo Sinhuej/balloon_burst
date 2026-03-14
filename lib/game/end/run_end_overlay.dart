@@ -32,11 +32,12 @@ class RunEndOverlay extends StatefulWidget {
 
 class _RunEndOverlayState extends State<RunEndOverlay>
     with SingleTickerProviderStateMixin {
-
   static const int _reviveCost = 50;
 
-  late final AnimationController _cinematic;
+  late final AnimationController _shieldPulse;
+  late final Animation<double> _shieldScale;
 
+  late final AnimationController _cinematic;
   late final Animation<double> _titleFade;
   late final Animation<double> _statsSlide;
   late final Animation<double> _rankScale;
@@ -45,8 +46,10 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   late final AnimationController _coinController;
   late Animation<int> _coinCounter;
 
-  bool _rewardSparkle = false;
+  Timer? _flashTimer;
+
   bool _purchasingShield = false;
+  bool _rewardSparkle = false;
 
   bool get _canAffordRevive =>
       widget.engine.wallet.balance >= _reviveCost;
@@ -62,8 +65,12 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     return ElevatedButton.styleFrom(
       shape: const StadiumBorder(),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      backgroundColor: enabled ? const Color(0xFFF3F1FF) : const Color(0xFFDCD7F5),
-      foregroundColor: enabled ? const Color(0xFF5A4FCF) : const Color(0xFF7A74B8),
+      backgroundColor:
+          enabled ? const Color(0xFFF3F1FF) : const Color(0xFFDCD7F5),
+      foregroundColor:
+          enabled ? const Color(0xFF5A4FCF) : const Color(0xFF7A74B8),
+      disabledBackgroundColor: const Color(0xFFDCD7F5),
+      disabledForegroundColor: const Color(0xFF7A74B8),
       elevation: enabled ? 3 : 0,
       shadowColor: const Color(0x665A4FCF),
     );
@@ -102,9 +109,63 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     }
   }
 
+  void _startCoinAnimation(RunReward reward) {
+    _coinCounter = IntTween(
+      begin: 0,
+      end: reward.totalCoins,
+    ).animate(
+      CurvedAnimation(
+        parent: _coinController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _coinController.forward(from: 0);
+  }
+
+  Future<void> _purchaseShield() async {
+    if (_purchasingShield) return;
+    if (_shieldOwned) return;
+    if (!_canAffordShield) return;
+
+    setState(() {
+      _purchasingShield = true;
+    });
+
+    final success = await widget.engine.purchaseShield();
+
+    if (!mounted) return;
+
+    setState(() {
+      _purchasingShield = false;
+    });
+
+    if (!success) return;
+
+    _shieldPulse.forward(from: 0);
+  }
+
   @override
   void initState() {
     super.initState();
+
+    _shieldPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+
+    _shieldScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.10)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.10, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 60,
+      ),
+    ]).animate(_shieldPulse);
 
     _cinematic = AnimationController(
       vsync: this,
@@ -131,8 +192,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       curve: const Interval(0.55, 1.0, curve: Curves.easeIn),
     );
 
-    final reward = widget.engine.lastRunReward;
-
     _coinController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -140,7 +199,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _coinCounter = IntTween(
       begin: 0,
-      end: reward?.totalCoins ?? 0,
+      end: 0,
     ).animate(
       CurvedAnimation(
         parent: _coinController,
@@ -148,29 +207,53 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       ),
     );
 
-    _cinematic.forward();
+    _coinController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        if (!mounted) return;
+        setState(() => _rewardSparkle = true);
 
-    Future.delayed(const Duration(milliseconds: 450), () {
-      if (reward != null) {
-        _coinController.forward();
-
-        _coinController.addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            setState(() => _rewardSparkle = true);
-
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (mounted) {
-                setState(() => _rewardSparkle = false);
-              }
-            });
-          }
-        });
+        _flashTimer?.cancel();
+        _flashTimer = Timer(
+          const Duration(milliseconds: 500),
+          () {
+            if (!mounted) return;
+            setState(() => _rewardSparkle = false);
+          },
+        );
       }
     });
+
+    _cinematic.forward();
+
+    final reward = widget.engine.lastRunReward;
+    if (reward != null) {
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        _startCoinAnimation(reward);
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final oldReward = oldWidget.engine.lastRunReward;
+    final newReward = widget.engine.lastRunReward;
+
+    if (newReward != null &&
+        (oldReward == null || oldReward.totalCoins != newReward.totalCoins)) {
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        _startCoinAnimation(newReward);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _flashTimer?.cancel();
+    _shieldPulse.dispose();
     _cinematic.dispose();
     _coinController.dispose();
     super.dispose();
@@ -198,7 +281,10 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             const SizedBox(height: 10),
             Text(
               'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
             ScaleTransition(
@@ -351,7 +437,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-
           FadeTransition(
             opacity: _titleFade,
             child: Text(
@@ -361,11 +446,10 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
-
           const SizedBox(height: 16),
-
           FadeTransition(
             opacity: _titleFade,
             child: Text(
@@ -377,7 +461,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
               textAlign: TextAlign.center,
             ),
           ),
-
           if (reward != null) ...[
             const SizedBox(height: 12),
             AnimatedBuilder(
@@ -386,14 +469,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ),
             _buildReward(reward),
           ],
-
           const SizedBox(height: 20),
-
           FadeTransition(
             opacity: _buttonsFade,
             child: Column(
               children: [
-
                 if (widget.onRevive != null) ...[
                   ElevatedButton(
                     style: _pillStyle(enabled: _canAffordRevive),
@@ -402,21 +482,20 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                   ),
                   const SizedBox(height: 12),
                 ],
-
-                ElevatedButton(
-                  style: _pillStyle(enabled: shieldEnabled),
-                  onPressed: shieldEnabled ? () {} : null,
-                  child: Text(shieldLabel),
+                ScaleTransition(
+                  scale: _shieldScale,
+                  child: ElevatedButton(
+                    style: _pillStyle(enabled: shieldEnabled),
+                    onPressed: shieldEnabled ? _purchaseShield : null,
+                    child: Text(shieldLabel),
+                  ),
                 ),
-
                 const SizedBox(height: 12),
-
                 ElevatedButton(
                   style: _pillStyle(enabled: true),
                   onPressed: widget.onReplay,
                   child: const Text('REPLAY'),
                 ),
-
                 if (widget.onViewLeaderboard != null) ...[
                   const SizedBox(height: 12),
                   TextButton(
@@ -430,9 +509,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
               ],
             ),
           ),
-
           const SizedBox(height: 16),
-
           IconButton(
             icon: Icon(
               widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
