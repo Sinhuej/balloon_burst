@@ -235,20 +235,25 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   }
 
   @override
-  void didUpdateWidget(covariant RunEndOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
+void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+  super.didUpdateWidget(oldWidget);
 
-    final oldReward = oldWidget.engine.lastRunReward;
-    final newReward = widget.engine.lastRunReward;
+  final reward = widget.engine.lastRunReward;
 
-    if (newReward != null &&
-        (oldReward == null || oldReward.totalCoins != newReward.totalCoins)) {
-      Future.delayed(const Duration(milliseconds: 450), () {
-        if (!mounted) return;
-        _startCoinAnimation(newReward);
-      });
-    }
+  if (reward != null && oldWidget.engine.lastRunReward != reward) {
+    _coinCounter = IntTween(
+      begin: 0,
+      end: reward.totalCoins,
+    ).animate(
+      CurvedAnimation(
+        parent: _coinController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _coinController.forward(from: 0);
   }
+}
 
   @override
   void dispose() {
