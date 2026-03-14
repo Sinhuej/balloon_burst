@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'run_end_state.dart';
-import 'run_end_messages.dart';
+import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 import 'package:balloon_burst/tj_engine/engine/run/models/run_reward.dart';
-import 'package:balloon_burst/audio/audio_player.dart';
+
+import 'run_end_messages.dart';
+import 'run_end_state.dart';
 
 class RunEndOverlay extends StatefulWidget {
   final RunEndState state;
@@ -35,7 +36,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   late final AnimationController _shieldPulse;
   late final Animation<double> _shieldScale;
-  late AnimationController _coinController;
+  late final AnimationController _coinController;
   late Animation<int> _coinCounter;
 
   Timer? _flashTimer;
@@ -72,28 +73,91 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     );
   }
 
-String _accuracyRank(double accuracy) {
-  if (accuracy >= 0.95) return 'S';
-  if (accuracy >= 0.90) return 'A';
-  if (accuracy >= 0.80) return 'B';
-  if (accuracy >= 0.70) return 'C';
-  return 'D';
-}
-
-Color _rankColor(String rank) {
-  switch (rank) {
-    case 'S':
-      return Colors.cyanAccent;
-    case 'A':
-      return Colors.greenAccent;
-    case 'B':
-      return Colors.amber;
-    case 'C':
-      return Colors.orangeAccent;
-    default:
-      return Colors.redAccent;
+  String _accuracyRank(double accuracy) {
+    if (accuracy >= 0.95) return 'S';
+    if (accuracy >= 0.90) return 'A';
+    if (accuracy >= 0.80) return 'B';
+    return 'C';
   }
-}
+
+  String _rankLabel(String rank) {
+    switch (rank) {
+      case 'S':
+        return '🏆 ELITE (S)';
+      case 'A':
+        return '🥇 PRO (A)';
+      case 'B':
+        return '🥈 SKILLED (B)';
+      default:
+        return '🥉 ROOKIE (C)';
+    }
+  }
+
+  Color _rankColor(String rank) {
+    switch (rank) {
+      case 'S':
+        return Colors.amber;
+      case 'A':
+        return Colors.cyanAccent;
+      case 'B':
+        return const Color(0xFFB0C4DE);
+      default:
+        return Colors.white70;
+    }
+  }
+
+  Widget _buildStatsHeader() {
+    final snapshot = widget.engine.runLifecycle.getSnapshot();
+    final accuracy = snapshot.accuracy01;
+    final rank = _accuracyRank(accuracy);
+
+    return Column(
+      children: [
+        const Text(
+          'RUN STATS',
+          style: TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _rankLabel(rank),
+          style: TextStyle(
+            color: _rankColor(rank),
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Best Streak ×${snapshot.bestStreak}',
+          style: const TextStyle(
+            color: Colors.cyanAccent,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Rank tiers: 🏆 Elite • 🥇 Pro • 🥈 Skilled • 🥉 Rookie',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildRewardBreakdown(RunReward reward) {
     Widget row(String label, int value) {
@@ -102,7 +166,10 @@ Color _rankColor(String rank) {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: Colors.white70)),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white70),
+            ),
             Text(
               '+$value',
               style: const TextStyle(
@@ -118,7 +185,6 @@ Color _rankColor(String rank) {
     return Column(
       children: [
         const SizedBox(height: 20),
-
         const Text(
           'RUN REWARD',
           style: TextStyle(
@@ -127,9 +193,7 @@ Color _rankColor(String rank) {
             letterSpacing: 1.2,
           ),
         ),
-
         const SizedBox(height: 12),
-
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 60),
           child: Column(
@@ -139,42 +203,58 @@ Color _rankColor(String rank) {
               row('World', reward.worldCoins),
               row('Accuracy', reward.accuracyCoins),
               row('Streak', reward.streakCoins),
-
               const SizedBox(height: 8),
-
               const Divider(color: Colors.white24),
-
               const SizedBox(height: 6),
-
               AnimatedBuilder(
-  animation: _coinCounter,
-  builder: (context, _) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'TOTAL',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          '+${_coinCounter.value}',
-          style: const TextStyle(
-            color: Colors.amber,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-      ],
-    );
-  },
-),
+                animation: _coinCounter,
+                builder: (context, _) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'TOTAL EARNED',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '+${_coinCounter.value}',
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'BANK',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${widget.engine.wallet.balance}',
+                    style: const TextStyle(
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
-
         const SizedBox(height: 20),
       ],
     );
@@ -218,59 +298,39 @@ Color _rankColor(String rank) {
   }
 
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  _shieldPulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 420),
-  );
+    _shieldPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
 
-  _shieldScale = TweenSequence<double>([
-    TweenSequenceItem(
-      tween: Tween(begin: 1.0, end: 1.10)
-          .chain(CurveTween(curve: Curves.easeOut)),
-      weight: 40,
-    ),
-    TweenSequenceItem(
-      tween: Tween(begin: 1.10, end: 1.0)
-          .chain(CurveTween(curve: Curves.easeIn)),
-      weight: 60,
-    ),
-  ]).animate(_shieldPulse);
+    _shieldScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.10).chain(
+          CurveTween(curve: Curves.easeOut),
+        ),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.10, end: 1.0).chain(
+          CurveTween(curve: Curves.easeIn),
+        ),
+        weight: 60,
+      ),
+    ]).animate(_shieldPulse);
 
-  final reward = widget.engine.lastRunReward;
+    final reward = widget.engine.lastRunReward;
 
-  _coinController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  );
+    _coinController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
 
-  _coinCounter = IntTween(
-    begin: 0,
-    end: reward?.totalCoins ?? 0,
-  ).animate(
-    CurvedAnimation(
-      parent: _coinController,
-      curve: Curves.easeOutCubic,
-    ),
-  );
-
-  if (reward != null) {
-    _coinController.forward();
-  }
-}
-
-@override
-void didUpdateWidget(covariant RunEndOverlay oldWidget) {
-  super.didUpdateWidget(oldWidget);
-
-  final reward = widget.engine.lastRunReward;
-
-  if (reward != null && _coinCounter.value == 0) {
     _coinCounter = IntTween(
       begin: 0,
-      end: reward.totalCoins,
+      end: reward?.totalCoins ?? 0,
     ).animate(
       CurvedAnimation(
         parent: _coinController,
@@ -278,17 +338,39 @@ void didUpdateWidget(covariant RunEndOverlay oldWidget) {
       ),
     );
 
-    _coinController.forward(from: 0);
+    if (reward != null) {
+      _coinController.forward();
+    }
   }
-}
 
   @override
-void dispose() {
-  _flashTimer?.cancel();
-  _shieldPulse.dispose();
-  _coinController.dispose();
-  super.dispose();
-}
+  void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final reward = widget.engine.lastRunReward;
+
+    if (reward != null && _coinCounter.value == 0) {
+      _coinCounter = IntTween(
+        begin: 0,
+        end: reward.totalCoins,
+      ).animate(
+        CurvedAnimation(
+          parent: _coinController,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+
+      _coinController.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _flashTimer?.cancel();
+    _shieldPulse.dispose();
+    _coinController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -307,7 +389,6 @@ void dispose() {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-
           Text(
             RunEndMessages.title(widget.state),
             style: const TextStyle(
@@ -317,9 +398,7 @@ void dispose() {
             ),
             textAlign: TextAlign.center,
           ),
-
           const SizedBox(height: 16),
-
           Text(
             RunEndMessages.body(widget.state),
             style: const TextStyle(
@@ -328,63 +407,11 @@ void dispose() {
             ),
             textAlign: TextAlign.center,
           ),
-
           if (reward != null) ...[
-  const SizedBox(height: 12),
-
-  Builder(
-    builder: (context) {
-      final snapshot = widget.engine.runLifecycle.getSnapshot();
-
-      final accuracy = snapshot.accuracy01;
-      final rank = _accuracyRank(accuracy);
-
-      return Column(
-        children: [
-          const Text(
-            'RUN STATS',
-            style: TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
-            style: const TextStyle(color: Colors.white),
-          ),
-
-          const SizedBox(height: 4),
-
-          Text(
-            'Rank $rank',
-            style: TextStyle(
-              color: _rankColor(rank),
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            'Best Streak ×${snapshot.bestStreak}',
-            style: const TextStyle(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      );
-    },
-  ),
-
-  _buildRewardBreakdown(reward),
-],
-
+            const SizedBox(height: 12),
+            _buildStatsHeader(),
+            _buildRewardBreakdown(reward),
+          ],
           if (widget.onRevive != null) ...[
             ElevatedButton(
               style: _pillStyle(enabled: _canAffordRevive),
@@ -393,21 +420,17 @@ void dispose() {
             ),
             const SizedBox(height: 12),
           ],
-
           ElevatedButton(
             style: _pillStyle(enabled: shieldEnabled),
             onPressed: shieldEnabled ? _purchaseShield : null,
             child: Text(shieldLabel),
           ),
-
           const SizedBox(height: 12),
-
           ElevatedButton(
             style: _pillStyle(enabled: true),
             onPressed: widget.onReplay,
             child: const Text('REPLAY'),
           ),
-
           if (widget.onViewLeaderboard != null) ...[
             const SizedBox(height: 12),
             TextButton(
@@ -418,9 +441,7 @@ void dispose() {
               ),
             ),
           ],
-
           const SizedBox(height: 16),
-
           IconButton(
             icon: Icon(
               widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
