@@ -408,7 +408,7 @@ Future.delayed(const Duration(milliseconds: 600), () {
   if (mounted) _buttonsController.forward();
 });
 
-    final reward = widget.engine.lastRunReward;
+    final reward = widget.engine.runLifecycle.lastRunReward;
 
     _coinController = AnimationController(
       vsync: this,
@@ -464,7 +464,7 @@ Future.delayed(const Duration(milliseconds: 600), () {
 void didUpdateWidget(RunEndOverlay oldWidget) {
   super.didUpdateWidget(oldWidget);
 
-  final reward = widget.engine.lastRunReward;
+  final reward = widget.engine.runLifecycle.lastRunReward;
 
   if (reward != null && oldWidget.engine.lastRunReward != reward) {
     final total =
