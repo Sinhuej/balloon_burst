@@ -57,10 +57,16 @@ class TapHandler {
       }
 
       if (dist <= effectiveRadius) {
-        balloons[i] = b.pop();
-        
+
+  // Freeze balloon position before pop
+  final popBalloon = b.pop();
+  popBalloon.y = b.y;
+  popBalloon.xOffset = b.xOffset;
+
+  balloons[i] = popBalloon;
+  
         // Perfect hit detection
-if (dist <= balloonRadius * 0.35) {
+if (dist <= balloonRadius * 0.45) {
   gameState.log('PERFECT HIT dist=${dist.toStringAsFixed(1)}');
 }
 
@@ -95,7 +101,7 @@ AudioPlayerService.playPop();
 
     // Near-miss spark effect
 if (closestDist != null) {
-  final nearMissRadius = balloonRadius + 18;
+  final nearMissRadius = balloonRadius + hitForgiveness + 10;
 
   if (closestDist! > balloonRadius &&
       closestDist! <= nearMissRadius) {

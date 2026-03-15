@@ -9,14 +9,67 @@ class AudioPlayerService {
     _muted = value;
   }
 
+  /// Shared game audio context
+  static final AudioContext _gameAudioContext = AudioContext(
+    android: AudioContextAndroid(
+      usageType: AndroidUsageType.game,
+      contentType: AndroidContentType.sonification,
+      audioFocus: AndroidAudioFocus.none,
+    ),
+    iOS: AudioContextIOS(
+      category: AVAudioSessionCategory.ambient,
+      options: {
+        AVAudioSessionOptions.mixWithOthers,
+      },
+    ),
+  );
+
   static const int _popPoolSize = 8;
+  static const int _coinPoolSize = 4;
 
-static final List<AudioPlayer> _popPlayers = List.generate(
-  _popPoolSize,
-  (_) => AudioPlayer()..setAudioContext(_gameAudioContext),
-);
+  static final List<AudioPlayer> _coinPlayers = List.generate(
+    _coinPoolSize,
+    (_) => AudioPlayer()..setAudioContext(_gameAudioContext),
+  );
 
-static int _popIndex = 0;
+  static int _coinIndex = 0;
+
+  static Future<void> playCoin() async {
+    if (_muted) return;
+
+    try {
+      final player = _coinPlayers[_coinIndex];
+
+      _coinIndex++;
+      if (_coinIndex >= _coinPoolSize) {
+        _coinIndex = 0;
+      }
+
+      await player.stop();
+
+      await player.play(
+        AssetSource('audio/coin.wav'),
+        volume: 0.9,
+      );
+    } catch (_) {}
+  }
+
+  static void playCoinRamp(int amount) {
+    final steps = (amount / 20).clamp(3, 6).round();
+
+    for (int i = 0; i < steps; i++) {
+      Future.delayed(const Duration(milliseconds: 80) * i, () {
+        playCoin();
+      });
+    }
+  }
+
+  static final List<AudioPlayer> _popPlayers = List.generate(
+    _popPoolSize,
+    (_) => AudioPlayer()..setAudioContext(_gameAudioContext),
+  );
+
+  static int _popIndex = 0;
   
   static final AudioContext _gameAudioContext = AudioContext(
     android: AudioContextAndroid(

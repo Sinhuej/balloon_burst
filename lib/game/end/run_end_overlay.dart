@@ -92,17 +92,17 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   }
 
   String _rankLabel(String rank) {
-    switch (rank) {
-      case 'S':
-        return '🏆 ELITE PLAYER';
-      case 'A':
-        return '🥇 PRO PLAYER';
-      case 'B':
-        return '🥈 SKILLED PLAYER';
-      default:
-        return '🥉 ROOKIE';
-    }
+  switch (rank) {
+    case 'S':
+      return '🏆 TAPJUNKIE';
+    case 'A':
+      return '🥇 TAP PRO';
+    case 'B':
+      return '🥈 TAP SKILLED';
+    default:
+      return '🥉 TAP ROOKIE';
   }
+}
 
   Color _rankColor(String rank) {
     switch (rank) {
@@ -128,6 +128,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   void _maybeStartRewardAnimation(RunReward reward) {
     final total = _totalForReward(reward);
     if (_currentRewardTotal == total) return;
+    AudioPlayerService.playCoinRamp(total);
 
     _currentRewardTotal = total;
     _rewardSparkle = false;
@@ -197,7 +198,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         ),
         const SizedBox(height: 8),
         const Text(
-          'Rank tiers: 🏆 Elite • 🥇 Pro • 🥈 Skilled • 🥉 Rookie',
+          'Rank tiers: 🏆 TapJunkie • 🥇 Tap Pro • 🥈 Tap Skilled • 🥉 Tap Rookie',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white54,
