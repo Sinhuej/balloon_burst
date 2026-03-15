@@ -139,7 +139,6 @@ class TJEngine {
       worldCoins: worldCoins,
       accuracyCoins: accuracyCoins,
       streakCoins: streakCoins,
-      totalCoins: total,
     );
   }
 
