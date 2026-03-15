@@ -415,17 +415,18 @@ Future.delayed(const Duration(milliseconds: 600), () {
       duration: const Duration(milliseconds: 1200),
     );
 
-    final total =
-    reward!.baseCoins +
-    reward.popCoins +
-    reward.worldCoins +
-    reward.accuracyCoins +
-    reward.streakCoins;
+    final total = reward == null
+        ? 0
+        : reward.baseCoins +
+            reward.popCoins +
+            reward.worldCoins +
+            reward.accuracyCoins +
+            reward.streakCoins;
 
-_coinCounter = IntTween(
-  begin: 0,
-  end: total,
-).animate(
+    _coinCounter = IntTween(
+      begin: 0,
+      end: total,
+    ).animate(
       CurvedAnimation(
         parent: _coinController,
         curve: Curves.easeOutCubic,
@@ -460,32 +461,35 @@ _coinCounter = IntTween(
     }
 
   @override
-  void didUpdateWidget(RunEndOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
+void didUpdateWidget(RunEndOverlay oldWidget) {
+  super.didUpdateWidget(oldWidget);
 
-    final reward = widget.engine.lastRunReward;
+  final reward = widget.engine.lastRunReward;
 
-    if (reward != null) {
-      final total =
-          reward.baseCoins +
-          reward.popCoins +
-          reward.worldCoins +
-          reward.accuracyCoins +
-          reward.streakCoins;
+  if (reward != null && oldWidget.engine.lastRunReward != reward) {
+    final total =
+        reward.baseCoins +
+        reward.popCoins +
+        reward.worldCoins +
+        reward.accuracyCoins +
+        reward.streakCoins;
 
-      _coinCounter = IntTween(
-        begin: 0,
-        end: total,
-      ).animate(
-        CurvedAnimation(
-          parent: _coinController,
-          curve: Curves.easeOutCubic,
-        ),
-      );
+    _coinCounter = IntTween(
+      begin: 0,
+      end: total,
+    ).animate(
+      CurvedAnimation(
+        parent: _coinController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
       _coinController.forward(from: 0);
-    }
+    });
   }
+}
 
   @override
   void dispose() {
