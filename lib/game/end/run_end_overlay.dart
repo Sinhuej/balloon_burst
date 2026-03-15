@@ -416,7 +416,7 @@ Future.delayed(const Duration(milliseconds: 600), () {
     );
 
     final total =
-    reward.baseCoins +
+    reward!.baseCoins +
     reward.popCoins +
     reward.worldCoins +
     reward.accuracyCoins +
