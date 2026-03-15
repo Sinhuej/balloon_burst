@@ -451,10 +451,9 @@ Future.delayed(const Duration(milliseconds: 600), () {
       });
     }
     }
-  }
 
   @override
-void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+void didUpdateWidget(RunEndOverlay oldWidget) {
   super.didUpdateWidget(oldWidget);
 
   final reward = widget.engine.lastRunReward;
