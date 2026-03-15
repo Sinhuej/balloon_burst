@@ -81,7 +81,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
       elevation: enabled ? 6 : 0,
-      shadowColor: const Color(0x665A4FCF),
+      shadowColor: const Color(0xAA5A4FCF),
     );
   }
 
@@ -238,7 +238,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                             const Positioned(
                               right: 40,
                               child: Icon(
-                                Icons.auto_awesome,
+                                Icons.auto_awesome_rounded,
                                 color: Colors.amber,
                                 size: 18,
                               ),
@@ -489,7 +489,7 @@ void dispose() {
         ? '🛡 Shield Armed'
         : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
 
-    return Container(
+      return Container(
   decoration: const BoxDecoration(
     gradient: RadialGradient(
       colors: [
@@ -499,59 +499,59 @@ void dispose() {
       radius: 1.2,
     ),
   ),
-  child: FadeTransition(
-    opacity: _titleFade,
-    child: Text(
-      RunEndMessages.title(widget.state),
-      style: const TextStyle(
-        fontSize: 26,
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
-      ),
-      textAlign: TextAlign.center,
-    ),
-  ),
-),
-  
-child: Text(
-    RunEndMessages.title(widget.state),
-            style: const TextStyle(
-              fontSize: 26,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            RunEndMessages.body(widget.state),
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (reward != null) ...[
-            const SizedBox(height: 12),
-            AnimatedBuilder(
-  animation: _statsController,
-  builder: (_, child) {
-    return Transform.translate(
-      offset: Offset(0, _statsSlide.value),
-      child: Opacity(
-        opacity: _statsController.value,
-        child: child,
-      ),
-    );
-  },
-  child: _buildStatsHeader(),
-),
-            _buildRewardBreakdown(reward),
-          ],
-          FadeTransition(
-  opacity: _buttonsFade,
+  alignment: Alignment.center,
   child: Column(
+    mainAxisSize: MainAxisSize.min,
     children: [
+
+      FadeTransition(
+        opacity: _titleFade,
+        child: Text(
+          RunEndMessages.title(widget.state),
+          style: const TextStyle(
+            fontSize: 26,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+
+      const SizedBox(height: 16),
+
+      Text(
+        RunEndMessages.body(widget.state),
+        style: const TextStyle(
+          fontSize: 16,
+          color: Colors.white70,
+        ),
+        textAlign: TextAlign.center,
+      ),
+
+      if (reward != null) ...[
+        const SizedBox(height: 12),
+
+        AnimatedBuilder(
+          animation: _statsController,
+          builder: (_, child) {
+            return Transform.translate(
+              offset: Offset(0, _statsSlide.value),
+              child: Opacity(
+                opacity: _statsController.value,
+                child: child,
+              ),
+            );
+          },
+          child: _buildStatsHeader(),
+        ),
+
+        _buildRewardBreakdown(reward),
+      ],
+
+      FadeTransition(
+        opacity: _buttonsFade,
+        child: Column(
+          children: [
 
       if (widget.onRevive != null) ...[
         ElevatedButton(
