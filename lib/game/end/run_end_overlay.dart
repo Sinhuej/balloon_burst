@@ -34,6 +34,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     with SingleTickerProviderStateMixin {
   static const int _reviveCost = 50;
 
+  int _visibleRewardRows = 0;
+
   late final AnimationController _shieldPulse;
   late final Animation<double> _shieldScale;
 
@@ -210,11 +212,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
           padding: const EdgeInsets.symmetric(horizontal: 60),
           child: Column(
             children: [
-              row('Base', reward.baseCoins),
-              row('Pops', reward.popCoins),
-              row('World', reward.worldCoins),
-              row('Accuracy', reward.accuracyCoins),
-              row('Streak', reward.streakCoins),
+              if (_visibleRewardRows >= 1) row('Base', reward.baseCoins),
+              if (_visibleRewardRows >= 2) row('Pops', reward.popCoins),
+              if (_visibleRewardRows >= 3) row('World', reward.worldCoins),
+              if (_visibleRewardRows >= 4) row('Accuracy', reward.accuracyCoins),
+              if (_visibleRewardRows >= 5) row('Streak', reward.streakCoins),
               const SizedBox(height: 8),
               const Divider(color: Colors.white24),
               const SizedBox(height: 6),
@@ -244,7 +246,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                               ),
                             ),
                           Text(
-                            '+${widget.engine.lastRunReward?.totalCoins ?? _coinCounter.value}',
+                            '+${_coinCounter.value}',
                             style: const TextStyle(
                               color: Colors.amber,
                               fontWeight: FontWeight.bold,
@@ -350,6 +352,13 @@ _statsController = AnimationController(
   duration: const Duration(milliseconds: 500),
 );
 
+for (int i = 1; i <= 5; i++) {
+  Future.delayed(Duration(milliseconds: 250 * i), () {
+    if (!mounted) return;
+    setState(() => _visibleRewardRows = i);
+  });
+}
+
 _statsSlide = Tween<double>(
   begin: 20,
   end: 0,
@@ -415,21 +424,32 @@ Future.delayed(const Duration(milliseconds: 600), () {
         curve: Curves.easeOutCubic,
       ),
     );
-
-    if (reward != null) {
-      _coinController.forward();
-
+    
       _coinController.addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          setState(() => _rewardSparkle = true);
+      if (status == AnimationStatus.completed) {
+        setState(() => _rewardSparkle = true);
 
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              setState(() => _rewardSparkle = false);
-            }
+        for (int i = 0; i < 3; i++) {
+          Future.delayed(Duration(milliseconds: i * 120), () {
+            if (!mounted) return;
+            setState(() => _rewardSparkle = true);
           });
         }
+
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (mounted) {
+            setState(() => _rewardSparkle = false);
+          }
+        });
+      }
+    });
+
+    if (reward != null) {
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        _coinController.forward();
       });
+    }
     }
   }
 
@@ -451,18 +471,6 @@ void didUpdateWidget(covariant RunEndOverlay oldWidget) {
     );
 
     _coinController.forward(from: 0);
-
-    _coinController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        setState(() => _rewardSparkle = true);
-
-        Future.delayed(const Duration(milliseconds: 700), () {
-          if (mounted) {
-            setState(() => _rewardSparkle = false);
-          }
-        });
-      }
-    });
   }
 }
 
