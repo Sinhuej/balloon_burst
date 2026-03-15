@@ -415,10 +415,17 @@ Future.delayed(const Duration(milliseconds: 600), () {
       duration: const Duration(milliseconds: 1200),
     );
 
-    _coinCounter = IntTween(
-      begin: 0,
-      end: reward?.totalCoins ?? 0,
-    ).animate(
+    final total =
+    reward.baseCoins +
+    reward.popCoins +
+    reward.worldCoins +
+    reward.accuracyCoins +
+    reward.streakCoins;
+
+_coinCounter = IntTween(
+  begin: 0,
+  end: total,
+).animate(
       CurvedAnimation(
         parent: _coinController,
         curve: Curves.easeOutCubic,
@@ -458,11 +465,18 @@ void didUpdateWidget(RunEndOverlay oldWidget) {
 
   final reward = widget.engine.lastRunReward;
 
-  if (reward != null && oldWidget.engine.lastRunReward != reward) {
-    _coinCounter = IntTween(
-      begin: 0,
-      end: reward.totalCoins,
-    ).animate(
+final total = reward == null
+    ? 0
+    : reward.baseCoins +
+      reward.popCoins +
+      reward.worldCoins +
+      reward.accuracyCoins +
+      reward.streakCoins;
+
+_coinCounter = IntTween(
+  begin: 0,
+  end: total,
+).animate(
       CurvedAnimation(
         parent: _coinController,
         curve: Curves.easeOutCubic,
