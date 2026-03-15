@@ -70,20 +70,6 @@ class AudioPlayerService {
   );
 
   static int _popIndex = 0;
-  
-  static final AudioContext _gameAudioContext = AudioContext(
-    android: AudioContextAndroid(
-      usageType: AndroidUsageType.game,
-      contentType: AndroidContentType.sonification,
-      audioFocus: AndroidAudioFocus.none,
-    ),
-    iOS: AudioContextIOS(
-      category: AVAudioSessionCategory.ambient,
-      options: {
-        AVAudioSessionOptions.mixWithOthers,
-      },
-    ),
-  );
 
   // 🔔 World surge cue
   static final AudioPlayer _surgePlayer = AudioPlayer()
