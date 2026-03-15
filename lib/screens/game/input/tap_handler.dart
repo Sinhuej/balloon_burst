@@ -46,10 +46,12 @@ class TapHandler {
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
       final dist = sqrt(dx * dx + dy * dy);
+      final centerBias = dx.abs();
+      final tapScore = dist + centerBias * 0.35;      
       final effectiveRadius = balloonRadius + hitForgiveness;
 
-      if (closestDist == null || dist < closestDist!) {
-        closestDist = dist;
+      if (closestDist == null || tapScore < closestDist!) {
+        closestDist = tapScore;
         closestDx = dx;
         closestDy = dy;
         closestBx = bx;
@@ -67,6 +69,8 @@ if (dist <= balloonRadius * 0.45) {
 }
 
 AudioPlayerService.playPop();
+
+AudioPlayerService.playCoin();
 
         spawner.registerPop(gameState);
 
