@@ -479,129 +479,134 @@ void dispose() {
 }
 
   @override
-  Widget build(BuildContext context) {
-    final reward = widget.engine.lastRunReward;
+Widget build(BuildContext context) {
+  final reward = widget.engine.lastRunReward;
 
-    final shieldEnabled =
-        !_shieldOwned && !_purchasingShield && _canAffordShield;
+  final shieldEnabled =
+      !_shieldOwned && !_purchasingShield && _canAffordShield;
 
-    final shieldLabel = _shieldOwned
-        ? '🛡 Shield Armed'
-        : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
+  final shieldLabel = _shieldOwned
+      ? '🛡 Shield Armed'
+      : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
 
-      return Container(
-  decoration: const BoxDecoration(
-    gradient: RadialGradient(
-      colors: [
-        Color(0xFF0D1B2A),
-        Color(0xFF000000),
-      ],
-      radius: 1.2,
+  return Container(
+    decoration: const BoxDecoration(
+      gradient: RadialGradient(
+        colors: [
+          Color(0xFF0D1B2A),
+          Color(0xFF000000),
+        ],
+        radius: 1.2,
+      ),
     ),
-  ),
-  alignment: Alignment.center,
-  child: Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
+    alignment: Alignment.center,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
 
-      FadeTransition(
-        opacity: _titleFade,
-        child: Text(
-          RunEndMessages.title(widget.state),
+        FadeTransition(
+          opacity: _titleFade,
+          child: Text(
+            RunEndMessages.title(widget.state),
+            style: const TextStyle(
+              fontSize: 26,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          RunEndMessages.body(widget.state),
           style: const TextStyle(
-            fontSize: 26,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.white70,
           ),
           textAlign: TextAlign.center,
         ),
-      ),
 
-      const SizedBox(height: 16),
+        if (reward != null) ...[
+          const SizedBox(height: 12),
 
-      Text(
-        RunEndMessages.body(widget.state),
-        style: const TextStyle(
-          fontSize: 16,
-          color: Colors.white70,
-        ),
-        textAlign: TextAlign.center,
-      ),
+          AnimatedBuilder(
+            animation: _statsController,
+            builder: (_, child) {
+              return Transform.translate(
+                offset: Offset(0, _statsSlide.value),
+                child: Opacity(
+                  opacity: _statsController.value,
+                  child: child,
+                ),
+              );
+            },
+            child: _buildStatsHeader(),
+          ),
 
-      if (reward != null) ...[
-        const SizedBox(height: 12),
+          _buildRewardBreakdown(reward),
+        ],
 
-        AnimatedBuilder(
-          animation: _statsController,
-          builder: (_, child) {
-            return Transform.translate(
-              offset: Offset(0, _statsSlide.value),
-              child: Opacity(
-                opacity: _statsController.value,
-                child: child,
+        FadeTransition(
+          opacity: _buttonsFade,
+          child: Column(
+            children: [
+
+              if (widget.onRevive != null) ...[
+                ElevatedButton(
+                  style: _pillStyle(enabled: _canAffordRevive),
+                  onPressed: _canAffordRevive ? widget.onRevive : null,
+                  child: const Text('REVIVE (50 Coins)'),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              ElevatedButton(
+                style: _pillStyle(enabled: shieldEnabled),
+                onPressed: shieldEnabled ? _purchaseShield : null,
+                child: Text(shieldLabel),
               ),
-            );
-          },
-          child: _buildStatsHeader(),
-        ),
 
-        _buildRewardBreakdown(reward),
-      ],
+              const SizedBox(height: 12),
 
-      FadeTransition(
-        opacity: _buttonsFade,
-        child: Column(
-          children: [
+              ElevatedButton(
+                style: _pillStyle(enabled: true),
+                onPressed: widget.onReplay,
+                child: const Text('REPLAY'),
+              ),
 
-      if (widget.onRevive != null) ...[
-        ElevatedButton(
-          style: _pillStyle(enabled: _canAffordRevive),
-          onPressed: _canAffordRevive ? widget.onRevive : null,
-          child: const Text('REVIVE (50 Coins)'),
-        ),
-        const SizedBox(height: 12),
-      ],
+              if (widget.onViewLeaderboard != null) ...[
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: widget.onViewLeaderboard,
+                  child: const Text(
+                    'VIEW LEADERBOARD',
+                    style: TextStyle(color: Colors.cyanAccent),
+                  ),
+                ),
+              ],
 
-      ElevatedButton(
-        style: _pillStyle(enabled: shieldEnabled),
-        onPressed: shieldEnabled ? _purchaseShield : null,
-        child: Text(shieldLabel),
-      ),
+              const SizedBox(height: 16),
 
-      const SizedBox(height: 12),
-
-      ElevatedButton(
-        style: _pillStyle(enabled: true),
-        onPressed: widget.onReplay,
-        child: const Text('REPLAY'),
-      ),
-
-      if (widget.onViewLeaderboard != null) ...[
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: widget.onViewLeaderboard,
-          child: const Text(
-            'VIEW LEADERBOARD',
-            style: TextStyle(color: Colors.cyanAccent),
+              IconButton(
+                icon: Icon(
+                  widget.engine.isMuted
+                      ? Icons.volume_off
+                      : Icons.volume_up,
+                  color: Colors.white70,
+                ),
+                onPressed: () async {
+                  final muted = await widget.engine.toggleMute();
+                  AudioPlayerService.setMuted(muted);
+                  if (!mounted) return;
+                  setState(() {});
+                },
+              ),
+            ],
           ),
         ),
       ],
-
-      const SizedBox(height: 16),
-
-      IconButton(
-        icon: Icon(
-          widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
-          color: Colors.white70,
-        ),
-        onPressed: () async {
-          final muted = await widget.engine.toggleMute();
-          AudioPlayerService.setMuted(muted);
-          if (!mounted) return;
-          setState(() {});
-        },
-      ),
-
-    ],
-  ),
-),
+    ),
+  );
+}
