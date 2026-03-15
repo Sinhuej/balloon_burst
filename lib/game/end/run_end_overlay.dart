@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
@@ -35,6 +33,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   static const int _reviveCost = 50;
 
   int _visibleRewardRows = 0;
+  int _currentRewardTotal = -1;
 
   late final AnimationController _shieldPulse;
   late final Animation<double> _shieldScale;
@@ -53,8 +52,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   late final AnimationController _buttonsController;
   late final Animation<double> _buttonsFade;
-
-  Timer? _flashTimer;
 
   bool _purchasingShield = false;
   bool _rewardSparkle = false;
@@ -118,6 +115,41 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       default:
         return Colors.white70;
     }
+  }
+
+  int _totalForReward(RunReward reward) {
+    return reward.baseCoins +
+        reward.popCoins +
+        reward.worldCoins +
+        reward.accuracyCoins +
+        reward.streakCoins;
+  }
+
+  void _maybeStartRewardAnimation(RunReward reward) {
+    final total = _totalForReward(reward);
+    if (_currentRewardTotal == total) return;
+
+    _currentRewardTotal = total;
+    _rewardSparkle = false;
+
+    _coinController.stop();
+    _coinController.reset();
+
+    _coinCounter = IntTween(
+      begin: 0,
+      end: total,
+    ).animate(
+      CurvedAnimation(
+        parent: _coinController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      if (_currentRewardTotal != total) return;
+      _coinController.forward(from: 0);
+    });
   }
 
   Widget _buildStatsHeader() {
@@ -337,48 +369,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       duration: const Duration(milliseconds: 420),
     );
 
-    _titleController = AnimationController(
-  vsync: this,
-  duration: const Duration(milliseconds: 500),
-);
-
-_titleFade = CurvedAnimation(
-  parent: _titleController,
-  curve: Curves.easeOut,
-);
-
-_statsController = AnimationController(
-  vsync: this,
-  duration: const Duration(milliseconds: 500),
-);
-
-for (int i = 1; i <= 5; i++) {
-  Future.delayed(Duration(milliseconds: 250 * i), () {
-    if (!mounted) return;
-    setState(() => _visibleRewardRows = i);
-  });
-}
-
-_statsSlide = Tween<double>(
-  begin: 20,
-  end: 0,
-).animate(
-  CurvedAnimation(
-    parent: _statsController,
-    curve: Curves.easeOut,
-  ),
-);
-
-_buttonsController = AnimationController(
-  vsync: this,
-  duration: const Duration(milliseconds: 500),
-);
-
-_buttonsFade = CurvedAnimation(
-  parent: _buttonsController,
-  curve: Curves.easeOut,
-);
-
     _rankScale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(begin: 0.8, end: 1.2)
@@ -392,48 +382,53 @@ _buttonsFade = CurvedAnimation(
       ),
     ]).animate(_rankController);
 
-    Future.delayed(const Duration(milliseconds: 0), () {
-  if (mounted) _titleController.forward();
-});
+    _titleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _titleFade = CurvedAnimation(
+      parent: _titleController,
+      curve: Curves.easeOut,
+    );
 
-Future.delayed(const Duration(milliseconds: 150), () {
-  if (mounted) _statsController.forward();
-});
+    _statsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _statsSlide = Tween<double>(
+      begin: 20,
+      end: 0,
+    ).animate(
+      CurvedAnimation(
+        parent: _statsController,
+        curve: Curves.easeOut,
+      ),
+    );
 
-Future.delayed(const Duration(milliseconds: 300), () {
-  if (mounted) _rankController.forward();
-});
-
-Future.delayed(const Duration(milliseconds: 600), () {
-  if (mounted) _buttonsController.forward();
-});
-
-    final reward = widget.engine.runLifecycle.lastRunReward;
+    _buttonsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _buttonsFade = CurvedAnimation(
+      parent: _buttonsController,
+      curve: Curves.easeOut,
+    );
 
     _coinController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-
-    final total = reward == null
-        ? 0
-        : reward.baseCoins +
-            reward.popCoins +
-            reward.worldCoins +
-            reward.accuracyCoins +
-            reward.streakCoins;
-
     _coinCounter = IntTween(
       begin: 0,
-      end: total,
+      end: 0,
     ).animate(
       CurvedAnimation(
         parent: _coinController,
         curve: Curves.easeOutCubic,
       ),
     );
-    
-      _coinController.addStatusListener((status) {
+
+    _coinController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         setState(() => _rewardSparkle = true);
 
@@ -445,55 +440,53 @@ Future.delayed(const Duration(milliseconds: 600), () {
         }
 
         Future.delayed(const Duration(milliseconds: 700), () {
-          if (mounted) {
-            setState(() => _rewardSparkle = false);
-          }
+          if (!mounted) return;
+          setState(() => _rewardSparkle = false);
         });
       }
     });
 
-    if (reward != null) {
-      Future.delayed(const Duration(milliseconds: 450), () {
+    for (int i = 1; i <= 5; i++) {
+      Future.delayed(Duration(milliseconds: 250 * i), () {
         if (!mounted) return;
-        _coinController.forward();
+        setState(() => _visibleRewardRows = i);
       });
     }
+
+    Future.delayed(Duration.zero, () {
+      if (mounted) _titleController.forward();
+    });
+
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) _statsController.forward();
+    });
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _rankController.forward();
+    });
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _buttonsController.forward();
+    });
+
+    final reward = widget.engine.lastRunReward;
+    if (reward != null) {
+      _maybeStartRewardAnimation(reward);
     }
+  }
 
   @override
-void didUpdateWidget(RunEndOverlay oldWidget) {
-  super.didUpdateWidget(oldWidget);
+  void didUpdateWidget(covariant RunEndOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
 
-  final reward = widget.engine.runLifecycle.lastRunReward;
-
-  if (reward != null && oldWidget.engine.lastRunReward != reward) {
-    final total =
-        reward.baseCoins +
-        reward.popCoins +
-        reward.worldCoins +
-        reward.accuracyCoins +
-        reward.streakCoins;
-
-    _coinCounter = IntTween(
-      begin: 0,
-      end: total,
-    ).animate(
-      CurvedAnimation(
-        parent: _coinController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-
-    Future.delayed(const Duration(milliseconds: 450), () {
-      if (!mounted) return;
-      _coinController.forward(from: 0);
-    });
+    final reward = widget.engine.lastRunReward;
+    if (reward != null) {
+      _maybeStartRewardAnimation(reward);
+    }
   }
-}
 
   @override
   void dispose() {
-    _flashTimer?.cancel();
     _shieldPulse.dispose();
     _rankController.dispose();
     _coinController.dispose();
@@ -513,6 +506,10 @@ void didUpdateWidget(RunEndOverlay oldWidget) {
     final shieldLabel = _shieldOwned
         ? '🛡 Shield Armed'
         : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
+
+    if (reward != null) {
+      _maybeStartRewardAnimation(reward);
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -540,9 +537,7 @@ void didUpdateWidget(RunEndOverlay oldWidget) {
               textAlign: TextAlign.center,
             ),
           ),
-
           const SizedBox(height: 16),
-
           Text(
             RunEndMessages.body(widget.state),
             style: const TextStyle(
@@ -551,10 +546,8 @@ void didUpdateWidget(RunEndOverlay oldWidget) {
             ),
             textAlign: TextAlign.center,
           ),
-
           if (reward != null) ...[
             const SizedBox(height: 12),
-
             AnimatedBuilder(
               animation: _statsController,
               builder: (_, child) {
@@ -568,10 +561,8 @@ void didUpdateWidget(RunEndOverlay oldWidget) {
               },
               child: _buildStatsHeader(),
             ),
-
             _buildRewardBreakdown(reward),
           ],
-
           FadeTransition(
             opacity: _buttonsFade,
             child: Column(
@@ -584,21 +575,20 @@ void didUpdateWidget(RunEndOverlay oldWidget) {
                   ),
                   const SizedBox(height: 12),
                 ],
-
-                ElevatedButton(
-                  style: _pillStyle(enabled: shieldEnabled),
-                  onPressed: shieldEnabled ? _purchaseShield : null,
-                  child: Text(shieldLabel),
+                ScaleTransition(
+                  scale: _shieldScale,
+                  child: ElevatedButton(
+                    style: _pillStyle(enabled: shieldEnabled),
+                    onPressed: shieldEnabled ? _purchaseShield : null,
+                    child: Text(shieldLabel),
+                  ),
                 ),
-
                 const SizedBox(height: 12),
-
                 ElevatedButton(
                   style: _pillStyle(enabled: true),
                   onPressed: widget.onReplay,
                   child: const Text('REPLAY'),
                 ),
-
                 if (widget.onViewLeaderboard != null) ...[
                   const SizedBox(height: 12),
                   TextButton(
@@ -609,9 +599,7 @@ void didUpdateWidget(RunEndOverlay oldWidget) {
                     ),
                   ),
                 ],
-
                 const SizedBox(height: 16),
-
                 IconButton(
                   icon: Icon(
                     widget.engine.isMuted
