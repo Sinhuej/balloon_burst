@@ -100,10 +100,6 @@ class TapHandler {
 
         AudioPlayerService.playPop();
 
-        if (perfectHit) {
-          AudioPlayerService.playCoin();
-        }
-
         spawner.registerPop(gameState);
 
         surge.maybeTrigger(
