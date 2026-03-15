@@ -11,6 +11,10 @@ import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 
 class TapHandler {
+
+  static TapDownDetails? _bufferedTap;
+  static DateTime? _bufferTime;
+
   static void handleTap({
     required TapDownDetails details,
     required Size lastSize,
@@ -22,12 +26,31 @@ class TapHandler {
     required double balloonRadius,
     required double hitForgiveness,
   }) {
+
     if (lastSize == Size.zero) return;
+
+    // Buffer tap
+    _bufferedTap = details;
+    _bufferTime = DateTime.now();
+
+    // Process buffered tap
+    if (_bufferedTap != null) {
+      details = _bufferedTap!;
+      _bufferedTap = null;
+    }
+
+    // Expire old buffered taps
+    if (_bufferTime != null &&
+        DateTime.now().difference(_bufferTime!) >
+            const Duration(milliseconds: 120)) {
+      _bufferedTap = null;
+    }
 
     final tapPos = details.localPosition;
     final centerX = lastSize.width / 2;
 
     bool hit = false;
+    bool perfectHit = false;
 
     double? closestDist;
     double? closestDx;
@@ -35,23 +58,29 @@ class TapHandler {
     double? closestBx;
     double? closestBy;
 
+    double? bestScore;
+
     for (int i = 0; i < balloons.length; i++) {
+
       final b = balloons[i];
       if (b.isPopped) continue;
 
-      // MUST MATCH BalloonPainter
       final bx = centerX + (b.xOffset * lastSize.width * 0.5);
       final by = b.y;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
+
       final dist = sqrt(dx * dx + dy * dy);
+
       final centerBias = dx.abs();
-      final tapScore = dist + centerBias * 0.35;      
+      final tapScore = dist + centerBias * 0.35;
+
       final effectiveRadius = balloonRadius + hitForgiveness;
 
-      if (closestDist == null || tapScore < closestDist!) {
-        closestDist = tapScore;
+      if (bestScore == null || tapScore < bestScore) {
+        bestScore = tapScore;
+        closestDist = dist;
         closestDx = dx;
         closestDy = dy;
         closestBx = bx;
@@ -60,17 +89,20 @@ class TapHandler {
 
       if (dist <= effectiveRadius) {
 
-  // Freeze balloon position before pop
-  balloons[i] = b.pop();
+        balloons[i] = b.pop();
 
-        // Perfect hit detection
-if (dist <= balloonRadius * 0.45) {
-  gameState.log('PERFECT HIT dist=${dist.toStringAsFixed(1)}');
-}
+        if (dist <= balloonRadius * 0.45) {
+          perfectHit = true;
+          gameState.log(
+            'PERFECT HIT dist=${dist.toStringAsFixed(1)}'
+          );
+        }
 
-AudioPlayerService.playPop();
+        AudioPlayerService.playPop();
 
-AudioPlayerService.playCoin();
+        if (perfectHit) {
+          AudioPlayerService.playCoin();
+        }
 
         spawner.registerPop(gameState);
 
@@ -88,6 +120,7 @@ AudioPlayerService.playCoin();
     }
 
     if (!hit) {
+
       if (closestDist != null) {
         gameState.log(
           'MISS world=${spawner.currentWorld} '
@@ -100,22 +133,20 @@ AudioPlayerService.playCoin();
         );
       }
 
-    // Near-miss spark effect
-if (closestDist != null) {
-  final nearMissRadius = balloonRadius + hitForgiveness + 10;
+      final nearMissRadius = balloonRadius + hitForgiveness + 10;
 
-  if (closestDist! > balloonRadius &&
-      closestDist! <= nearMissRadius) {
+      if (closestDist != null &&
+          closestDist! > balloonRadius &&
+          closestDist! <= nearMissRadius) {
 
-    gameState.log(
-      'NEAR MISS dist=${closestDist!.toStringAsFixed(1)}'
-    );
-  }
-}  
+        gameState.log(
+          'NEAR MISS dist=${closestDist!.toStringAsFixed(1)}'
+        );
+      }
 
-    spawner.registerMiss(gameState);
+      spawner.registerMiss(gameState);
     }
 
-    controller.registerTap(hit: hit);
+    controller.registerTap(hit: hit, perfect: perfectHit);
   }
 }

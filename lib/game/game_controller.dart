@@ -28,6 +28,7 @@ class GameController {
   // Telemetry-only counters (engine owns fail rules + lifecycle)
   int _escapeCount = 0;
   int _missCount = 0;
+  int _perfectHits = 0;
 
   GameController({
     required this.momentum,
@@ -69,7 +70,7 @@ class GameController {
 
   /// Telemetry-only tap registration.
   /// Engine will decide if misses end the run.
-  void registerTap({required bool hit}) {
+  void registerTap({required bool hit, bool perfect = false}) {
     // Always update momentum first (hit or miss)
     momentum.registerTap(hit: hit);
 
@@ -87,6 +88,10 @@ class GameController {
       );
     }
   }
+
+if (perfect) {
+  _perfectHits++;
+}
 
   /// Reset only telemetry + controllers.
   /// Run lifecycle reset is owned by TJ Engine.
