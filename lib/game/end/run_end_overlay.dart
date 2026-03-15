@@ -244,7 +244,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                               ),
                             ),
                           Text(
-                            '+${_coinCounter.value}',
+                            '+${widget.engine.lastRunReward?.totalCoins ?? _coinCounter.value}',
                             style: const TextStyle(
                               color: Colors.amber,
                               fontWeight: FontWeight.bold,
