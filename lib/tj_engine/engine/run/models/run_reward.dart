@@ -5,7 +5,12 @@ class RunReward {
   final int accuracyCoins;
   final int streakCoins;
 
-  final int totalCoins;
+  int get totalCoins =>
+      baseCoins +
+      popCoins +
+      worldCoins +
+      accuracyCoins +
+      streakCoins;
 
   const RunReward({
     required this.baseCoins,
@@ -13,6 +18,5 @@ class RunReward {
     required this.worldCoins,
     required this.accuracyCoins,
     required this.streakCoins,
-    required this.totalCoins,
   });
 }
