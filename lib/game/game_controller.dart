@@ -70,34 +70,9 @@ class GameController {
 
   /// Telemetry-only tap registration.
   /// Engine will decide if misses end the run.
-  void registerTap({required bool hit, bool perfect = false}) {
+   void registerTap({required bool hit, bool perfect = false}) {
 
-  // Always update momentum first
-  _momentum.registerTap(hit: hit);
-
-  if (hit) {
-
-    _hitCount++;
-
-    if (perfect) {
-      debugLog(
-        'PERFECT TAP',
-        type: DebugEventType.hit,
-      );
-    }
-
-  } else {
-
-    _missCount++;
-
-    debugLog(
-      'MISS: count=$_missCount',
-      type: DebugEventType.miss,
-    );
-  }
-}
-
-  // Always update momentum first
+  // Update momentum system
   _momentum.registerTap(hit: hit);
 
   if (hit) {
