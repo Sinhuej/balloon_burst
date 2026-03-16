@@ -96,6 +96,31 @@ class GameController {
     );
   }
 }
+
+  // Always update momentum first
+  _momentum.registerTap(hit: hit);
+
+  if (hit) {
+
+    _hitCount++;
+
+    if (perfect) {
+      debugLog(
+        'PERFECT TAP',
+        type: DebugEventType.hit,
+      );
+    }
+
+  } else {
+
+    _missCount++;
+
+    debugLog(
+      'MISS: count=$_missCount',
+      type: DebugEventType.miss,
+    );
+  }
+}
  
    // Always update momentum first (hit or miss)
     momentum.registerTap(hit: hit);
