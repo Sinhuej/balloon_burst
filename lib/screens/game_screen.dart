@@ -58,9 +58,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   final List<Balloon> _balloons = [];
   final List<PopParticle> _particles = [];
-  final List<PopShockwave> _shockwaves = [];  
+  final List<PopShockwave> _shockwaves = [];
 
-  double _popShake = 0.0;  
+  double _popShake = 0.0;
 
   Duration _lastTime = Duration.zero;
   Size _lastSize = Size.zero;
@@ -72,7 +72,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _reviveProtectionActive = false;
   bool _reviveFlashActive = false;
   bool _dangerMode = false;
-  double _dangerPulseT = 0.0;  
+  double _dangerPulseT = 0.0;
 
   bool _previousShieldState = false;
   bool _showShieldFlash = false;
@@ -86,6 +86,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
+  static const Duration _mercyWindow = Duration(milliseconds: 120);
 
   static const int _reviveCost = 50;
 
@@ -188,18 +189,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     _lastWalletBalance = currentBalance;
 
-   final accuracy = _controller.accuracy01;
+    final accuracy = _controller.accuracy01;
 
-double adaptiveFactor = 1.0;
+    double adaptiveFactor = 1.0;
 
-if (accuracy > 0.93) {
-  adaptiveFactor = 0.94; // slightly harder
-} else if (accuracy < 0.75) {
-  adaptiveFactor = 1.08; // slightly easier
-}
+    if (accuracy > 0.93) {
+      adaptiveFactor = 0.94; // slightly harder
+    } else if (accuracy < 0.75) {
+      adaptiveFactor = 1.08; // slightly easier
+    }
 
-final adaptiveSpawnInterval =
-    widget.engine.difficulty.snapshot.spawnInterval * adaptiveFactor;
+    final adaptiveSpawnInterval =
+        widget.engine.difficulty.snapshot.spawnInterval * adaptiveFactor;
 
     widget.spawner.update(
       dt: dt,
@@ -246,19 +247,18 @@ final adaptiveSpawnInterval =
       _particles[i] = _particles[i].advance(dt);
     }
     _particles.removeWhere((p) => !p.alive);
-   
-    for (int i = 0; i < _shockwaves.length; i++) {
-  _shockwaves[i] = _shockwaves[i].advance(dt);
-}
 
-_shockwaves.removeWhere((w) => !w.alive);
+    for (int i = 0; i < _shockwaves.length; i++) {
+      _shockwaves[i] = _shockwaves[i].advance(dt);
+    }
+    _shockwaves.removeWhere((w) => !w.alive);
 
     // micro screen shake decay
-_popShake *= 0.85;
+    _popShake *= 0.85;
 
-if (_popShake < 0.1) {
-  _popShake = 0;
-}
+    if (_popShake < 0.1) {
+      _popShake = 0;
+    }
 
     int escapedThisTick = 0;
 
@@ -271,7 +271,18 @@ if (_popShake < 0.1) {
     }
 
     if (escapedThisTick > 0) {
-      if (!_reviveProtectionActive) {
+      final tapTime = _controller.lastTapTime;
+
+      if (tapTime != null &&
+          DateTime.now().difference(tapTime) < _mercyWindow) {
+        widget.gameState.log(
+          'MERCY POP PREVENTED ESCAPE',
+          type: DebugEventType.system,
+        );
+        escapedThisTick = 0;
+      }
+
+      if (escapedThisTick > 0 && !_reviveProtectionActive) {
         _controller.registerEscapes(escapedThisTick);
         widget.engine.runLifecycle.report(
           EscapeEvent(count: escapedThisTick),
@@ -283,15 +294,14 @@ if (_popShake < 0.1) {
 
     final escapesNow = widget.engine.runLifecycle.getSnapshot().escapes;
 
-_dangerMode =
-    _controller.missCount >= 9 ||
-    escapesNow >= 2;
+    _dangerMode = _controller.missCount >= 9 || escapesNow >= 2;
 
-if (_dangerMode) {
-  _dangerPulseT += dt * 1.8;
-} else {
-  _dangerPulseT = 0.0;
-}
+    if (_dangerMode) {
+      _dangerPulseT += dt * 1.8;
+    } else {
+      _dangerPulseT = 0.0;
+    }
+
     _surge.maybeTrigger(
       totalPops: widget.spawner.totalPops,
       currentWorld: widget.spawner.currentWorld,
@@ -330,110 +340,108 @@ if (_dangerMode) {
   }
 
   void _handleTap(TapDownDetails details) {
-  if (_showIntro) return;
-  if (_isRunEnded || !_canCountMisses) return;
+    if (_showIntro) return;
+    if (_isRunEnded || !_canCountMisses) return;
 
-  final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
-  final missesBefore = _controller.missCount;
+    final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
+    final missesBefore = _controller.missCount;
 
-  widget.engine.input.registerTap();
-  widget.gameState.tapPulse = true;
+    widget.engine.input.registerTap();
+    widget.gameState.tapPulse = true;
 
-  TapHandler.handleTap(
-    details: details,
-    lastSize: _lastSize,
-    balloons: _balloons,
-    gameState: widget.gameState,
-    spawner: widget.spawner,
-    controller: _controller,
-    surge: _surge,
-    balloonRadius: balloonRadius,
-    hitForgiveness: hitForgiveness,
-  );
+    TapHandler.handleTap(
+      details: details,
+      lastSize: _lastSize,
+      balloons: _balloons,
+      gameState: widget.gameState,
+      spawner: widget.spawner,
+      controller: _controller,
+      surge: _surge,
+      balloonRadius: balloonRadius,
+      hitForgiveness: hitForgiveness,
+    );
 
-  final missesAfter = _controller.missCount;
-   
-// Near-miss spark detection
-  if (missesAfter > missesBefore) {
+    final missesAfter = _controller.missCount;
 
-  final p = details.localPosition;
+    // Near-miss spark detection
+    if (missesAfter > missesBefore) {
+      final p = details.localPosition;
 
-  for (final b in _balloons) {
-    if (b.isPopped) continue;
+      for (final b in _balloons) {
+        if (b.isPopped) continue;
 
-    final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
-    final by = b.y;
+        final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
+        final by = b.y;
 
-    final dx = p.dx - bx;
-    final dy = p.dy - by;
+        final dx = p.dx - bx;
+        final dy = p.dy - by;
 
-    final dist = sqrt(dx * dx + dy * dy);
+        final dist = sqrt(dx * dx + dy * dy);
 
-    if (dist < balloonRadius + 32 && dist > balloonRadius) {
+        if (dist < balloonRadius + 32 && dist > balloonRadius) {
+          _particles.addAll(
+            PopParticle.burst(p.dx, p.dy)
+                .map((p) => PopParticle(
+                      x: p.x,
+                      y: p.y,
+                      vx: p.vx * 0.45,
+                      vy: p.vy * 0.45,
+                      age: p.age,
+                      life: 0.18,
+                      color: Colors.white,
+                    ))
+                .toList(),
+          );
 
-  _particles.addAll(
-    PopParticle.burst(p.dx, p.dy)
-        .map((p) => PopParticle(
-              x: p.x,
-              y: p.y,
-              vx: p.vx * 0.45,
-              vy: p.vy * 0.45,
-              age: p.age,
-              life: 0.18,
-              color: Colors.white,
-            ))
-        .toList(),
-  );
+          break;
+        }
+      }
 
-    break;
-   }
+      if (!_reviveProtectionActive) {
+        widget.engine.runLifecycle.report(const MissEvent());
+      }
+
+      return;
+    }
+
+    widget.engine.runLifecycle.report(PopEvent(points: 1));
+
+    AudioPlayerService.playPop();
+
+    final p = details.localPosition;
+
+    widget.engine.juice.spawnScoreBurst(
+      x: p.dx,
+      y: p.dy,
+      value: 1,
+    );
+
+    _particles.addAll(
+      PopParticle.burst(p.dx, p.dy),
+    );
+
+    _shockwaves.add(
+      PopShockwave(
+        x: p.dx,
+        y: p.dy,
+        age: 0,
+        life: 0.35,
+      ),
+    );
+
+    _popShake = 6.0;
+
+    // micro time dilation for juicy impact
+    _lastTime -= const Duration(milliseconds: 8);
+
+    final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
+    final prevMilestone = _milestoneForStreak(prevStreak);
+    final nextMilestone = _milestoneForStreak(nextStreak);
+
+    if (nextMilestone > prevMilestone) {
+      AudioPlayerService.playStreakMilestone(nextMilestone);
+    }
   }
-
-  if (!_reviveProtectionActive) {
-    widget.engine.runLifecycle.report(const MissEvent());
-  }
-
-  return;
-}
-
-  widget.engine.runLifecycle.report(PopEvent(points: 1));
-
-  AudioPlayerService.playPop();
-
-  final p = details.localPosition;
-
-  widget.engine.juice.spawnScoreBurst(
-    x: p.dx,
-    y: p.dy,
-    value: 1,
-  );
-
-  _particles.addAll(
-    PopParticle.burst(p.dx, p.dy),
-  );
-  
-  _shockwaves.add(
-  PopShockwave(
-    x: p.dx,
-    y: p.dy,
-    age: 0,
-    life: 0.35,
-  ),
-);
-
-  _popShake = 6.0;
-
-  // micro time dilation for juicy impact
-  _lastTime -= const Duration(milliseconds: 8);
-
-  final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
-  final prevMilestone = _milestoneForStreak(prevStreak);
-  final nextMilestone = _milestoneForStreak(nextStreak);
-
-  if (nextMilestone > prevMilestone) {
-    AudioPlayerService.playStreakMilestone(nextMilestone);
-  }
-}
 
   void _handleLongPress() {
     if (_showIntro) return;
@@ -531,36 +539,36 @@ if (_dangerMode) {
             children: [
               IgnorePointer(child: Container(color: bgColor)),
 
-          // Danger Mode darkening
-if (_dangerMode)
-  Positioned.fill(
-    child: IgnorePointer(
-      child: Container(
-        color: Colors.black.withOpacity(0.25),
-      ),
-    ),
-  ),
+              // Danger Mode darkening
+              if (_dangerMode)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.25),
+                    ),
+                  ),
+                ),
 
-// Danger Mode red edge alarm (slow heartbeat pulse)
-if (_dangerMode)
-  Positioned.fill(
-    child: IgnorePointer(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            radius: 1.0,
-            colors: [
-              Colors.transparent,
-              Colors.red.withOpacity(
-                0.55 + ((sin(_dangerPulseT) * 0.5 + 0.5) * 0.25),
-              ),
-            ],
-            stops: const [0.55, 1.0],
-          ),
-        ),
-      ),
-    ),
-  ),
+              // Danger Mode red edge alarm (slow heartbeat pulse)
+              if (_dangerMode)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          radius: 1.0,
+                          colors: [
+                            Colors.transparent,
+                            Colors.red.withOpacity(
+                              0.55 + ((sin(_dangerPulseT) * 0.5 + 0.5) * 0.25),
+                            ),
+                          ],
+                          stops: const [0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
               if (_showShieldFlash)
                 IgnorePointer(
@@ -577,7 +585,7 @@ if (_dangerMode)
                 surge: _surge,
                 balloons: _balloons,
                 particles: _particles,
-                shockwaves: _shockwaves,                
+                shockwaves: _shockwaves,
                 scoreBursts: widget.engine.juice.scoreBursts,
                 gameState: widget.gameState,
                 onTapDown: _handleTap,
