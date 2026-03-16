@@ -76,7 +76,14 @@ class TapHandler {
       final centerBias = dx.abs();
       final tapScore = dist + centerBias * 0.35;
 
-      final effectiveRadius = balloonRadius + hitForgiveness;
+      // TapJunkie: dynamic hitbox scaling based on balloon speed
+final speedFactor = (b.riseSpeedMultiplier - 1.0).clamp(0.0, 1.5);
+
+// Scale expansion (tuned for feel, not realism)
+final dynamicBonus = speedFactor * 12.0;
+
+final effectiveRadius =
+    balloonRadius + hitForgiveness + dynamicBonus;
 
       if (bestScore == null || tapScore < bestScore) {
         bestScore = tapScore;
