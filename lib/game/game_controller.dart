@@ -87,7 +87,7 @@ class GameController {
 
         gameState.log(
           'PERFECT TAP total=$_perfectHits',
-          type: DebugEventType.hit,
+          type: DebugEventType.system,
         );
       }
 
