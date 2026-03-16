@@ -29,6 +29,8 @@ class GameController {
   int _escapeCount = 0;
   int _missCount = 0;
   int _perfectHits = 0;
+  
+  DateTime? lastTapTime;  
 
   GameController({
     required this.momentum,
@@ -70,6 +72,8 @@ class GameController {
   /// Telemetry-only tap registration.
   /// Engine decides if misses end the run.
   void registerTap({required bool hit, bool perfect = false}) {
+  
+    lastTapTime = DateTime.now();
 
     // Always update momentum first
     momentum.registerTap(hit: hit);
