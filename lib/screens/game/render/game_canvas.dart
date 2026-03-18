@@ -307,44 +307,35 @@ class _GameCanvasState extends State<GameCanvas>
   }
 
   Widget _buildScoreBurstsOverlay() {
-    if (widget.scoreBursts.isEmpty) return const SizedBox.shrink();
+  if (widget.scoreBursts.isEmpty) return const SizedBox.shrink();
 
-    return IgnorePointer(
-      child: Stack(
-        children: widget.scoreBursts.map((b) {
-          final t = b.t01;
-          final rise = 44.0 * Curves.easeOut.transform(t);
-          final fade = 1.0 - Curves.easeIn.transform(t);
+  return IgnorePointer(
+    child: Stack(
+      children: widget.scoreBursts.map((b) {
+        final t = b.t01;
+        final rise = 44.0 * Curves.easeOut.transform(t);
+        final fade = 1.0 - Curves.easeIn.transform(t);
 
-          return Positioned(
-            left: b.x - 10,
-            top: (b.y - rise) - 18,
-            child: Opacity(
-             opacity: fade.clamp(0.0, 1.0),
-             child: Text(
+        return Positioned(
+          left: b.x - 10,
+          top: (b.y - rise) - 18,
+          child: Opacity(
+            opacity: fade.clamp(0.0, 1.0),
+            child: Text(
               b.isPerfect ? 'PERFECT!' : '+${b.value}',
               style: TextStyle(
-              color: b.isPerfect ? Colors.yellowAccent : _burstColor(),
-              fontSize: b.isPerfect ? 20 : 18,
-              fontWeight: FontWeight.w900,
-              shadows: _burstShadows(),
-             ),
-            ),
-           ),
-           
-                  style: TextStyle(
-                  color: _burstColor(),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  shadows: _burstShadows(),
-                ),
+                color: b.isPerfect ? Colors.yellowAccent : _burstColor(),
+                fontSize: b.isPerfect ? 20 : 18,
+                fontWeight: FontWeight.w900,
+                shadows: _burstShadows(),
               ),
             ),
-          );
-        }).toList(),
-      ),
-    );
-  }
+          ),
+        );
+      }).toList(),
+    ),
+  );
+}
 
   Widget _buildShockwaveOverlay() {
   if (widget.shockwaves.isEmpty) return const SizedBox.shrink();
