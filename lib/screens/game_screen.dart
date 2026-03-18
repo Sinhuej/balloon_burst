@@ -403,7 +403,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
 // 💥 TapJunkie Miss Popup (SAFE)
 final missCount = _controller.missCount;
-final p = details.localPosition;
 
 // escalating feedback
 int displayValue = -1;

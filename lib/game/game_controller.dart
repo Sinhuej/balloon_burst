@@ -74,6 +74,55 @@ class GameController {
   /// Telemetry-only tap registration.
   /// Engine decides if misses end the run.
   void registerTap({required bool hit, bool perfect = false}) {
+
+  lastTapTime = DateTime.now();
+
+  // Always update momentum first
+  momentum.registerTap(hit: hit);
+
+  // Log accuracy telemetry
+  gameState.log(
+    'ACCURACY: a01=${momentum.accuracy01.toStringAsFixed(3)}',
+    type: DebugEventType.accuracy,
+  );
+
+  if (hit) {
+
+    if (perfect) {
+      _perfectHits++;
+      _perfectChain++;
+
+      gameState.log(
+        'PERFECT TAP total=$_perfectHits chain=$_perfectChain',
+        type: DebugEventType.system,
+      );
+
+      if (_perfectChain == 3 ||
+          _perfectChain == 5 ||
+          _perfectChain == 10 ||
+          _perfectChain == 20) {
+
+        gameState.log(
+          'PERFECT CHAIN x$_perfectChain',
+          type: DebugEventType.system,
+        );
+      }
+
+    } else {
+      _perfectChain = 0;
+    }
+
+  } else {
+
+    _perfectChain = 0;
+    _missCount++;
+
+    gameState.log(
+      'MISS: count=$_missCount',
+      type: DebugEventType.miss,
+    );
+  }
+}
   
     lastTapTime = DateTime.now();
 

@@ -17,7 +17,7 @@ class BalloonSpawner {
 
   int _lastLoggedWorld = 1;
 
-  const Duration mercyWindow = Duration(milliseconds: 120);
+  final Duration mercyWindow = const Duration(milliseconds: 120);
 
   // 🔒 Wave control (current design: one wave at a time)
   bool _waveActive = false;
