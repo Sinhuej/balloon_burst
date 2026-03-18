@@ -30,9 +30,8 @@ class GameController {
   int _missCount = 0;
   int _perfectHits = 0;
   int _perfectChain = 0;
-  int get perfectChain => _perfectChain;
 
-    DateTime? lastTapTime;  
+  DateTime? lastTapTime;
 
   GameController({
     required this.momentum,
@@ -41,27 +40,20 @@ class GameController {
     required this.gameState,
   });
 
-  /// Telemetry values (read-only)
+  /// Read-only telemetry
   int get escapeCount => _escapeCount;
   int get missCount => _missCount;
   int get perfectHits => _perfectHits;
+  int get perfectChain => _perfectChain;
 
-  /// -----------------------
-  /// Telemetry (read-only)
-  /// -----------------------
   double get accuracy01 => momentum.accuracy01;
 
   void update(List<Balloon> balloons, double dt) {
     momentum.update(dt);
-
-    // Tier update
     tier.update(dt);
-
     gameState.framesSinceStart++;
   }
 
-  /// Telemetry-only escape registration.
-  /// Engine decides if escapes end the run.
   void registerEscapes(int count) {
     _escapeCount += count;
 
@@ -71,110 +63,49 @@ class GameController {
     );
   }
 
-  /// Telemetry-only tap registration.
-  /// Engine decides if misses end the run.
   void registerTap({required bool hit, bool perfect = false}) {
-
-  lastTapTime = DateTime.now();
-
-  // Always update momentum first
-  momentum.registerTap(hit: hit);
-
-  // Log accuracy telemetry
-  gameState.log(
-    'ACCURACY: a01=${momentum.accuracy01.toStringAsFixed(3)}',
-    type: DebugEventType.accuracy,
-  );
-
-  if (hit) {
-
-    if (perfect) {
-      _perfectHits++;
-      _perfectChain++;
-
-      gameState.log(
-        'PERFECT TAP total=$_perfectHits chain=$_perfectChain',
-        type: DebugEventType.system,
-      );
-
-      if (_perfectChain == 3 ||
-          _perfectChain == 5 ||
-          _perfectChain == 10 ||
-          _perfectChain == 20) {
-
-        gameState.log(
-          'PERFECT CHAIN x$_perfectChain',
-          type: DebugEventType.system,
-        );
-      }
-
-    } else {
-      _perfectChain = 0;
-    }
-
-  } else {
-
-    _perfectChain = 0;
-    _missCount++;
-
-    gameState.log(
-      'MISS: count=$_missCount',
-      type: DebugEventType.miss,
-    );
-  }
-}
-  
     lastTapTime = DateTime.now();
 
-    // Always update momentum first
     momentum.registerTap(hit: hit);
 
-    // Log accuracy telemetry
     gameState.log(
       'ACCURACY: a01=${momentum.accuracy01.toStringAsFixed(3)}',
       type: DebugEventType.accuracy,
     );
 
     if (hit) {
+      if (perfect) {
+        _perfectHits++;
+        _perfectChain++;
 
-  if (perfect) {
-    _perfectHits++;
-    _perfectChain++;
+        gameState.log(
+          'PERFECT TAP total=$_perfectHits chain=$_perfectChain',
+          type: DebugEventType.system,
+        );
 
-    gameState.log(
-      'PERFECT TAP total=$_perfectHits chain=$_perfectChain',
-      type: DebugEventType.system,
-    );
-
-    // TapJunkie milestone moments (no rewards yet)
-    if (_perfectChain == 3 ||
-        _perfectChain == 5 ||
-        _perfectChain == 10 ||
-        _perfectChain == 20) {
+        if (_perfectChain == 3 ||
+            _perfectChain == 5 ||
+            _perfectChain == 10 ||
+            _perfectChain == 20) {
+          gameState.log(
+            'PERFECT CHAIN x$_perfectChain',
+            type: DebugEventType.system,
+          );
+        }
+      } else {
+        _perfectChain = 0;
+      }
+    } else {
+      _perfectChain = 0;
+      _missCount++;
 
       gameState.log(
-        'PERFECT CHAIN x$_perfectChain',
-        type: DebugEventType.system,
+        'MISS: count=$_missCount',
+        type: DebugEventType.miss,
       );
     }
-
-  } else {
-    _perfectChain = 0;
   }
 
-} else {
-
-  _perfectChain = 0;
-  _missCount++;
-
-  gameState.log(
-    'MISS: count=$_missCount',
-    type: DebugEventType.miss,
-  );
-}
-
-  /// Reset only telemetry + controllers.
-  /// Run lifecycle reset is owned by TJ Engine.
   void reset() {
     _escapeCount = 0;
     _missCount = 0;
