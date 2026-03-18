@@ -363,7 +363,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
 
       // 💥 Perfect Tap Juice Detection (SAFE)
-final currentPerfects = _controller.perfectHits;
 
 if (currentPerfects > _lastPerfectCount) {
   _lastPerfectCount = currentPerfects;
