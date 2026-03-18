@@ -55,7 +55,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final AnimationController _walletPulse;
   late final Animation<double> _walletScale;
   int _lastWalletBalance = 0;
-  int _lastPerfectCount = 0;
 
   final List<Balloon> _balloons = [];
   final List<PopParticle> _particles = [];
@@ -364,9 +363,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       // 💥 Perfect Tap Juice Detection (SAFE)
 
-if (currentPerfects > _lastPerfectCount) {
-  _lastPerfectCount = currentPerfects;
-
   // micro slow-mo
   _lastTime -= const Duration(milliseconds: 60);
 
@@ -433,13 +429,14 @@ return;
 
     final p = details.localPosition;
 
-    final currentPerfects = _controller.perfectHits;
+final p = details.localPosition;
 
+// TEMP: treat every successful hit as "perfect enough" for now
 widget.engine.juice.spawnScoreBurst(
   x: p.dx,
   y: p.dy,
   value: 1,
-  isPerfect: currentPerfects > 0, // safe heuristic (we’ll refine later)
+  isPerfect: true,
 );
 
     _particles.addAll(
