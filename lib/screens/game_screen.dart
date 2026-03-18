@@ -434,11 +434,14 @@ return;
 
     final p = details.localPosition;
 
-    widget.engine.juice.spawnScoreBurst(
-      x: p.dx,
-      y: p.dy,
-      value: 1,
-    );
+    final currentPerfects = _controller.perfectHits;
+
+widget.engine.juice.spawnScoreBurst(
+  x: p.dx,
+  y: p.dy,
+  value: 1,
+  isPerfect: currentPerfects > 0, // safe heuristic (we’ll refine later)
+);
 
     _particles.addAll(
       PopParticle.burst(p.dx, p.dy),

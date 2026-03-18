@@ -322,7 +322,14 @@ class _GameCanvasState extends State<GameCanvas>
             child: Opacity(
               opacity: fade.clamp(0.0, 1.0),
               child: Text(
-                '+${b.value}',
+  b.isPerfect ? 'PERFECT!' : '+${b.value}',
+  style: TextStyle(
+    color: b.isPerfect ? Colors.yellowAccent : _burstColor(),
+    fontSize: b.isPerfect ? 20 : 18,
+    fontWeight: FontWeight.w900,
+    shadows: _burstShadows(),
+  ),
+),
                 style: TextStyle(
                   color: _burstColor(),
                   fontSize: 18,

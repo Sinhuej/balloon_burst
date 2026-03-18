@@ -24,14 +24,17 @@ class ScoreBurst {
   /// Lifetime in seconds.
   final double lifetimeS;
 
-  const ScoreBurst({
-    required this.id,
-    required this.x,
-    required this.y,
-    required this.value,
-    required this.ageS,
-    required this.lifetimeS,
-  });
+  final bool isPerfect;
+
+const ScoreBurst({
+  required this.id,
+  required this.x,
+  required this.y,
+  required this.value,
+  required this.ageS,
+  required this.lifetimeS,
+  this.isPerfect = false,
+});
 
   double get t01 {
     if (lifetimeS <= 0) return 1.0;
@@ -44,11 +47,12 @@ class ScoreBurst {
   bool get isAlive => ageS < lifetimeS;
 
   ScoreBurst advanced(double dt) => ScoreBurst(
-        id: id,
-        x: x,
-        y: y,
-        value: value,
-        ageS: ageS + dt,
-        lifetimeS: lifetimeS,
-      );
+  id: id,
+  x: x,
+  y: y,
+  value: value,
+  ageS: ageS + dt,
+  lifetimeS: lifetimeS,
+  isPerfect: isPerfect,
+ );
 }

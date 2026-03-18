@@ -43,24 +43,26 @@ class JuiceManager {
   ///
   /// x/y are screen-space pixels (from TapDownDetails.localPosition).
   void spawnScoreBurst({
-    required double x,
-    required double y,
-    int value = 1,
-  }) {
+  required double x,
+  required double y,
+  int value = 1,
+  bool isPerfect = false,
+ }) {
     final id = 'sb_${_idCounter++}';
 
     // Lifetime tuning: quick and snappy.
     const lifetimeS = 0.70;
 
     _scoreBursts.add(
-      ScoreBurst(
-        id: id,
-        x: x,
-        y: y,
-        value: value,
-        ageS: 0.0,
-        lifetimeS: lifetimeS,
-      ),
-    );
+  ScoreBurst(
+    id: id,
+    x: x,
+    y: y,
+    value: value,
+    ageS: 0.0,
+    lifetimeS: lifetimeS,
+    isPerfect: isPerfect,
+   ),
+  );
   }
 }
