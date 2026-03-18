@@ -404,20 +404,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 // 💥 TapJunkie Miss Popup (SAFE)
 final missCount = _controller.missCount;
 
-// escalating feedback
-int displayValue = -1;
-
-if (missCount >= 5) {
-  displayValue = -2;
-}
-if (missCount >= 8) {
-  displayValue = -3;
-}
-
+// 💥 TapJunkie MISS FEEDBACK (neutral, no fake coin loss)
 widget.engine.juice.spawnScoreBurst(
   x: p.dx,
   y: p.dy,
-  value: displayValue,
+  value: 0,
 );
 
 return;
