@@ -339,132 +339,77 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return 0;
   }
 
-  void _handleTap(TapDownDetails details) {
-    if (_showIntro) return;
-    if (_isRunEnded || !_canCountMisses) return;
+ void _handleTap(TapDownDetails details) {
+  if (_showIntro) return;
+  if (_isRunEnded || !_canCountMisses) return;
 
-    final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
-    final missesBefore = _controller.missCount;
+  final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
+  final missesBefore = _controller.missCount;
 
-    widget.engine.input.registerTap();
-    widget.gameState.tapPulse = true;
+  widget.engine.input.registerTap();
+  widget.gameState.tapPulse = true;
 
-    TapHandler.handleTap(
-      details: details,
-      lastSize: _lastSize,
-      balloons: _balloons,
-      gameState: widget.gameState,
-      spawner: widget.spawner,
-      controller: _controller,
-      surge: _surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
-    );
+  TapHandler.handleTap(
+    details: details,
+    lastSize: _lastSize,
+    balloons: _balloons,
+    gameState: widget.gameState,
+    spawner: widget.spawner,
+    controller: _controller,
+    surge: _surge,
+    balloonRadius: balloonRadius,
+    hitForgiveness: hitForgiveness,
+  );
 
-      // 💥 Perfect Tap Juice Detection (SAFE)
+  final missesAfter = _controller.missCount;
 
-  // micro slow-mo
-  _lastTime -= const Duration(milliseconds: 60);
-
-  // subtle impact
-  _popShake = 8.0;
-}
-
-    final missesAfter = _controller.missCount;
-
-    // Near-miss spark detection
-    if (missesAfter > missesBefore) {
-      final p = details.localPosition;
-
-      for (final b in _balloons) {
-        if (b.isPopped) continue;
-
-        final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
-        final by = b.y;
-
-        final dx = p.dx - bx;
-        final dy = p.dy - by;
-
-        final dist = sqrt(dx * dx + dy * dy);
-
-        if (dist < balloonRadius + 32 && dist > balloonRadius) {
-          _particles.addAll(
-            PopParticle.burst(p.dx, p.dy)
-                .map((p) => PopParticle(
-                      x: p.x,
-                      y: p.y,
-                      vx: p.vx * 0.45,
-                      vy: p.vy * 0.45,
-                      age: p.age,
-                      life: 0.18,
-                      color: Colors.white,
-                    ))
-                .toList(),
-          );
-
-          break;
-        }
-      }
-
-      if (!_reviveProtectionActive) {
-  widget.engine.runLifecycle.report(const MissEvent());
-}
-
-// 💥 TapJunkie Miss Popup (SAFE)
-final missCount = _controller.missCount;
-
-// 💥 TapJunkie MISS FEEDBACK (neutral, no fake coin loss)
-widget.engine.juice.spawnScoreBurst(
-  x: p.dx,
-  y: p.dy,
-  value: 0,
-);
-
-return;
+  // MISS DETECTED → exit early (no score burst)
+  if (missesAfter > missesBefore) {
+    if (!_reviveProtectionActive) {
+      widget.engine.runLifecycle.report(const MissEvent());
     }
-
-    widget.engine.runLifecycle.report(PopEvent(points: 1));
-
-    AudioPlayerService.playPop();
-
-    final p = details.localPosition;
-
-final p = details.localPosition;
-
-// TEMP: treat every successful hit as "perfect enough" for now
-widget.engine.juice.spawnScoreBurst(
-  x: p.dx,
-  y: p.dy,
-  value: 1,
-  isPerfect: true,
-);
-
-    _particles.addAll(
-      PopParticle.burst(p.dx, p.dy),
-    );
-
-    _shockwaves.add(
-      PopShockwave(
-        x: p.dx,
-        y: p.dy,
-        age: 0,
-        life: 0.35,
-      ),
-    );
-
-    _popShake = 6.0;
-
-    // micro time dilation for juicy impact
-    _lastTime -= const Duration(milliseconds: 8);
-
-    final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
-    final prevMilestone = _milestoneForStreak(prevStreak);
-    final nextMilestone = _milestoneForStreak(nextStreak);
-
-    if (nextMilestone > prevMilestone) {
-      AudioPlayerService.playStreakMilestone(nextMilestone);
-    }
+    return;
   }
+
+  // SUCCESSFUL HIT
+  widget.engine.runLifecycle.report(PopEvent(points: 1));
+
+  AudioPlayerService.playPop();
+
+  final p = details.localPosition;
+
+  widget.engine.juice.spawnScoreBurst(
+    x: p.dx,
+    y: p.dy,
+    value: 1,
+    isPerfect: true, // temporary (safe)
+  );
+
+  _particles.addAll(
+    PopParticle.burst(p.dx, p.dy),
+  );
+
+  _shockwaves.add(
+    PopShockwave(
+      x: p.dx,
+      y: p.dy,
+      age: 0,
+      life: 0.35,
+    ),
+  );
+
+  _popShake = 6.0;
+
+  _lastTime -= const Duration(milliseconds: 8);
+
+  final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
+  final prevMilestone = _milestoneForStreak(prevStreak);
+  final nextMilestone = _milestoneForStreak(nextStreak);
+
+  if (nextMilestone > prevMilestone) {
+    AudioPlayerService.playStreakMilestone(nextMilestone);
+  }
+}
 
   void _handleLongPress() {
     if (_showIntro) return;
