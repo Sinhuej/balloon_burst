@@ -351,20 +351,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     widget.gameState.tapPulse = true;
 
     TapHandler.handleTap(
-      // 💥 Perfect Tap Juice Detection
-final currentPerfects = _controller.perfectHits;
-
-if (currentPerfects > _lastPerfectCount) {
-  _lastPerfectCount = currentPerfects;
-
-  // micro slow-mo (TapJunkie juice)
-  _lastTime -= const Duration(milliseconds: 60);
-
-  // tiny extra impact
-  _popShake = 8.0;
-}
- 
-     details: details,
+      details: details,
       lastSize: _lastSize,
       balloons: _balloons,
       gameState: widget.gameState,
@@ -374,6 +361,19 @@ if (currentPerfects > _lastPerfectCount) {
       balloonRadius: balloonRadius,
       hitForgiveness: hitForgiveness,
     );
+
+      // 💥 Perfect Tap Juice Detection (SAFE)
+final currentPerfects = _controller.perfectHits;
+
+if (currentPerfects > _lastPerfectCount) {
+  _lastPerfectCount = currentPerfects;
+
+  // micro slow-mo
+  _lastTime -= const Duration(milliseconds: 60);
+
+  // subtle impact
+  _popShake = 8.0;
+}
 
     final missesAfter = _controller.missCount;
 
