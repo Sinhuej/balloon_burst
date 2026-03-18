@@ -365,11 +365,44 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   // MISS DETECTED → exit early (no score burst)
   if (missesAfter > missesBefore) {
-    if (!_reviveProtectionActive) {
-      widget.engine.runLifecycle.report(const MissEvent());
+  final p = details.localPosition;
+
+  // 🔥 RESTORE near-miss spark effect
+  for (final b in _balloons) {
+    if (b.isPopped) continue;
+
+    final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
+    final by = b.y;
+
+    final dx = p.dx - bx;
+    final dy = p.dy - by;
+
+    final dist = sqrt(dx * dx + dy * dy);
+
+    if (dist < balloonRadius + 32 && dist > balloonRadius) {
+      _particles.addAll(
+        PopParticle.burst(p.dx, p.dy)
+            .map((p) => PopParticle(
+                  x: p.x,
+                  y: p.y,
+                  vx: p.vx * 0.45,
+                  vy: p.vy * 0.45,
+                  age: p.age,
+                  life: 0.18,
+                  color: Colors.white,
+                ))
+            .toList(),
+      );
+      break;
     }
-    return;
   }
+
+  if (!_reviveProtectionActive) {
+    widget.engine.runLifecycle.report(const MissEvent());
+  }
+
+  return;
+}
 
   // SUCCESSFUL HIT
   widget.engine.runLifecycle.report(PopEvent(points: 1));
@@ -382,7 +415,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     x: p.dx,
     y: p.dy,
     value: 1,
-    isPerfect: true, // temporary (safe)
+    isPerfect: false, // temporary (safe)
   );
 
   _particles.addAll(
