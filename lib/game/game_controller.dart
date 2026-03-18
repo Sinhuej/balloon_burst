@@ -29,8 +29,10 @@ class GameController {
   int _escapeCount = 0;
   int _missCount = 0;
   int _perfectHits = 0;
-  
-  DateTime? lastTapTime;  
+  int _perfectChain = 0;
+  int get perfectChain => _perfectChain;
+
+    DateTime? lastTapTime;  
 
   GameController({
     required this.momentum,
@@ -86,25 +88,41 @@ class GameController {
 
     if (hit) {
 
-      if (perfect) {
-        _perfectHits++;
+  if (perfect) {
+    _perfectHits++;
+    _perfectChain++;
 
-        gameState.log(
-          'PERFECT TAP total=$_perfectHits',
-          type: DebugEventType.system,
-        );
-      }
+    gameState.log(
+      'PERFECT TAP total=$_perfectHits chain=$_perfectChain',
+      type: DebugEventType.system,
+    );
 
-    } else {
-
-      _missCount++;
+    // TapJunkie milestone moments (no rewards yet)
+    if (_perfectChain == 3 ||
+        _perfectChain == 5 ||
+        _perfectChain == 10 ||
+        _perfectChain == 20) {
 
       gameState.log(
-        'MISS: count=$_missCount',
-        type: DebugEventType.miss,
+        'PERFECT CHAIN x$_perfectChain',
+        type: DebugEventType.system,
       );
     }
+
+  } else {
+    _perfectChain = 0;
   }
+
+} else {
+
+  _perfectChain = 0;
+  _missCount++;
+
+  gameState.log(
+    'MISS: count=$_missCount',
+    type: DebugEventType.miss,
+  );
+}
 
   /// Reset only telemetry + controllers.
   /// Run lifecycle reset is owned by TJ Engine.
@@ -112,6 +130,7 @@ class GameController {
     _escapeCount = 0;
     _missCount = 0;
     _perfectHits = 0;
+    _perfectChain = 0;
 
     momentum.reset();
     tier.reset();
