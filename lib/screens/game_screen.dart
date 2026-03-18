@@ -55,6 +55,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final AnimationController _walletPulse;
   late final Animation<double> _walletScale;
   int _lastWalletBalance = 0;
+  int _lastPerfectCount = 0;
 
   final List<Balloon> _balloons = [];
   final List<PopParticle> _particles = [];
@@ -350,7 +351,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     widget.gameState.tapPulse = true;
 
     TapHandler.handleTap(
-      details: details,
+      // 💥 Perfect Tap Juice Detection
+final currentPerfects = _controller.perfectHits;
+
+if (currentPerfects > _lastPerfectCount) {
+  _lastPerfectCount = currentPerfects;
+
+  // micro slow-mo (TapJunkie juice)
+  _lastTime -= const Duration(milliseconds: 60);
+
+  // tiny extra impact
+  _popShake = 8.0;
+}
+ 
+     details: details,
       lastSize: _lastSize,
       balloons: _balloons,
       gameState: widget.gameState,
