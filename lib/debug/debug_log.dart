@@ -24,13 +24,13 @@ class DebugLog {
     DebugEventType.world,
     DebugEventType.speed,
     DebugEventType.system,
-    DebugEventType.accuracy,  
-};
+    DebugEventType.accuracy,
+  };
 
-  // ✅ CI EXPECTS THIS
   bool get debugFrozen => _debugFrozen;
 
-  List<String> get logs => _logs.toList();
+  // ✅ CRITICAL FIX: no more per-frame list allocation
+  ListQueue<String> get logs => _logs;
 
   void log(
     String message, {
@@ -51,6 +51,7 @@ class DebugLog {
 
   void toggleFreeze() {
     _debugFrozen = !_debugFrozen;
+
     log(
       _debugFrozen
           ? 'SYSTEM: logging frozen'
