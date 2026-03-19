@@ -363,79 +363,77 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   final missesAfter = _controller.missCount;
 
-  // MISS DETECTED → exit early (no score burst)
   if (missesAfter > missesBefore) {
-  final p = details.localPosition;
+    final p = details.localPosition;
 
-  // 🔥 RESTORE near-miss spark effect
-  for (final b in _balloons) {
-    if (b.isPopped) continue;
+    for (final b in _balloons) {
+      if (b.isPopped) continue;
 
-    final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
-    final by = b.y;
+      final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
+      final by = b.y;
 
-    final dx = p.dx - bx;
-    final dy = p.dy - by;
+      final dx = p.dx - bx;
+      final dy = p.dy - by;
+      final dist = sqrt(dx * dx + dy * dy);
 
-    final dist = sqrt(dx * dx + dy * dy);
-
-    if (dist < balloonRadius + 32 && dist > balloonRadius) {
-      _particles.addAll(
-        PopParticle.burst(p.dx, p.dy)
-            .map((p) => PopParticle(
-                  x: p.x,
-                  y: p.y,
-                  vx: p.vx * 0.45,
-                  vy: p.vy * 0.45,
-                  age: p.age,
-                  life: 0.18,
-                  color: Colors.white,
-                ))
-            .toList(),
-      );
-      break;
+      if (dist < balloonRadius + 32 && dist > balloonRadius) {
+        _particles.addAll(
+          PopParticle.burst(p.dx, p.dy)
+              .map((p) => PopParticle(
+                    x: p.x,
+                    y: p.y,
+                    vx: p.vx * 0.45,
+                    vy: p.vy * 0.45,
+                    age: p.age,
+                    life: 0.18,
+                    color: Colors.white,
+                  ))
+              .toList(),
+        );
+        break;
+      }
     }
+
+    if (!_reviveProtectionActive) {
+      widget.engine.runLifecycle.report(const MissEvent());
+    }
+
+    return;
   }
 
-  if (!_reviveProtectionActive) {
-    widget.engine.runLifecycle.report(const MissEvent());
-  }
-
-  return;
-}
-
-  // SUCCESSFUL HIT
   widget.engine.runLifecycle.report(PopEvent(points: 1));
 
   Future.microtask(() {
-  AudioPlayerService.playPop();
-});
+    AudioPlayerService.playPop();
+  });
 
   final p = details.localPosition;
 
-  //widget.engine.juice.spawnScoreBurst(
-  //x: p.dx,
-  //y: p.dy,
-  //value: 1,
-  //isPerfect: _controller.lastTapPerfect,
-//);
+  widget.engine.juice.spawnScoreBurst(
+    x: p.dx,
+    y: p.dy,
+    value: 1,
+    isPerfect: _controller.lastTapPerfect,
+  );
 
-//  _particles.addAll(
-//    PopParticle.burst(p.dx, p.dy),
-//  );
+  _particles.addAll(
+    PopParticle.burst(p.dx, p.dy),
+  );
 
-//  _shockwaves.add(
-//    PopShockwave(
-//      x: p.dx,
-//      y: p.dy,
-//      age: 0,
-//      life: 0.35,
-//    ),
-//  );
+  _shockwaves.add(
+    PopShockwave(
+      x: p.dx,
+      y: p.dy,
+      age: 0,
+      life: 0.35,
+    ),
+  );
 
-  _popShake = 6.0;
+  _popShake = _controller.lastTapPerfect ? 10.0 : 6.0;
 
-  _lastTime -= const Duration(milliseconds: 8);
+  _lastTime -= _controller.lastTapPerfect
+      ? const Duration(milliseconds: 90)
+      : const Duration(milliseconds: 8);
 
   final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
   final prevMilestone = _milestoneForStreak(prevStreak);
