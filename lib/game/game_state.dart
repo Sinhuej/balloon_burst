@@ -28,7 +28,7 @@ class GameState {
   // 🔑 DEBUG LOG FORWARDING
   // -------------------------------
 
-  List<String> get debugLogs => DebugLog.instance.logs;
+  List<String> get debugLogs => DebugLog.instance.logs.toList();
   bool get debugFrozen => DebugLog.instance.debugFrozen;
   Set<DebugEventType> get enabledFilters =>
       DebugLog.instance.enabledFilters;
