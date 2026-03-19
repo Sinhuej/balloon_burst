@@ -302,13 +302,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _dangerPulseT = 0.0;
     }
 
-    _surge.maybeTrigger(
-      totalPops: widget.spawner.totalPops,
-      currentWorld: widget.spawner.currentWorld,
-      world2Pops: BalloonSpawner.world2Pops,
-      world3Pops: BalloonSpawner.world3Pops,
-      world4Pops: BalloonSpawner.world4Pops,
-    );
+ //   _surge.maybeTrigger(
+ //     totalPops: widget.spawner.totalPops,
+ //     currentWorld: widget.spawner.currentWorld,
+ //     world2Pops: BalloonSpawner.world2Pops,
+ //     world3Pops: BalloonSpawner.world3Pops,
+ //     world4Pops: BalloonSpawner.world4Pops,
+ //   );
 
     setState(() {});
   }
@@ -413,25 +413,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   final p = details.localPosition;
 
-  widget.engine.juice.spawnScoreBurst(
-  x: p.dx,
-  y: p.dy,
-  value: 1,
-  isPerfect: _controller.lastTapPerfect,
-);
+  //widget.engine.juice.spawnScoreBurst(
+  //x: p.dx,
+  //y: p.dy,
+  //value: 1,
+  //isPerfect: _controller.lastTapPerfect,
+//);
 
-  _particles.addAll(
-    PopParticle.burst(p.dx, p.dy),
-  );
+//  _particles.addAll(
+//    PopParticle.burst(p.dx, p.dy),
+//  );
 
-  _shockwaves.add(
-    PopShockwave(
-      x: p.dx,
-      y: p.dy,
-      age: 0,
-      life: 0.35,
-    ),
-  );
+//  _shockwaves.add(
+//    PopShockwave(
+//      x: p.dx,
+//      y: p.dy,
+//      age: 0,
+//      life: 0.35,
+//    ),
+//  );
 
   _popShake = 6.0;
 
