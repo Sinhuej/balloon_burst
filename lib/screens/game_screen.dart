@@ -412,11 +412,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final p = details.localPosition;
 
   widget.engine.juice.spawnScoreBurst(
-    x: p.dx,
-    y: p.dy,
-    value: 1,
-    isPerfect: false, // temporary (safe)
-  );
+  x: p.dx,
+  y: p.dy,
+  value: 1,
+  isPerfect: _controller.lastTapPerfect,
+);
 
   _particles.addAll(
     PopParticle.burst(p.dx, p.dy),

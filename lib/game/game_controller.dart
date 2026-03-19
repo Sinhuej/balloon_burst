@@ -30,6 +30,7 @@ class GameController {
   int _missCount = 0;
   int _perfectHits = 0;
   int _perfectChain = 0;
+  bool _lastTapPerfect = false;  
 
   DateTime? lastTapTime;
 
@@ -45,6 +46,7 @@ class GameController {
   int get missCount => _missCount;
   int get perfectHits => _perfectHits;
   int get perfectChain => _perfectChain;
+  bool get lastTapPerfect => _lastTapPerfect;
 
   double get accuracy01 => momentum.accuracy01;
 
@@ -111,6 +113,7 @@ class GameController {
     _missCount = 0;
     _perfectHits = 0;
     _perfectChain = 0;
+    _lastTapPerfect = false;
 
     momentum.reset();
     tier.reset();

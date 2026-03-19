@@ -60,6 +60,11 @@ class TapHandler {
 
     double? bestScore;
 
+    int? bestHitIndex;
+    Balloon? bestHitBalloon;
+    double? bestHitDist;
+    double? bestHitScore; // ✅ ADD THIS
+
     for (int i = 0; i < balloons.length; i++) {
 
       final b = balloons[i];
@@ -77,7 +82,7 @@ class TapHandler {
       final tapScore = dist + centerBias * 0.35;
 
       // TapJunkie: dynamic hitbox scaling based on balloon speed
-final speedFactor = (b.riseSpeedMultiplier - 1.0).clamp(0.0, 1.5);
+      final speedFactor = (b.riseSpeedMultiplier - 1.0).clamp(0.0, 1.5);
 
 // Scale expansion (tuned for feel, not realism)
 final dynamicBonus = speedFactor * 12.0;
@@ -94,33 +99,40 @@ final effectiveRadius =
         closestBy = by;
       }
 
-      if (dist <= effectiveRadius) {
-
-        balloons[i] = b.pop();
-
-        if (dist <= balloonRadius * 0.45) {
-          perfectHit = true;
-          gameState.log(
-            'PERFECT HIT dist=${dist.toStringAsFixed(1)}'
-          );
-        }
-
-        AudioPlayerService.playPop();
-
-        spawner.registerPop(gameState);
-
-        surge.maybeTrigger(
-          totalPops: spawner.totalPops,
-          currentWorld: spawner.currentWorld,
-          world2Pops: BalloonSpawner.world2Pops,
-          world3Pops: BalloonSpawner.world3Pops,
-          world4Pops: BalloonSpawner.world4Pops,
-        );
-
-        hit = true;
-        break;
-      }
+if (dist <= effectiveRadius) {
+  if (bestHitScore == null || tapScore < bestHitScore) {
+    bestHitScore = tapScore;
+    bestHitIndex = i;
+    bestHitBalloon = b;
+    bestHitDist = dist;
+  }
+}
     }
+
+    if (bestHitIndex != null && bestHitBalloon != null) {
+  balloons[bestHitIndex!] = bestHitBalloon!.pop();
+
+  if (bestHitDist != null && bestHitDist! <= balloonRadius * 0.45) {
+    perfectHit = true;
+    gameState.log(
+      'PERFECT HIT dist=${bestHitDist!.toStringAsFixed(1)}',
+    );
+  }
+
+  AudioPlayerService.playPop();
+
+  spawner.registerPop(gameState);
+
+  surge.maybeTrigger(
+    totalPops: spawner.totalPops,
+    currentWorld: spawner.currentWorld,
+    world2Pops: BalloonSpawner.world2Pops,
+    world3Pops: BalloonSpawner.world3Pops,
+    world4Pops: BalloonSpawner.world4Pops,
+  );
+
+  hit = true;
+}
 
     if (!hit) {
 

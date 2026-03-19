@@ -46,7 +46,7 @@ class RunLifecycleManager {
   int _currentWorldLevel = 1;
   int _maxWorldLevelReached = 1;
 
-  double _accuracy01 = 1.0;
+  double _accuracy01 = 0.0;
 
   EndReason? _endReason;
   RunSummary? _latestSummary;
@@ -99,6 +99,10 @@ class RunLifecycleManager {
     _shield.activateIfPending();
   }
 
+  void _recomputeAccuracy() {
+  _recomputeAccuracy();
+}
+
   void report(RunEvent event) {
     if (_state != RunState.running) return;
 
@@ -106,8 +110,7 @@ class RunLifecycleManager {
       _pops++;
       _score += event.points;
 
-      final attempts = _pops + _misses;
-      _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
+      _recomputeAccuracy();
 
       _streak++;
       if (_streak > _bestStreak) _bestStreak = _streak;
@@ -139,6 +142,8 @@ class RunLifecycleManager {
 
       _escapes += event.count;
       if (event.count > 0) _streak = 0;
+            
+      _recomputeAccuracy();      
 
       if (_escapes >= 3) {
         endRun(EndReason.escapeLimit);
