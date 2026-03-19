@@ -434,10 +434,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   _popShake = _controller.lastTapPerfect ? 10.0 : 6.0;
 
-  _lastTime -= _controller.lastTapPerfect
-      ? const Duration(milliseconds: 90)
-      : const Duration(milliseconds: 8);
-
   final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
   final prevMilestone = _milestoneForStreak(prevStreak);
   final nextMilestone = _milestoneForStreak(nextStreak);
