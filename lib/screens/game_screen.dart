@@ -407,7 +407,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   // SUCCESSFUL HIT
   widget.engine.runLifecycle.report(PopEvent(points: 1));
 
+  Future.microtask(() {
   AudioPlayerService.playPop();
+});
 
   final p = details.localPosition;
 

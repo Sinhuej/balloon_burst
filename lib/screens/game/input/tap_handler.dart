@@ -119,7 +119,9 @@ if (dist <= effectiveRadius) {
     );
   }
 
+  Future.microtask(() {
   AudioPlayerService.playPop();
+});
 
   spawner.registerPop(gameState);
 
