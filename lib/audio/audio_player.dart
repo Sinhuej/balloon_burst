@@ -1,15 +1,14 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'dart:math';
+
+import 'package:audioplayers/audioplayers.dart';
 
 class AudioPlayerService {
   static bool _muted = false;
 
-  /// Injected at runtime by UI/engine load.
   static void setMuted(bool value) {
     _muted = value;
   }
 
-  /// Shared game audio context
   static final AudioContext _gameAudioContext = AudioContext(
     android: AudioContextAndroid(
       usageType: AndroidUsageType.game,
@@ -39,13 +38,7 @@ class AudioPlayerService {
 
     try {
       final player = _coinPlayers[_coinIndex];
-
-      _coinIndex++;
-      if (_coinIndex >= _coinPoolSize) {
-        _coinIndex = 0;
-      }
-
-      await player.stop();
+      _coinIndex = (_coinIndex + 1) % _coinPoolSize;
 
       await player.play(
         AssetSource('audio/coin.wav'),
@@ -58,7 +51,7 @@ class AudioPlayerService {
     final steps = (amount / 20).clamp(3, 6).round();
 
     for (int i = 0; i < steps; i++) {
-      Future.delayed(const Duration(milliseconds: 80) * i, () {
+      Future.delayed(Duration(milliseconds: 80 * i), () {
         playCoin();
       });
     }
@@ -71,55 +64,40 @@ class AudioPlayerService {
 
   static int _popIndex = 0;
 
-  // 🔔 World surge cue
   static final AudioPlayer _surgePlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
-  // 🏁 Milestone cue
   static final AudioPlayer _milestonePlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
-  // 🛡 Shield break cue
   static final AudioPlayer _shieldPlayer = AudioPlayer()
     ..setAudioContext(_gameAudioContext);
 
-  /// Balloon pop (rapid overlapping instances)
   static Future<void> playPop() async {
-  if (_muted) return;
+    if (_muted) return;
 
-  try {
-    final player = _popPlayers[_popIndex];
+    try {
+      final player = _popPlayers[_popIndex];
+      _popIndex = (_popIndex + 1) % _popPoolSize;
 
-    _popIndex++;
-    if (_popIndex >= _popPoolSize) {
-      _popIndex = 0;
+      final pops = [
+        'audio/pop_low.wav',
+        'audio/pop_mid.wav',
+        'audio/pop_high.wav',
+      ];
+
+      final asset = pops[Random().nextInt(pops.length)];
+      final volume = 0.9 + Random().nextDouble() * 0.2;
+
+      await player.play(
+        AssetSource(asset),
+        volume: volume,
+      );
+    } catch (_) {
+      // never block gameplay
     }
-
-    final pops = [
-      'audio/pop_low.wav',
-      'audio/pop_mid.wav',
-      'audio/pop_high.wav',
-    ];
-
-    final asset = pops[Random().nextInt(pops.length)];
-
-    final volume = 0.9 + Random().nextDouble() * 0.2;
-
-    await player.stop();
-
-    await Future.delayed(const Duration(milliseconds: 8));
-
-    await player.play(
-      AssetSource(asset),
-      volume: volume,
-    );
-
-  } catch (_) {
-    // never block gameplay
   }
-}
 
-  /// World transition anticipation cue
   static Future<void> playSurge() async {
     if (_muted) return;
 
@@ -132,7 +110,6 @@ class AudioPlayerService {
     } catch (_) {}
   }
 
-  /// Streak milestone cues (10 / 20 / 30)
   static Future<void> playStreakMilestone(int milestoneIndex) async {
     if (_muted) return;
 
@@ -160,7 +137,6 @@ class AudioPlayerService {
     } catch (_) {}
   }
 
-  /// Shield break sound
   static Future<void> playShieldBreak() async {
     if (_muted) return;
 
