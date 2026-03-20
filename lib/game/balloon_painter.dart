@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
@@ -21,9 +22,6 @@ class BalloonPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    gameState.viewportHeight = size.height;
-    gameState.framesSinceStart++;
-
     final dangerHeight = 40.0;
     final dangerRect = Rect.fromLTWH(
       0,
@@ -69,7 +67,6 @@ class BalloonPainter extends CustomPainter {
       final pulsePaint = Paint()
         ..color = const Color.fromARGB(28, 80, 160, 255);
       canvas.drawRect(Offset.zero & size, pulsePaint);
-      gameState.tapPulse = false;
     }
 
     final centerX = size.width / 2;
@@ -91,9 +88,10 @@ class BalloonPainter extends CustomPainter {
       final shadeVariance = 0.92 + ((seed % 10) / 100);
 
       final radius =
-      (baseBalloonRadius * cfg.visualScale * sizeVariance).roundToDouble();
+          (baseBalloonRadius * cfg.visualScale * sizeVariance).roundToDouble();
 
-      final x = (centerX + (balloon.xOffset * size.width * 0.5)).roundToDouble();
+      final x =
+          (centerX + (balloon.xOffset * size.width * 0.5)).roundToDouble();
       final y = balloon.y.roundToDouble();
       final center = Offset(x, y);
 
@@ -132,17 +130,17 @@ class BalloonPainter extends CustomPainter {
 
       final worldColor = _colorForWorld(currentWorld);
 
-final baseColor = Color.lerp(
-  worldColor,
-  Colors.white,
-  (shadeVariance - 0.92) * 0.35,
-)!;
+      final baseColor = Color.lerp(
+        worldColor,
+        Colors.white,
+        (shadeVariance - 0.92) * 0.35,
+      )!;
 
-final paint = Paint()
-  ..color = baseColor
-  ..style = PaintingStyle.fill
-  ..isAntiAlias = true
-  ..filterQuality = FilterQuality.medium;
+      final paint = Paint()
+        ..color = baseColor
+        ..style = PaintingStyle.fill
+        ..isAntiAlias = true
+        ..filterQuality = FilterQuality.medium;
 
       canvas.drawCircle(center, radius, paint);
 
@@ -161,17 +159,17 @@ final paint = Paint()
       canvas.drawCircle(center, radius, shadowPaint);
 
       final highlightPaint = Paint()
-  ..color = Colors.white.withOpacity(0.28)
-  ..isAntiAlias = true;
+        ..color = Colors.white.withOpacity(0.28)
+        ..isAntiAlias = true;
 
-final highlightX = (x - radius * 0.35).roundToDouble();
-final highlightY = (y - radius * 0.35).roundToDouble();
+      final highlightX = (x - radius * 0.35).roundToDouble();
+      final highlightY = (y - radius * 0.35).roundToDouble();
 
-canvas.drawCircle(
-  Offset(highlightX, highlightY),
-  radius * 0.25,
-  highlightPaint,
-);
+      canvas.drawCircle(
+        Offset(highlightX, highlightY),
+        radius * 0.25,
+        highlightPaint,
+      );
 
       if (seed % 3 == 0) {
         final stringPaint = Paint()

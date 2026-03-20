@@ -1,4 +1,4 @@
-import 'dart:async';
+fimport 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -173,7 +173,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _lastTime = elapsed;
 
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
-    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
+    widget.gameState.viewportHeight = _lastSize.height;
 
     widget.engine.update(dt);
 
@@ -348,6 +348,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   widget.engine.input.registerTap();
   widget.gameState.tapPulse = true;
+  Future.delayed(const Duration(milliseconds: 32), () {
+  if (!mounted) return;
+  widget.gameState.tapPulse = false;
+});
 
   TapHandler.handleTap(
     details: details,
