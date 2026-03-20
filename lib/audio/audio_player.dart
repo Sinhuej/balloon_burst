@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:audioplayers/audioplayers.dart';
 
 class AudioPlayerService {
@@ -17,63 +16,44 @@ class AudioPlayerService {
     ),
     iOS: AudioContextIOS(
       category: AVAudioSessionCategory.ambient,
-      options: {
-        AVAudioSessionOptions.mixWithOthers,
-      },
+      options: {AVAudioSessionOptions.mixWithOthers},
     ),
   );
 
+  // ============================================================
+  // PLAYER POOLS
+  // ============================================================
+
   static const int _popPoolSize = 8;
   static const int _coinPoolSize = 4;
-
-  static final List<AudioPlayer> _coinPlayers = List.generate(
-    _coinPoolSize,
-    (_) => AudioPlayer()..setAudioContext(_gameAudioContext),
-  );
-
-  static int _coinIndex = 0;
-
-  static Future<void> playCoin() async {
-    if (_muted) return;
-
-    try {
-      final player = _coinPlayers[_coinIndex];
-      _coinIndex = (_coinIndex + 1) % _coinPoolSize;
-
-      await player.play(
-        AssetSource('audio/coin.wav'),
-        volume: 0.9,
-      );
-    } catch (_) {}
-  }
-
-  static void playCoinRamp(int amount) {
-    final steps = (amount / 20).clamp(3, 6).round();
-
-    for (int i = 0; i < steps; i++) {
-      Future.delayed(Duration(milliseconds: 80 * i), () {
-        playCoin();
-      });
-    }
-  }
 
   static final List<AudioPlayer> _popPlayers = List.generate(
     _popPoolSize,
     (_) => AudioPlayer()..setAudioContext(_gameAudioContext),
   );
 
+  static final List<AudioPlayer> _coinPlayers = List.generate(
+    _coinPoolSize,
+    (_) => AudioPlayer()..setAudioContext(_gameAudioContext),
+  );
+
   static int _popIndex = 0;
+  static int _coinIndex = 0;
 
-  static final AudioPlayer _surgePlayer = AudioPlayer()
-    ..setAudioContext(_gameAudioContext);
+  static final AudioPlayer _surgePlayer =
+      AudioPlayer()..setAudioContext(_gameAudioContext);
 
-  static final AudioPlayer _milestonePlayer = AudioPlayer()
-    ..setAudioContext(_gameAudioContext);
+  static final AudioPlayer _milestonePlayer =
+      AudioPlayer()..setAudioContext(_gameAudioContext);
 
-  static final AudioPlayer _shieldPlayer = AudioPlayer()
-    ..setAudioContext(_gameAudioContext);
+  static final AudioPlayer _shieldPlayer =
+      AudioPlayer()..setAudioContext(_gameAudioContext);
 
-  static Future<void> playPop() async {
+  // ============================================================
+  // POP (CRITICAL — NON-BLOCKING)
+  // ============================================================
+
+  static void playPop() {
     if (_muted) return;
 
     try {
@@ -89,31 +69,67 @@ class AudioPlayerService {
       final asset = pops[Random().nextInt(pops.length)];
       final volume = 0.9 + Random().nextDouble() * 0.2;
 
-      await player.play(
+      // 🔥 FIRE AND FORGET (NO AWAIT)
+      player.play(
         AssetSource(asset),
         volume: volume,
       );
-    } catch (_) {
-      // never block gameplay
-    }
+    } catch (_) {}
   }
 
-  static Future<void> playSurge() async {
+  // ============================================================
+  // COIN
+  // ============================================================
+
+  static void playCoin() {
     if (_muted) return;
 
     try {
-      await _surgePlayer.stop();
-      await _surgePlayer.play(
-        AssetSource('audio/surge.wav'),
+      final player = _coinPlayers[_coinIndex];
+      _coinIndex = (_coinIndex + 1) % _coinPoolSize;
+
+      player.play(
+        const AssetSource('audio/coin.wav'),
+        volume: 0.9,
+      );
+    } catch (_) {}
+  }
+
+  static void playCoinRamp(int amount) {
+    final steps = (amount / 20).clamp(3, 6).round();
+
+    for (int i = 0; i < steps; i++) {
+      Future.delayed(Duration(milliseconds: 80 * i), () {
+        playCoin();
+      });
+    }
+  }
+
+  // ============================================================
+  // SURGE
+  // ============================================================
+
+  static void playSurge() {
+    if (_muted) return;
+
+    try {
+      _surgePlayer.stop(); // non-awaited
+      _surgePlayer.play(
+        const AssetSource('audio/surge.wav'),
         volume: 1.0,
       );
     } catch (_) {}
   }
 
-  static Future<void> playStreakMilestone(int milestoneIndex) async {
+  // ============================================================
+  // MILESTONE
+  // ============================================================
+
+  static void playStreakMilestone(int milestoneIndex) {
     if (_muted) return;
 
-    String asset;
+    String? asset;
+
     switch (milestoneIndex) {
       case 1:
         asset = 'audio/milestone_10.mp3';
@@ -129,21 +145,25 @@ class AudioPlayerService {
     }
 
     try {
-      await _milestonePlayer.stop();
-      await _milestonePlayer.play(
+      _milestonePlayer.stop();
+      _milestonePlayer.play(
         AssetSource(asset),
         volume: 1.0,
       );
     } catch (_) {}
   }
 
-  static Future<void> playShieldBreak() async {
+  // ============================================================
+  // SHIELD
+  // ============================================================
+
+  static void playShieldBreak() {
     if (_muted) return;
 
     try {
-      await _shieldPlayer.stop();
-      await _shieldPlayer.play(
-        AssetSource('audio/milestone_30.mp3'),
+      _shieldPlayer.stop();
+      _shieldPlayer.play(
+        const AssetSource('audio/milestone_30.mp3'),
         volume: 0.9,
       );
     } catch (_) {}

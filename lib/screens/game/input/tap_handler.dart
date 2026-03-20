@@ -24,7 +24,8 @@ class TapHandler {
     if (lastSize == Size.zero) return;
 
     final tapPos = details.localPosition;
-    final centerX = lastSize.width / 2;
+    final centerX = lastSize.width * 0.5;
+    final widthHalf = lastSize.width * 0.5;
 
     bool hit = false;
     bool perfectHit = false;
@@ -37,7 +38,6 @@ class TapHandler {
     double? closestBy;
 
     int? bestHitIndex;
-    Balloon? bestHitBalloon;
     double? bestHitDist;
     double? bestHitScore;
 
@@ -45,11 +45,12 @@ class TapHandler {
       final b = balloons[i];
       if (b.isPopped) continue;
 
-      final bx = centerX + (b.xOffset * lastSize.width * 0.5);
+      final bx = centerX + (b.xOffset * widthHalf);
       final by = b.y;
 
       final dx = tapPos.dx - bx;
       final dy = tapPos.dy - by;
+
       final dist = sqrt(dx * dx + dy * dy);
 
       final centerBias = dx.abs();
@@ -59,7 +60,7 @@ class TapHandler {
       final dynamicBonus = speedFactor * 12.0;
       final effectiveRadius = balloonRadius + hitForgiveness + dynamicBonus;
 
-      // Best overall candidate for miss / near-miss logging
+      // Track closest balloon for logging
       if (closestScore == null || tapScore < closestScore) {
         closestScore = tapScore;
         closestDist = dist;
@@ -69,24 +70,27 @@ class TapHandler {
         closestBy = by;
       }
 
-      // Best valid hit candidate only
+      // Track best valid hit
       if (dist <= effectiveRadius) {
         if (bestHitScore == null || tapScore < bestHitScore) {
           bestHitScore = tapScore;
           bestHitIndex = i;
-          bestHitBalloon = b;
           bestHitDist = dist;
         }
       }
     }
 
-    if (bestHitIndex != null && bestHitBalloon != null) {
-      balloons[bestHitIndex!] = bestHitBalloon!.pop();
+    // ---------------------------------------------------------
+    // APPLY HIT
+    // ---------------------------------------------------------
+    if (bestHitIndex != null) {
+      final b = balloons[bestHitIndex];
+      balloons[bestHitIndex] = b.pop();
 
-      if (bestHitDist != null && bestHitDist! <= balloonRadius * 0.45) {
+      if (bestHitDist != null && bestHitDist <= balloonRadius * 0.45) {
         perfectHit = true;
         gameState.log(
-          'PERFECT HIT dist=${bestHitDist!.toStringAsFixed(1)}',
+          'PERFECT HIT dist=${bestHitDist.toStringAsFixed(1)}',
         );
       }
 
@@ -103,15 +107,22 @@ class TapHandler {
       hit = true;
     }
 
+    // ---------------------------------------------------------
+    // MISS HANDLING
+    // ---------------------------------------------------------
     if (!hit) {
-      if (closestDist != null) {
+      if (closestDist != null &&
+          closestBx != null &&
+          closestBy != null &&
+          closestDx != null &&
+          closestDy != null) {
         gameState.log(
           'MISS world=${spawner.currentWorld} '
           'tap=(${tapPos.dx.toStringAsFixed(1)},${tapPos.dy.toStringAsFixed(1)}) '
-          'balloon=(${closestBx!.toStringAsFixed(1)},${closestBy!.toStringAsFixed(1)}) '
-          'dx=${closestDx!.toStringAsFixed(1)} '
-          'dy=${closestDy!.toStringAsFixed(1)} '
-          'dist=${closestDist!.toStringAsFixed(1)} '
+          'balloon=(${closestBx.toStringAsFixed(1)},${closestBy.toStringAsFixed(1)}) '
+          'dx=${closestDx.toStringAsFixed(1)} '
+          'dy=${closestDy.toStringAsFixed(1)} '
+          'dist=${closestDist.toStringAsFixed(1)} '
           'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}',
         );
       }
@@ -119,10 +130,10 @@ class TapHandler {
       final nearMissRadius = balloonRadius + hitForgiveness + 10;
 
       if (closestDist != null &&
-          closestDist! > balloonRadius &&
-          closestDist! <= nearMissRadius) {
+          closestDist > balloonRadius &&
+          closestDist <= nearMissRadius) {
         gameState.log(
-          'NEAR MISS dist=${closestDist!.toStringAsFixed(1)}',
+          'NEAR MISS dist=${closestDist.toStringAsFixed(1)}',
         );
       }
 
