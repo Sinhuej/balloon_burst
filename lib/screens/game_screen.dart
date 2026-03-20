@@ -283,14 +283,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
 
       if (escapedThisTick > 0 && !_reviveProtectionActive) {
-        _controller.registerEscapes(escapedThisTick);
-
-        Future.microtask(() {
-        widget.engine.runLifecycle.report(
-        EscapeEvent(count: escapedThisTick),
-       );
-      });
-     }
+  _controller.registerEscapes(escapedThisTick);
+  widget.engine.runLifecycle.report(
+    EscapeEvent(count: escapedThisTick),
+  );
+ }
     }
 
     _controller.update(_balloons, dt);
