@@ -142,8 +142,8 @@ class TapHandler {
 
     controller.registerTap(hit: hit, perfect: perfectHit);
   }
-}
 
     static void clearTouch() {
      // intentionally empty for now
    }
+ }
