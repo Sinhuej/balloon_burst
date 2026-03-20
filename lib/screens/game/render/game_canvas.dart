@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:balloon_burst/screens/game/input/tap_handler.dart';
 import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
 import 'package:balloon_burst/screens/game/effects/pop_shockwave.dart';
 import 'package:balloon_burst/tj_engine/juice/models/score_burst.dart';
@@ -362,7 +363,7 @@ class _GameCanvasState extends State<GameCanvas>
     // 🔥 FIX: clear stuck touch
     TapHandler.clearTouch();
   },
-  onLongPress: widget.onLongPress,
+        // onLongPress: widget.onLongPress,
         child: AnimatedBuilder(
           animation: widget.surge.listenable,
           builder: (context, _) {

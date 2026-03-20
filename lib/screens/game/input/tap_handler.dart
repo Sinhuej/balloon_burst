@@ -1,5 +1,6 @@
-import 'dart:async';
 import 'dart:math';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:balloon_burst/game/game_state.dart';
@@ -9,77 +10,8 @@ import 'package:balloon_burst/gameplay/balloon.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
 
 class TapHandler {
-  // 🔥 Pointer State
-  static int? _activePointerId;
-  static bool _isPointerDown = false;
-
-  // 🔥 Debug Hold
-  static Timer? _debugHoldTimer;
-  static const Duration debugHoldDuration = Duration(seconds: 3);
-
-  // ===============================
-  // POINTER DOWN
-  // ===============================
-  static void handlePointerDown({
-    required int pointerId,
-    required Offset tapPos,
-    required Size lastSize,
-    required List<Balloon> balloons,
-    required GameState gameState,
-    required BalloonSpawner spawner,
-    required GameController controller,
-    required WorldSurgePulse surge,
-    required double balloonRadius,
-    required double hitForgiveness,
-  }) {
-    _activePointerId = pointerId;
-    _isPointerDown = true;
-
-    // 🔥 Start debug hold timer
-    _debugHoldTimer?.cancel();
-    _debugHoldTimer = Timer(debugHoldDuration, () {
-      if (_isPointerDown && _activePointerId == pointerId) {
-        controller.openDebugMenu(); // 👈 your debug trigger
-      }
-    });
-
-    // 🔥 Process tap immediately (no delay)
-    _processTap(
-      tapPos: tapPos,
-      lastSize: lastSize,
-      balloons: balloons,
-      gameState: gameState,
-      spawner: spawner,
-      controller: controller,
-      surge: surge,
-      balloonRadius: balloonRadius,
-      hitForgiveness: hitForgiveness,
-    );
-  }
-
-  // ===============================
-  // POINTER UP
-  // ===============================
-  static void handlePointerUp(int pointerId) {
-    if (_activePointerId == pointerId) {
-      _clearTouchState();
-    }
-  }
-
-  // ===============================
-  // POINTER CANCEL
-  // ===============================
-  static void handlePointerCancel(int pointerId) {
-    if (_activePointerId == pointerId) {
-      _clearTouchState();
-    }
-  }
-
-  // ===============================
-  // CORE TAP LOGIC
-  // ===============================
-  static void _processTap({
-    required Offset tapPos,
+  static void handleTap({
+    required TapDownDetails details,
     required Size lastSize,
     required List<Balloon> balloons,
     required GameState gameState,
@@ -91,71 +23,127 @@ class TapHandler {
   }) {
     if (lastSize == Size.zero) return;
 
-    final centerX = lastSize.width / 2;
+    final tapPos = details.localPosition;
+    final centerX = lastSize.width * 0.5;
+    final widthHalf = lastSize.width * 0.5;
 
     bool hit = false;
     bool perfectHit = false;
 
-    int? bestHitIndex;
+    double? closestScore;
     double? closestDist;
+    double? closestDx;
+    double? closestDy;
+    double? closestBx;
+    double? closestBy;
+
+    int? bestHitIndex;
+    double? bestHitDist;
+    double? bestHitScore;
 
     for (int i = 0; i < balloons.length; i++) {
       final b = balloons[i];
+      if (b.isPopped) continue;
 
-      if (!b.isAlive) continue;
+      final bx = centerX + (b.xOffset * widthHalf);
+      final by = b.y;
 
-      final dx = b.position.dx - tapPos.dx;
-      final dy = b.position.dy - tapPos.dy;
+      final dx = tapPos.dx - bx;
+      final dy = tapPos.dy - by;
+
       final dist = sqrt(dx * dx + dy * dy);
 
-      final radius = balloonRadius + hitForgiveness;
+      final centerBias = dx.abs();
+      final tapScore = dist + centerBias * 0.35;
 
-      if (dist <= radius) {
-        hit = true;
+      final speedFactor = (b.riseSpeedMultiplier - 1.0).clamp(0.0, 1.5);
+      final dynamicBonus = speedFactor * 12.0;
+      final effectiveRadius = balloonRadius + hitForgiveness + dynamicBonus;
 
-        if (closestDist == null || dist < closestDist) {
-          closestDist = dist;
+      // Track closest balloon for logging
+      if (closestScore == null || tapScore < closestScore) {
+        closestScore = tapScore;
+        closestDist = dist;
+        closestDx = dx;
+        closestDy = dy;
+        closestBx = bx;
+        closestBy = by;
+      }
+
+      // Track best valid hit
+      if (dist <= effectiveRadius) {
+        if (bestHitScore == null || tapScore < bestHitScore) {
+          bestHitScore = tapScore;
           bestHitIndex = i;
+          bestHitDist = dist;
         }
       }
     }
 
-    if (hit && bestHitIndex != null) {
+    // ---------------------------------------------------------
+    // APPLY HIT
+    // ---------------------------------------------------------
+    if (bestHitIndex != null) {
       final b = balloons[bestHitIndex];
-
-      // 🎯 Perfect hit check
-      if (closestDist! < balloonRadius * 0.4) {
-        perfectHit = true;
-      }
-
-      // 🔥 Pop balloon
       balloons[bestHitIndex] = b.pop();
 
-      controller.onBalloonPopped(
-        perfect: perfectHit,
-        position: b.position,
+      if (bestHitDist != null && bestHitDist <= balloonRadius * 0.45) {
+        perfectHit = true;
+        gameState.log(
+          'PERFECT HIT dist=${bestHitDist.toStringAsFixed(1)}',
+        );
+      }
+
+      spawner.registerPop(gameState);
+
+      surge.maybeTrigger(
+        totalPops: spawner.totalPops,
+        currentWorld: spawner.currentWorld,
+        world2Pops: BalloonSpawner.world2Pops,
+        world3Pops: BalloonSpawner.world3Pops,
+        world4Pops: BalloonSpawner.world4Pops,
       );
 
-      surge.trigger();
-
-    } else {
-      // ❌ Miss
-      controller.onMiss(tapPos);
+      hit = true;
     }
 
-    // 🔥 IMPORTANT: Clear touch AFTER tap
-    _clearTouchState();
-  }
+    // ---------------------------------------------------------
+    // MISS HANDLING
+    // ---------------------------------------------------------
+    if (!hit) {
+      if (closestDist != null &&
+          closestBx != null &&
+          closestBy != null &&
+          closestDx != null &&
+          closestDy != null) {
+        gameState.log(
+          'MISS world=${spawner.currentWorld} '
+          'tap=(${tapPos.dx.toStringAsFixed(1)},${tapPos.dy.toStringAsFixed(1)}) '
+          'balloon=(${closestBx.toStringAsFixed(1)},${closestBy.toStringAsFixed(1)}) '
+          'dx=${closestDx.toStringAsFixed(1)} '
+          'dy=${closestDy.toStringAsFixed(1)} '
+          'dist=${closestDist.toStringAsFixed(1)} '
+          'r=${(balloonRadius + hitForgiveness).toStringAsFixed(1)}',
+        );
+      }
 
-  // ===============================
-  // CLEANUP
-  // ===============================
-  static void _clearTouchState() {
-    _debugHoldTimer?.cancel();
-    _debugHoldTimer = null;
+      final nearMissRadius = balloonRadius + hitForgiveness + 10;
 
-    _activePointerId = null;
-    _isPointerDown = false;
+      if (closestDist != null &&
+          closestDist > balloonRadius &&
+          closestDist <= nearMissRadius) {
+        gameState.log(
+          'NEAR MISS dist=${closestDist.toStringAsFixed(1)}',
+        );
+      }
+
+      spawner.registerMiss(gameState);
+    }
+
+    controller.registerTap(hit: hit, perfect: perfectHit);
   }
 }
 
+    static void clearTouch() {
+     // intentionally empty for now
+   }
