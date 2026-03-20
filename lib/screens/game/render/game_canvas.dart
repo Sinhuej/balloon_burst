@@ -352,9 +352,17 @@ class _GameCanvasState extends State<GameCanvas>
   Widget build(BuildContext context) {
     return SizedBox.expand(
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: widget.onTapDown,
-        onLongPress: widget.onLongPress,
+  behavior: HitTestBehavior.opaque,
+  onTapDown: widget.onTapDown,
+  onTapUp: (_) {
+    // 🔥 FIX: clear stuck touch
+    TapHandler.clearTouch();
+  },
+  onTapCancel: () {
+    // 🔥 FIX: clear stuck touch
+    TapHandler.clearTouch();
+  },
+  onLongPress: widget.onLongPress,
         child: AnimatedBuilder(
           animation: widget.surge.listenable,
           builder: (context, _) {
