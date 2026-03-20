@@ -89,7 +89,8 @@ class AudioPlayerService {
       _coinIndex = (_coinIndex + 1) % _coinPoolSize;
 
       player.play(
-        const AssetSource('audio/coin.wav'),
+       
+ AssetSource('audio/coin.wav'),
         volume: 0.9,
       );
     } catch (_) {}
@@ -115,7 +116,7 @@ class AudioPlayerService {
     try {
       _surgePlayer.stop(); // non-awaited
       _surgePlayer.play(
-        const AssetSource('audio/surge.wav'),
+        AssetSource('audio/surge.wav'),
         volume: 1.0,
       );
     } catch (_) {}
@@ -163,7 +164,7 @@ class AudioPlayerService {
     try {
       _shieldPlayer.stop();
       _shieldPlayer.play(
-        const AssetSource('audio/milestone_30.mp3'),
+        AssetSource('audio/milestone_30.mp3'),
         volume: 0.9,
       );
     } catch (_) {}
