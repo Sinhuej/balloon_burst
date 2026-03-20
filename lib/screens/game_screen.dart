@@ -10,6 +10,7 @@ import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
 import 'package:balloon_burst/engine/tier/tier_controller.dart';
 import 'package:balloon_burst/game/balloon_spawner.dart';
+import 'package:balloon_burst/game/balloon_type.dart';
 import 'package:balloon_burst/game/game_controller.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/end/run_end_overlay.dart';
@@ -173,6 +174,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _lastTime = elapsed;
 
     final instFps = dt > 0 ? (1.0 / dt) : 0.0;
+    _fps = (_fps == 0.0) ? instFps : (_fps * 0.9 + instFps * 0.1);
     widget.gameState.viewportHeight = _lastSize.height;
 
     widget.engine.update(dt);
@@ -289,6 +291,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   );
  }
     }
+
+    _balloons.sort((a, b) =>
+    balloonTypeConfig[a.type]!.zLayer.compareTo(
+      balloonTypeConfig[b.type]!.zLayer,
+    ));    
 
     _controller.update(_balloons, dt);
 

@@ -71,13 +71,7 @@ class BalloonPainter extends CustomPainter {
 
     final centerX = size.width / 2;
 
-    final sorted = balloons.toList()
-      ..sort((a, b) =>
-          balloonTypeConfig[a.type]!.zLayer.compareTo(
-            balloonTypeConfig[b.type]!.zLayer,
-          ));
-
-    for (final balloon in sorted) {
+      for (final balloon in balloons) {
       if (balloon.isPopped) continue;
 
       final cfg = balloonTypeConfig[balloon.type]!;

@@ -67,6 +67,7 @@ class GameController {
 
   void registerTap({required bool hit, bool perfect = false}) {
     lastTapTime = DateTime.now();
+    _lastTapPerfect = hit && perfect;
 
     momentum.registerTap(hit: hit);
 

@@ -90,7 +90,7 @@ class RunLifecycleManager {
     _currentWorldLevel = 1;
     _maxWorldLevelReached = 1;
 
-    _accuracy01 = 1.0;
+    _accuracy01 = 0.0;
     _endReason = null;
     _latestSummary = null;
 
@@ -100,8 +100,9 @@ class RunLifecycleManager {
   }
 
   void _recomputeAccuracy() {
-  _recomputeAccuracy();
-}
+    final attempts = _pops + _misses + _escapes;
+    _accuracy01 = attempts > 0 ? _pops / attempts : 0.0;
+  }
 
   void report(RunEvent event) {
     if (_state != RunState.running) return;
@@ -120,8 +121,7 @@ class RunLifecycleManager {
     if (event is MissEvent) {
       _misses++;
 
-      final attempts = _pops + _misses;
-      _accuracy01 = attempts > 0 ? _pops / attempts : 1.0;
+      _recomputeAccuracy();
 
       _streak = 0;
 
@@ -142,8 +142,8 @@ class RunLifecycleManager {
 
       _escapes += event.count;
       if (event.count > 0) _streak = 0;
-            
-      _recomputeAccuracy();      
+
+      _recomputeAccuracy();
 
       if (_escapes >= 3) {
         endRun(EndReason.escapeLimit);
