@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
-import 'package:balloon_burst/screens/game/input/tap_handler.dart';
 import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
 import 'package:balloon_burst/screens/game/effects/pop_shockwave.dart';
 import 'package:balloon_burst/tj_engine/juice/models/score_burst.dart';
@@ -264,13 +263,16 @@ class _GameCanvasState extends State<GameCanvas>
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(
-                    _currentMilestone >= 3 ? 0.60 : 0.25),
+                  _currentMilestone >= 3 ? 0.60 : 0.25,
+                ),
                 borderRadius: BorderRadius.circular(16),
                 border: _currentMilestone >= 4
                     ? Border.all(color: Colors.amber, width: 2)
                     : _currentMilestone >= 3
                         ? Border.all(
-                            color: const Color(0xFF00E5FF), width: 1.8)
+                            color: const Color(0xFF00E5FF),
+                            width: 1.8,
+                          )
                         : null,
               ),
               child: Text(label, style: style),
@@ -308,62 +310,53 @@ class _GameCanvasState extends State<GameCanvas>
   }
 
   Widget _buildScoreBurstsOverlay() {
-  if (widget.scoreBursts.isEmpty) return const SizedBox.shrink();
+    if (widget.scoreBursts.isEmpty) return const SizedBox.shrink();
 
-  return IgnorePointer(
-    child: Stack(
-      children: widget.scoreBursts.map((b) {
-        final t = b.t01;
-        final rise = 44.0 * Curves.easeOut.transform(t);
-        final fade = 1.0 - Curves.easeIn.transform(t);
+    return IgnorePointer(
+      child: Stack(
+        children: widget.scoreBursts.map((b) {
+          final t = b.t01;
+          final rise = 44.0 * Curves.easeOut.transform(t);
+          final fade = 1.0 - Curves.easeIn.transform(t);
 
-        return Positioned(
-          left: b.x - 10,
-          top: (b.y - rise) - 18,
-          child: Opacity(
-            opacity: fade.clamp(0.0, 1.0),
-            child: Text(
-              b.isPerfect ? 'PERFECT!' : '+${b.value}',
-              style: TextStyle(
-                color: b.isPerfect ? Colors.yellowAccent : _burstColor(),
-                fontSize: b.isPerfect ? 20 : 18,
-                fontWeight: FontWeight.w900,
-                shadows: _burstShadows(),
+          return Positioned(
+            left: b.x - 10,
+            top: (b.y - rise) - 18,
+            child: Opacity(
+              opacity: fade.clamp(0.0, 1.0),
+              child: Text(
+                b.isPerfect ? 'PERFECT!' : '+${b.value}',
+                style: TextStyle(
+                  color: b.isPerfect ? Colors.yellowAccent : _burstColor(),
+                  fontSize: b.isPerfect ? 20 : 18,
+                  fontWeight: FontWeight.w900,
+                  shadows: _burstShadows(),
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
-    ),
-  );
-}
+          );
+        }).toList(),
+      ),
+    );
+  }
 
   Widget _buildShockwaveOverlay() {
-  if (widget.shockwaves.isEmpty) return const SizedBox.shrink();
+    if (widget.shockwaves.isEmpty) return const SizedBox.shrink();
 
-  return IgnorePointer(
-    child: CustomPaint(
-      painter: _ShockwavePainter(widget.shockwaves),
-      size: Size.infinite,
-    ),
-  );
-}
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _ShockwavePainter(widget.shockwaves),
+        size: Size.infinite,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
       child: GestureDetector(
-  behavior: HitTestBehavior.opaque,
-  onTapDown: widget.onTapDown,
-  onTapUp: (_) {
-    // 🔥 FIX: clear stuck touch
-    TapHandler.clearTouch();
-  },
-  onTapCancel: () {
-    // 🔥 FIX: clear stuck touch
-    TapHandler.clearTouch();
-  },
-        // onLongPress: widget.onLongPress,
+        behavior: HitTestBehavior.opaque,
+        onTapDown: widget.onTapDown,
         child: AnimatedBuilder(
           animation: widget.surge.listenable,
           builder: (context, _) {
@@ -430,28 +423,26 @@ class _GameCanvasState extends State<GameCanvas>
                     ),
                   ),
                 ),
-
                 Positioned.fill(
-  child: RepaintBoundary(
-    child: Transform.translate(
-      offset: Offset(
-        widget.popShake * sin(widget.surge.lightningT * 12),
-        widget.popShake * cos(widget.surge.lightningT * 10),
-      ),
-      child: CustomPaint(
-        isComplex: true,
-        willChange: true,
-        painter: BalloonPainter(
-          widget.balloons,
-          widget.gameState,
-          widget.currentWorld,
-          streak: widget.streak,
-        ),
-      ),
-    ),
-  ),
-),
-
+                  child: RepaintBoundary(
+                    child: Transform.translate(
+                      offset: Offset(
+                        widget.popShake * sin(widget.surge.lightningT * 12),
+                        widget.popShake * cos(widget.surge.lightningT * 10),
+                      ),
+                      child: CustomPaint(
+                        isComplex: true,
+                        willChange: true,
+                        painter: BalloonPainter(
+                          widget.balloons,
+                          widget.gameState,
+                          widget.currentWorld,
+                          streak: widget.streak,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 if (lightningActive && widget.surge.lightningFlashOpacity > 0.0)
                   Positioned.fill(
                     child: IgnorePointer(
@@ -461,12 +452,10 @@ class _GameCanvasState extends State<GameCanvas>
                       ),
                     ),
                   ),
-                
                 _buildShockwaveOverlay(),
                 _buildParticlesOverlay(),
                 _buildScoreBurstsOverlay(),
                 _buildStreakOverlay(),
-
                 if (widget.showHud)
                   DebugHud(
                     fps: widget.fps,
