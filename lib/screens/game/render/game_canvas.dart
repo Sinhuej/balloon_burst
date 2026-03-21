@@ -126,6 +126,26 @@ class _GameCanvasState extends State<GameCanvas>
     ];
   }
 
+  Color _perfectBurstColor() {
+    if (widget.streak >= 30) {
+      return const Color(0xFFFFF59D);
+    }
+
+    if (widget.streak >= 20) {
+      return const Color(0xFFFFF176);
+    }
+
+    return const Color(0xFFFFF9C4);
+  }
+
+  List<Shadow> _perfectBurstShadows() {
+    return const [
+      Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
+      Shadow(color: Color(0xFFFFC107), blurRadius: 10),
+      Shadow(color: Color(0xFFFFE082), blurRadius: 20),
+    ];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -316,21 +336,30 @@ class _GameCanvasState extends State<GameCanvas>
       child: Stack(
         children: widget.scoreBursts.map((b) {
           final t = b.t01;
-          final rise = 44.0 * Curves.easeOut.transform(t);
+          final rise = b.isPerfect
+              ? 52.0 * Curves.easeOut.transform(t)
+              : 44.0 * Curves.easeOut.transform(t);
           final fade = 1.0 - Curves.easeIn.transform(t);
 
           return Positioned(
-            left: b.x - 10,
-            top: (b.y - rise) - 18,
+            left: b.isPerfect ? b.x - 34 : b.x - 10,
+            top: (b.y - rise) - (b.isPerfect ? 22 : 18),
             child: Opacity(
               opacity: fade.clamp(0.0, 1.0),
-              child: Text(
-                b.isPerfect ? 'PERFECT!' : '+${b.value}',
-                style: TextStyle(
-                  color: b.isPerfect ? Colors.yellowAccent : _burstColor(),
-                  fontSize: b.isPerfect ? 20 : 18,
-                  fontWeight: FontWeight.w900,
-                  shadows: _burstShadows(),
+              child: Transform.scale(
+                scale: b.isPerfect
+                    ? (1.0 + ((1.0 - t) * 0.12))
+                    : 1.0,
+                child: Text(
+                  b.isPerfect ? 'PERFECT!' : '+${b.value}',
+                  style: TextStyle(
+                    color: b.isPerfect ? _perfectBurstColor() : _burstColor(),
+                    fontSize: b.isPerfect ? 24 : 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: b.isPerfect ? 1.1 : 0.0,
+                    shadows:
+                        b.isPerfect ? _perfectBurstShadows() : _burstShadows(),
+                  ),
                 ),
               ),
             ),
