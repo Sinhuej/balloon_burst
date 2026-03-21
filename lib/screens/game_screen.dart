@@ -644,38 +644,69 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Positioned(
                 top: 44,
                 right: 16,
-                child: ScaleTransition(
-                  scale: _walletScale,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.10),
+                        ),
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          widget.engine.isMuted
+                              ? Icons.volume_off
+                              : Icons.volume_up,
+                          color: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final muted = await widget.engine.toggleMute();
+                          AudioPlayerService.setMuted(muted);
+                          if (!mounted) return;
+                          setState(() {});
+                        },
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.monetization_on,
-                          color: Colors.amber,
-                          size: 18,
+                    const SizedBox(width: 8),
+                    ScaleTransition(
+                      scale: _walletScale,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${widget.engine.wallet.balance}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.10),
                           ),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.monetization_on,
+                              color: Colors.amber,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${widget.engine.wallet.balance}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
