@@ -612,7 +612,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
               if (_showIntro)
                 CarnivalIntroOverlay(
-                  onContinue: () {
+                  onComplete: () {
                     setState(() {
                       _showIntro = false;
                     });
@@ -620,22 +620,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               if (_isRunEnded && summary != null)
                 RunEndOverlay(
-                  state: RunEndState.fromSummary(
-                    summary,
-                    walletBalance: widget.engine.wallet.balance,
-                    leaderboardPlacement: _leaderboardPlacement,
-                    canRevive: widget.engine.wallet.balance >= _reviveCost,
-                    reviveCost: _reviveCost,
-                  ),
+                  state: RunEndState.fromSummary(summary),
                   onReplay: _replay,
                   onRevive: _revive,
-                  onLeaderboard: () {
+                  placement: _leaderboardPlacement,
+                  onViewLeaderboard: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => LeaderboardScreen(engine: widget.engine),
                       ),
                     );
                   },
+                  engine: widget.engine,
                 ),
               if (_reviveFlashActive)
                 Positioned.fill(
