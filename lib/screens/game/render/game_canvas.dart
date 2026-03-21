@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/balloon_painter.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:balloon_burst/screens/game/effects/miss_popup.dart';
 import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
 import 'package:balloon_burst/screens/game/effects/pop_shockwave.dart';
 import 'package:balloon_burst/tj_engine/juice/models/score_burst.dart';
@@ -24,6 +25,7 @@ class GameCanvas extends StatefulWidget {
   final List<PopParticle> particles;
   final List<ScoreBurst> scoreBursts;
   final List<PopShockwave> shockwaves;
+  final List<MissPopup> missPopups;
   final double popShake;
   final GameState gameState;
 
@@ -48,6 +50,7 @@ class GameCanvas extends StatefulWidget {
     required this.particles,
     required this.scoreBursts,
     required this.shockwaves,
+    required this.missPopups,
     required this.popShake,
     required this.gameState,
     required this.onLongPress,
@@ -143,6 +146,13 @@ class _GameCanvasState extends State<GameCanvas>
       Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
       Shadow(color: Color(0xFFFFC107), blurRadius: 10),
       Shadow(color: Color(0xFFFFE082), blurRadius: 20),
+    ];
+  }
+
+  List<Shadow> _missPopupShadows() {
+    return const [
+      Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(0, 2)),
+      Shadow(color: Color(0xFFB71C1C), blurRadius: 10),
     ];
   }
 
@@ -347,9 +357,7 @@ class _GameCanvasState extends State<GameCanvas>
             child: Opacity(
               opacity: fade.clamp(0.0, 1.0),
               child: Transform.scale(
-                scale: b.isPerfect
-                    ? (1.0 + ((1.0 - t) * 0.12))
-                    : 1.0,
+                scale: b.isPerfect ? (1.0 + ((1.0 - t) * 0.12)) : 1.0,
                 child: Text(
                   b.isPerfect ? 'PERFECT!' : '+${b.value}',
                   style: TextStyle(
@@ -359,6 +367,41 @@ class _GameCanvasState extends State<GameCanvas>
                     letterSpacing: b.isPerfect ? 1.1 : 0.0,
                     shadows:
                         b.isPerfect ? _perfectBurstShadows() : _burstShadows(),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildMissPopupsOverlay() {
+    if (widget.missPopups.isEmpty) return const SizedBox.shrink();
+
+    return IgnorePointer(
+      child: Stack(
+        children: widget.missPopups.map((m) {
+          final t = m.t01;
+          final rise = 26.0 * Curves.easeOut.transform(t);
+          final drift = 6.0 * Curves.easeOut.transform(t);
+
+          return Positioned(
+            left: m.x - 22 + drift,
+            top: (m.y + 18) - rise,
+            child: Opacity(
+              opacity: (m.opacity * 0.95).clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: 0.96 + ((1.0 - t) * 0.08),
+                child: Text(
+                  m.label,
+                  style: TextStyle(
+                    color: m.color,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                    shadows: _missPopupShadows(),
                   ),
                 ),
               ),
@@ -484,6 +527,7 @@ class _GameCanvasState extends State<GameCanvas>
                 _buildShockwaveOverlay(),
                 _buildParticlesOverlay(),
                 _buildScoreBurstsOverlay(),
+                _buildMissPopupsOverlay(),
                 _buildStreakOverlay(),
                 if (widget.showHud)
                   DebugHud(

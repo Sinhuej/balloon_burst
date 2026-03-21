@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-
 import 'package:balloon_burst/audio/audio_player.dart';
 import 'package:balloon_burst/debug/debug_log.dart';
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
@@ -16,6 +15,7 @@ import 'package:balloon_burst/game/game_state.dart';
 import 'package:balloon_burst/game/end/run_end_overlay.dart';
 import 'package:balloon_burst/game/end/run_end_state.dart';
 import 'package:balloon_burst/gameplay/balloon.dart';
+import 'package:balloon_burst/screens/game/effects/miss_popup.dart';
 import 'package:balloon_burst/screens/game/effects/pop_particle.dart';
 import 'package:balloon_burst/screens/game/effects/pop_shockwave.dart';
 import 'package:balloon_burst/screens/game/effects/world_surge_pulse.dart';
@@ -60,6 +60,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final List<Balloon> _balloons = [];
   final List<PopParticle> _particles = [];
   final List<PopShockwave> _shockwaves = [];
+  final List<MissPopup> _missPopups = [];
 
   double _popShake = 0.0;
 
@@ -196,9 +197,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     double adaptiveFactor = 1.0;
 
     if (accuracy > 0.93) {
-      adaptiveFactor = 0.94; // slightly harder
+      adaptiveFactor = 0.94;
     } else if (accuracy < 0.75) {
-      adaptiveFactor = 1.08; // slightly easier
+      adaptiveFactor = 1.08;
     }
 
     final adaptiveSpawnInterval =
@@ -255,9 +256,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     _shockwaves.removeWhere((w) => !w.alive);
 
-    // micro screen shake decay
-    _popShake *= 0.85;
+    for (int i = 0; i < _missPopups.length; i++) {
+      _missPopups[i] = _missPopups[i].advance(dt);
+    }
+    _missPopups.removeWhere((m) => !m.alive);
 
+    _popShake *= 0.85;
     if (_popShake < 0.1) {
       _popShake = 0;
     }
@@ -285,17 +289,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
 
       if (escapedThisTick > 0 && !_reviveProtectionActive) {
-  _controller.registerEscapes(escapedThisTick);
-  widget.engine.runLifecycle.report(
-    EscapeEvent(count: escapedThisTick),
-  );
- }
+        _controller.registerEscapes(escapedThisTick);
+        widget.engine.runLifecycle.report(
+          EscapeEvent(count: escapedThisTick),
+        );
+      }
     }
 
     _balloons.sort((a, b) =>
-    balloonTypeConfig[a.type]!.zLayer.compareTo(
-      balloonTypeConfig[b.type]!.zLayer,
-    ));    
+        balloonTypeConfig[a.type]!.zLayer.compareTo(
+          balloonTypeConfig[b.type]!.zLayer,
+        ));
 
     _controller.update(_balloons, dt);
 
@@ -309,14 +313,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _dangerPulseT = 0.0;
     }
 
- //   _surge.maybeTrigger(
- //     totalPops: widget.spawner.totalPops,
- //     currentWorld: widget.spawner.currentWorld,
- //     world2Pops: BalloonSpawner.world2Pops,
- //     world3Pops: BalloonSpawner.world3Pops,
- //     world4Pops: BalloonSpawner.world4Pops,
- //   );
-
     setState(() {});
   }
 
@@ -324,7 +320,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (_leaderboardSubmitted) return;
 
     _leaderboardSubmitted = true;
-
     final summary = widget.engine.runLifecycle.latestSummary;
 
     if (summary != null) {
@@ -346,110 +341,121 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return 0;
   }
 
- void _handleTap(TapDownDetails details) {
-  if (_showIntro) return;
-  if (_isRunEnded || !_canCountMisses) return;
+  void _handleTap(TapDownDetails details) {
+    if (_showIntro) return;
+    if (_isRunEnded || !_canCountMisses) return;
 
-  final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
-  final missesBefore = _controller.missCount;
+    final prevStreak = widget.engine.runLifecycle.getSnapshot().streak;
+    final missesBefore = _controller.missCount;
 
-  widget.engine.input.registerTap();
-  widget.gameState.tapPulse = true;
-  Future.delayed(const Duration(milliseconds: 32), () {
-  if (!mounted) return;
-  widget.gameState.tapPulse = false;
-});
+    widget.engine.input.registerTap();
+    widget.gameState.tapPulse = true;
+    Future.delayed(const Duration(milliseconds: 32), () {
+      if (!mounted) return;
+      widget.gameState.tapPulse = false;
+    });
 
-  TapHandler.handleTap(
-    details: details,
-    lastSize: _lastSize,
-    balloons: _balloons,
-    gameState: widget.gameState,
-    spawner: widget.spawner,
-    controller: _controller,
-    surge: _surge,
-    balloonRadius: balloonRadius,
-    hitForgiveness: hitForgiveness,
-  );
+    TapHandler.handleTap(
+      details: details,
+      lastSize: _lastSize,
+      balloons: _balloons,
+      gameState: widget.gameState,
+      spawner: widget.spawner,
+      controller: _controller,
+      surge: _surge,
+      balloonRadius: balloonRadius,
+      hitForgiveness: hitForgiveness,
+    );
 
-  final missesAfter = _controller.missCount;
+    final missesAfter = _controller.missCount;
 
-  if (missesAfter > missesBefore) {
+    if (missesAfter > missesBefore) {
+      final p = details.localPosition;
+
+      _missPopups.add(
+        MissPopup(
+          x: p.dx,
+          y: p.dy,
+          age: 0,
+          life: 0.42,
+          label: 'MISS',
+          color: const Color(0xFFFF6B6B),
+        ),
+      );
+
+      for (final b in _balloons) {
+        if (b.isPopped) continue;
+
+        final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
+        final by = b.y;
+
+        final dx = p.dx - bx;
+        final dy = p.dy - by;
+        final dist = sqrt(dx * dx + dy * dy);
+
+        if (dist < balloonRadius + 32 && dist > balloonRadius) {
+          _particles.addAll(
+            PopParticle.burst(p.dx, p.dy)
+                .map((p) => PopParticle(
+                      x: p.x,
+                      y: p.y,
+                      vx: p.vx * 0.45,
+                      vy: p.vy * 0.45,
+                      age: p.age,
+                      life: 0.18,
+                      color: Colors.white,
+                    ))
+                .toList(),
+          );
+          break;
+        }
+      }
+
+      if (!_reviveProtectionActive) {
+        widget.engine.runLifecycle.report(const MissEvent());
+      }
+
+      return;
+    }
+
+    widget.engine.runLifecycle.report(PopEvent(points: 1));
+
+    Future.microtask(() {
+      AudioPlayerService.playPop();
+    });
+
     final p = details.localPosition;
 
-    for (final b in _balloons) {
-      if (b.isPopped) continue;
-
-      final bx = (_lastSize.width / 2) + b.xOffset * _lastSize.width * 0.5;
-      final by = b.y;
-
-      final dx = p.dx - bx;
-      final dy = p.dy - by;
-      final dist = sqrt(dx * dx + dy * dy);
-
-      if (dist < balloonRadius + 32 && dist > balloonRadius) {
-        _particles.addAll(
-          PopParticle.burst(p.dx, p.dy)
-              .map((p) => PopParticle(
-                    x: p.x,
-                    y: p.y,
-                    vx: p.vx * 0.45,
-                    vy: p.vy * 0.45,
-                    age: p.age,
-                    life: 0.18,
-                    color: Colors.white,
-                  ))
-              .toList(),
-        );
-        break;
-      }
-    }
-
-    if (!_reviveProtectionActive) {
-      widget.engine.runLifecycle.report(const MissEvent());
-    }
-
-    return;
-  }
-
-  widget.engine.runLifecycle.report(PopEvent(points: 1));
-
-  Future.microtask(() {
-    AudioPlayerService.playPop();
-  });
-
-  final p = details.localPosition;
-
-  widget.engine.juice.spawnScoreBurst(
-    x: p.dx,
-    y: p.dy,
-    value: 1,
-    isPerfect: _controller.lastTapPerfect,
-  );
-
-  _particles.addAll(
-    PopParticle.burst(p.dx, p.dy),
-  );
-
-  _shockwaves.add(
-    PopShockwave(
+    widget.engine.juice.spawnScoreBurst(
       x: p.dx,
       y: p.dy,
-      age: 0,
-      life: 0.35,
-    ),
-  );
+      value: 1,
+      isPerfect: _controller.lastTapPerfect,
+    );
 
-  _popShake = _controller.lastTapPerfect ? 10.0 : 6.0;
+    _particles.addAll(
+      PopParticle.burst(p.dx, p.dy),
+    );
 
-  final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
-  final prevMilestone = _milestoneForStreak(prevStreak);
-  final nextMilestone = _milestoneForStreak(nextStreak);
+    _shockwaves.add(
+      PopShockwave(
+        x: p.dx,
+        y: p.dy,
+        age: 0,
+        life: 0.35,
+      ),
+    );
 
-  if (nextMilestone > prevMilestone) {
-    AudioPlayerService.playStreakMilestone(nextMilestone);
+    _popShake = _controller.lastTapPerfect ? 10.0 : 6.0;
+
+    final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
+    final prevMilestone = _milestoneForStreak(prevStreak);
+    final nextMilestone = _milestoneForStreak(nextStreak);
+
+    if (nextMilestone > prevMilestone) {
+      AudioPlayerService.playStreakMilestone(nextMilestone);
+    }
   }
-}
 
   void _handleLongPress() {
     if (_showIntro) return;
@@ -460,6 +466,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _replay() {
     _balloons.clear();
     _particles.clear();
+    _shockwaves.clear();
+    _missPopups.clear();
     _canCountMisses = false;
 
     _leaderboardSubmitted = false;
@@ -546,8 +554,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           return Stack(
             children: [
               IgnorePointer(child: Container(color: bgColor)),
-
-              // Danger Mode darkening
               if (_dangerMode)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -556,8 +562,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-
-              // Danger Mode red edge alarm (slow heartbeat pulse)
               if (_dangerMode)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -577,14 +581,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-
               if (_showShieldFlash)
                 IgnorePointer(
                   child: Container(
                     color: Colors.amber.withOpacity(0.25),
                   ),
                 ),
-
               GameCanvas(
                 currentWorld: currentWorld,
                 nextWorld: nextWorld,
@@ -593,110 +595,93 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 surge: _surge,
                 balloons: _balloons,
                 particles: _particles,
-                shockwaves: _shockwaves,
                 scoreBursts: widget.engine.juice.scoreBursts,
+                shockwaves: _shockwaves,
+                missPopups: _missPopups,
+                popShake: _popShake,
                 gameState: widget.gameState,
                 onTapDown: _handleTap,
                 onLongPress: _handleLongPress,
                 showHud: _showHud,
                 fps: _fps,
-                speedMultiplier: widget.spawner.speedMultiplier,
+                speedMultiplier:
+                    widget.engine.difficulty.snapshot.speedMultiplier,
                 recentAccuracy: _controller.accuracy01,
-                recentMisses: widget.spawner.recentMisses,
-                popShake: _popShake,
+                recentMisses: _controller.missCount,
                 streak: widget.engine.runLifecycle.getSnapshot().streak,
               ),
-
-              Positioned(
-                top: 40,
-                right: 16,
-                child: IconButton(
-                  icon: Icon(
-                    widget.engine.isMuted ? Icons.volume_off : Icons.volume_up,
-                    color: Colors.white70,
-                  ),
-                  onPressed: () async {
-                    final muted = await widget.engine.toggleMute();
-                    AudioPlayerService.setMuted(muted);
-                    if (!mounted) return;
-                    setState(() {});
-                  },
-                ),
-              ),
-
-              Positioned(
-                top: 40,
-                left: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AnimatedBuilder(
-                      animation: _walletPulse,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _walletScale.value,
-                          child: child,
-                        );
-                      },
-                      child: Text(
-                        '💰 ${widget.engine.wallet.balance}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    if (widget.engine.runLifecycle.isShieldActive)
-                      const Text(
-                        '🛡 SHIELD ARMED',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.cyanAccent,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              if (_reviveFlashActive)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: AnimatedOpacity(
-                      opacity: _reviveFlashActive ? 0.35 : 0.0,
-                      duration: const Duration(milliseconds: 250),
-                      child: Container(color: Colors.amber),
-                    ),
-                  ),
-                ),
-
               if (_showIntro)
                 CarnivalIntroOverlay(
-                  onComplete: () {
-                    if (!mounted) return;
-                    setState(() => _showIntro = false);
+                  onContinue: () {
+                    setState(() {
+                      _showIntro = false;
+                    });
                   },
                 ),
-
               if (_isRunEnded && summary != null)
                 RunEndOverlay(
-                  state: RunEndState.fromSummary(summary),
+                  state: RunEndState.fromSummary(
+                    summary,
+                    walletBalance: widget.engine.wallet.balance,
+                    leaderboardPlacement: _leaderboardPlacement,
+                    canRevive: widget.engine.wallet.balance >= _reviveCost,
+                    reviveCost: _reviveCost,
+                  ),
                   onReplay: _replay,
                   onRevive: _revive,
-                  placement: _leaderboardPlacement,
-                  onViewLeaderboard: () {
+                  onLeaderboard: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => LeaderboardScreen(
-                          engine: widget.engine,
-                        ),
+                        builder: (_) => LeaderboardScreen(engine: widget.engine),
                       ),
                     );
                   },
-                  engine: widget.engine,
                 ),
+              if (_reviveFlashActive)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: Colors.white.withOpacity(0.18),
+                    ),
+                  ),
+                ),
+              Positioned(
+                top: 44,
+                right: 16,
+                child: ScaleTransition(
+                  scale: _walletScale,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.10),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.monetization_on,
+                          color: Colors.amber,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${widget.engine.wallet.balance}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -706,16 +691,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Color _backgroundForWorld(int world) {
     switch (world) {
-      case 1:
-        return const Color(0xFF6EC6FF);
       case 2:
-        return const Color(0xFF2E86DE);
+        return const Color(0xFF102A43);
       case 3:
-        return const Color(0xFF6C2EB9);
+        return const Color(0xFF2D1B4E);
       case 4:
-        return const Color(0xFF0B0F2F);
+        return const Color(0xFF263238);
       default:
-        return const Color(0xFF6EC6FF);
+        return const Color(0xFF4E342E);
     }
   }
 }
