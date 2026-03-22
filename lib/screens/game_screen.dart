@@ -394,19 +394,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final dist = sqrt(dx * dx + dy * dy);
 
         if (dist < balloonRadius + 32 && dist > balloonRadius) {
+          final nearMissBurst = PopParticle.burst(p.dx, p.dy);
+
           _particles.addAll(
-            PopParticle.burst(p.dx, p.dy)
+            nearMissBurst
                 .map((p) => PopParticle(
                       x: p.x,
                       y: p.y,
-                      vx: p.vx * 0.45,
-                      vy: p.vy * 0.45,
+                      vx: p.vx * 0.55,
+                      vy: p.vy * 0.55,
                       age: p.age,
-                      life: 0.18,
-                      color: Colors.white,
+                      life: 0.24,
+                      color: const Color(0xFFEAF7FF),
                     ))
                 .toList(),
           );
+
+          _particles.addAll(
+            nearMissBurst.take(6).map((p) => PopParticle(
+                  x: p.x,
+                  y: p.y,
+                  vx: p.vx * 0.28,
+                  vy: p.vy * 0.28,
+                  age: p.age,
+                  life: 0.14,
+                  color: Colors.white,
+                )),
+          );
+
           break;
         }
       }
