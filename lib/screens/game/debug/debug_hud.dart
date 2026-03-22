@@ -25,7 +25,7 @@ class DebugHud extends StatelessWidget {
       'Speed: ${speedMultiplier.toStringAsFixed(2)}x',
       'World: $world',
       'Balloons: $balloonCount',
-      'Accuracy(recent): ${(recentAccuracy * 100).toStringAsFixed(0)}%',
+      'Tap Accuracy: ${(recentAccuracy * 100).toStringAsFixed(0)}%',
       'Miss streak: $recentMisses',
     ];
 
