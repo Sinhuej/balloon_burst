@@ -34,6 +34,9 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   int _visibleRewardRows = 0;
   int _currentRewardTotal = -1;
+  bool _rewardSparkle = false;
+  bool _purchasingShield = false;
+  bool _showResults = false;
 
   late final AnimationController _shieldPulse;
   late final Animation<double> _shieldScale;
@@ -43,19 +46,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   late final AnimationController _coinController;
   late Animation<int> _coinCounter;
-
-  late final AnimationController _statsController;
-  late final Animation<double> _statsSlide;
-
-  late final AnimationController _titleController;
-  late final Animation<double> _titleFade;
-  late final Animation<double> _titleScale;
-
-  late final AnimationController _buttonsController;
-  late final Animation<double> _buttonsFade;
-
-  bool _rewardSparkle = false;
-  bool _purchasingShield = false;
 
   bool get _canAffordRevive => widget.engine.wallet.balance >= _reviveCost;
 
@@ -106,9 +96,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
       elevation: enabled ? (primary ? 8 : 4) : 0,
-      shadowColor: primary
-          ? const Color(0xAA00D8FF)
-          : const Color(0xAA5A4FCF),
+      shadowColor:
+          primary ? const Color(0xAA00D8FF) : const Color(0xAA5A4FCF),
     );
   }
 
@@ -199,7 +188,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       ),
     );
 
-    Future.delayed(const Duration(milliseconds: 380), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
       if (_currentRewardTotal != total) return;
       _coinController.forward(from: 0);
@@ -270,8 +259,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     return Column(
       children: [
-        _buildSectionLabel('RUN STATS'),
-        const SizedBox(height: 14),
+        _buildSectionLabel('RUN STATUS'),
+        const SizedBox(height: 12),
         Text(
           'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
           style: const TextStyle(
@@ -301,15 +290,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             color: Colors.cyanAccent,
             fontWeight: FontWeight.w700,
             fontSize: 15,
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Rank tiers: 🏆 TapJunkie • 🥇 Tap Pro • 🥈 Tap Skilled • 🥉 Tap Rookie',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white54,
-            fontSize: 12,
           ),
         ),
       ],
@@ -344,7 +324,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     return Column(
       children: [
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         const Text(
           'RUN REWARD',
           style: TextStyle(
@@ -358,7 +338,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
@@ -374,7 +354,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 26),
+            padding: const EdgeInsets.symmetric(horizontal: 22),
             child: Column(
               children: [
                 if (_visibleRewardRows >= 1) row('Base', reward.baseCoins),
@@ -478,8 +458,63 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ),
           ),
         ),
-        const SizedBox(height: 20),
       ],
+    );
+  }
+
+  Widget _buildSplash() {
+    return Padding(
+      key: const ValueKey('splash'),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildBrandLockup(),
+          const SizedBox(height: 24),
+          Text(
+            RunEndMessages.title(widget.state),
+            style: const TextStyle(
+              fontSize: 34,
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.4,
+              shadows: [
+                Shadow(
+                  color: Colors.black,
+                  blurRadius: 12,
+                  offset: Offset(0, 2),
+                ),
+                Shadow(
+                  color: Color(0xFF00D8FF),
+                  blurRadius: 22,
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 18),
+          Text(
+            RunEndMessages.body(widget.state),
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.white70,
+              height: 1.35,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (widget.placement != null) ...[
+            const SizedBox(height: 20),
+            Text(
+              'Leaderboard #${widget.placement}',
+              style: const TextStyle(
+                color: Colors.cyanAccent,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -503,6 +538,134 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     if (!success) return;
 
     _shieldPulse.forward(from: 0);
+  }
+
+  Widget _buildResults() {
+    final reward = widget.engine.lastRunReward;
+    final shieldEnabled =
+        !_shieldOwned && !_purchasingShield && _canAffordShield;
+
+    final shieldLabel = _shieldOwned
+        ? '🛡 Shield Armed'
+        : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
+
+    return Padding(
+      key: const ValueKey('results'),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildBrandLockup(),
+          if (widget.placement != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Leaderboard #${widget.placement}',
+              style: const TextStyle(
+                color: Colors.cyanAccent,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          _buildStatsHeader(),
+          if (reward != null) ...[
+            _buildRewardBreakdown(reward),
+          ],
+          const SizedBox(height: 18),
+          if (widget.onRevive != null)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: _pillStyle(enabled: true, primary: true),
+                    onPressed: widget.onReplay,
+                    child: const Text(
+                      'REPLAY',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: _pillStyle(enabled: _canAffordRevive),
+                    onPressed: _canAffordRevive ? widget.onRevive : null,
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('REVIVE (50 Coins)'),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            ElevatedButton(
+              style: _pillStyle(enabled: true, primary: true),
+              onPressed: widget.onReplay,
+              child: const Text(
+                'REPLAY',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          const SizedBox(height: 10),
+          ScaleTransition(
+            scale: _shieldScale,
+            child: ElevatedButton(
+              style: _pillStyle(
+                enabled: shieldEnabled,
+                tertiary: true,
+              ),
+              onPressed: shieldEnabled ? _purchaseShield : null,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(shieldLabel),
+              ),
+            ),
+          ),
+          if (widget.onViewLeaderboard != null) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: widget.onViewLeaderboard,
+              child: const Text(
+                'VIEW LEADERBOARD',
+                style: TextStyle(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _startResultsSequence() {
+    Future.delayed(const Duration(milliseconds: 1350), () {
+      if (!mounted) return;
+
+      setState(() {
+        _showResults = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted) return;
+        _rankController.forward();
+      });
+
+      for (int i = 1; i <= 3; i++) {
+        Future.delayed(Duration(milliseconds: 140 * i), () {
+          if (!mounted) return;
+          setState(() => _visibleRewardRows = i);
+        });
+      }
+
+      final reward = widget.engine.lastRunReward;
+      if (reward != null) {
+        _maybeStartRewardAnimation(reward);
+      }
+    });
   }
 
   @override
@@ -571,78 +734,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       }
     });
 
-    _titleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 560),
-    );
-
-    _titleFade = CurvedAnimation(
-      parent: _titleController,
-      curve: Curves.easeOut,
-    );
-
-    _titleScale = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _titleController,
-        curve: Curves.easeOutBack,
-      ),
-    );
-
-    _statsController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-
-    _statsSlide = Tween<double>(
-      begin: 24,
-      end: 0,
-    ).animate(
-      CurvedAnimation(
-        parent: _statsController,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    _buttonsController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-
-    _buttonsFade = CurvedAnimation(
-      parent: _buttonsController,
-      curve: Curves.easeOut,
-    );
-
-    for (int i = 1; i <= 3; i++) {
-      Future.delayed(Duration(milliseconds: 220 * i), () {
-        if (!mounted) return;
-        setState(() => _visibleRewardRows = i);
-      });
-    }
-
-    Future.delayed(Duration.zero, () {
-      if (mounted) _titleController.forward();
-    });
-
-    Future.delayed(const Duration(milliseconds: 140), () {
-      if (mounted) _statsController.forward();
-    });
-
-    Future.delayed(const Duration(milliseconds: 280), () {
-      if (mounted) _rankController.forward();
-    });
-
-    Future.delayed(const Duration(milliseconds: 560), () {
-      if (mounted) _buttonsController.forward();
-    });
-
-    final reward = widget.engine.lastRunReward;
-    if (reward != null) {
-      _maybeStartRewardAnimation(reward);
-    }
+    _startResultsSequence();
   }
 
   @override
@@ -650,7 +742,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     super.didUpdateWidget(oldWidget);
 
     final reward = widget.engine.lastRunReward;
-    if (reward != null) {
+    if (_showResults && reward != null) {
       _maybeStartRewardAnimation(reward);
     }
   }
@@ -660,27 +752,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     _shieldPulse.dispose();
     _rankController.dispose();
     _coinController.dispose();
-    _titleController.dispose();
-    _statsController.dispose();
-    _buttonsController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final reward = widget.engine.lastRunReward;
-
-    final shieldEnabled =
-        !_shieldOwned && !_purchasingShield && _canAffordShield;
-
-    final shieldLabel = _shieldOwned
-        ? '🛡 Shield Armed'
-        : '🛡 Start Next Run With Shield (${TJEngine.shieldCost})';
-
-    if (reward != null) {
-      _maybeStartRewardAnimation(reward);
-    }
-
     return Container(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
@@ -699,8 +775,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0B1722).withOpacity(0.92),
                   borderRadius: BorderRadius.circular(24),
@@ -718,129 +792,17 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildBrandLockup(),
-                    const SizedBox(height: 14),
-                    FadeTransition(
-                      opacity: _titleFade,
-                      child: ScaleTransition(
-                        scale: _titleScale,
-                        child: Text(
-                          RunEndMessages.title(widget.state),
-                          style: const TextStyle(
-                            fontSize: 30,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.4,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black,
-                                blurRadius: 10,
-                                offset: Offset(0, 2),
-                              ),
-                              Shadow(
-                                color: Color(0xFF00D8FF),
-                                blurRadius: 18,
-                              ),
-                            ],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      RunEndMessages.body(widget.state),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                        height: 1.3,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (widget.placement != null) ...[
-                      const SizedBox(height: 14),
-                      Text(
-                        'Leaderboard #${widget.placement}',
-                        style: const TextStyle(
-                          color: Colors.cyanAccent,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                    if (reward != null) ...[
-                      const SizedBox(height: 16),
-                      AnimatedBuilder(
-                        animation: _statsController,
-                        builder: (_, child) {
-                          return Transform.translate(
-                            offset: Offset(0, _statsSlide.value),
-                            child: Opacity(
-                              opacity: _statsController.value,
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Column(
-                          children: [
-                            _buildStatsHeader(),
-                            _buildRewardBreakdown(reward),
-                          ],
-                        ),
-                      ),
-                    ],
-                    FadeTransition(
-                      opacity: _buttonsFade,
-                      child: Column(
-                        children: [
-                          ElevatedButton(
-                            style: _pillStyle(enabled: true, primary: true),
-                            onPressed: widget.onReplay,
-                            child: const Text(
-                              'REPLAY',
-                              style: TextStyle(fontWeight: FontWeight.w900),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          if (widget.onRevive != null) ...[
-                            ElevatedButton(
-                              style: _pillStyle(enabled: _canAffordRevive),
-                              onPressed: _canAffordRevive ? widget.onRevive : null,
-                              child: const Text('REVIVE (50 Coins)'),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-                          ScaleTransition(
-                            scale: _shieldScale,
-                            child: ElevatedButton(
-                              style: _pillStyle(
-                                enabled: shieldEnabled,
-                                tertiary: true,
-                              ),
-                              onPressed: shieldEnabled ? _purchaseShield : null,
-                              child: Text(shieldLabel),
-                            ),
-                          ),
-                          if (widget.onViewLeaderboard != null) ...[
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: widget.onViewLeaderboard,
-                              child: const Text(
-                                'VIEW LEADERBOARD',
-                                style: TextStyle(
-                                  color: Colors.cyanAccent,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 520),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                  child: _showResults ? _buildResults() : _buildSplash(),
                 ),
               ),
             ),
