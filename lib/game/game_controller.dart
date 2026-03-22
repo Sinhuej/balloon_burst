@@ -71,11 +71,6 @@ class GameController {
 
     momentum.registerTap(hit: hit);
 
-    gameState.log(
-      'ACCURACY: a01=${momentum.accuracy01.toStringAsFixed(3)}',
-      type: DebugEventType.accuracy,
-    );
-
     if (hit) {
       if (perfect) {
         _perfectHits++;
