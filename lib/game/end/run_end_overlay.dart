@@ -178,6 +178,37 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     });
   }
 
+  Widget _buildSectionLabel(String text) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1,
+            color: Colors.white.withOpacity(0.10),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+              letterSpacing: 1.4,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: Colors.white.withOpacity(0.10),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStatsHeader() {
     final snapshot = widget.engine.runLifecycle.getSnapshot();
     final accuracy = snapshot.accuracy01;
@@ -185,23 +216,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
-          child: const Text(
-            'RUN STATS',
-            style: TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.4,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
+        _buildSectionLabel('RUN STATS'),
+        const SizedBox(height: 14),
         Text(
           'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
           style: const TextStyle(
@@ -292,12 +308,12 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
+            color: const Color(0xFF10212F),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.white.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.22),
+                color: Colors.black.withOpacity(0.28),
                 blurRadius: 18,
                 offset: const Offset(0, 10),
               ),
@@ -321,12 +337,12 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: Colors.amber.withOpacity(0.06),
+                    color: Colors.amber.withOpacity(0.08),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.amber.withOpacity(0.22),
-                        blurRadius: 22,
-                        spreadRadius: 2,
+                        color: Colors.amber.withOpacity(0.20),
+                        blurRadius: 18,
+                        spreadRadius: 1,
                       ),
                     ],
                   ),
@@ -628,21 +644,22 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: const Color(0xFF0B1722).withOpacity(0.92),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  border: Border.all(color: Colors.white.withOpacity(0.10)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.35),
+                      color: Colors.black.withOpacity(0.45),
                       blurRadius: 28,
                       offset: const Offset(0, 16),
                     ),
                     BoxShadow(
-                      color: Colors.cyanAccent.withOpacity(0.06),
-                      blurRadius: 18,
-                      spreadRadius: 1,
+                      color: Colors.cyanAccent.withOpacity(0.04),
+                      blurRadius: 10,
+                      spreadRadius: 0,
                     ),
                   ],
                 ),
@@ -687,18 +704,18 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       textAlign: TextAlign.center,
                     ),
                     if (widget.placement != null) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       Text(
                         'Leaderboard #${widget.placement}',
                         style: const TextStyle(
                           color: Colors.cyanAccent,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
                         ),
                       ),
                     ],
                     if (reward != null) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                       AnimatedBuilder(
                         animation: _statsController,
                         builder: (_, child) {
@@ -722,6 +739,19 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       opacity: _buttonsFade,
                       child: Column(
                         children: [
+                          if (widget.onViewLeaderboard != null) ...[
+                            TextButton(
+                              onPressed: widget.onViewLeaderboard,
+                              child: const Text(
+                                'VIEW LEADERBOARD',
+                                style: TextStyle(
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           if (widget.onRevive != null) ...[
                             ElevatedButton(
                               style: _pillStyle(enabled: _canAffordRevive),
@@ -744,19 +774,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                             onPressed: widget.onReplay,
                             child: const Text('REPLAY'),
                           ),
-                          if (widget.onViewLeaderboard != null) ...[
-                            const SizedBox(height: 12),
-                            TextButton(
-                              onPressed: widget.onViewLeaderboard,
-                              child: const Text(
-                                'VIEW LEADERBOARD',
-                                style: TextStyle(
-                                  color: Colors.cyanAccent,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
