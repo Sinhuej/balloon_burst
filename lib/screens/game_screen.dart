@@ -659,6 +659,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               Positioned(
                 top: 44,
+                left: 16,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.35),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.10),
+                    ),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      _showHud ? Icons.bug_report : Icons.bug_report_outlined,
+                      color: _showHud ? Colors.amberAccent : Colors.white,
+                    ),
+                    tooltip: _showHud ? 'Hide debug HUD' : 'Show debug HUD',
+                    onPressed: _handleLongPress,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 44,
                 right: 16,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
