@@ -378,11 +378,12 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             child: Column(
               children: [
                 if (_visibleRewardRows >= 1) row('Base', reward.baseCoins),
-                if (_visibleRewardRows >= 2) row('Pops', reward.popCoins),
+                if (_visibleRewardRows >= 2)
+                  row(
+                    'Performance',
+                    reward.popCoins + reward.accuracyCoins + reward.streakCoins,
+                  ),
                 if (_visibleRewardRows >= 3) row('World', reward.worldCoins),
-                if (_visibleRewardRows >= 4)
-                  row('Accuracy', reward.accuracyCoins),
-                if (_visibleRewardRows >= 5) row('Streak', reward.streakCoins),
                 const SizedBox(height: 10),
                 const Divider(color: Colors.white24),
                 const SizedBox(height: 8),
@@ -615,7 +616,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       curve: Curves.easeOut,
     );
 
-    for (int i = 1; i <= 5; i++) {
+    for (int i = 1; i <= 3; i++) {
       Future.delayed(Duration(milliseconds: 220 * i), () {
         if (!mounted) return;
         setState(() => _visibleRewardRows = i);
@@ -803,27 +804,14 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                               style: TextStyle(fontWeight: FontWeight.w900),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           if (widget.onRevive != null) ...[
                             ElevatedButton(
                               style: _pillStyle(enabled: _canAffordRevive),
                               onPressed: _canAffordRevive ? widget.onRevive : null,
                               child: const Text('REVIVE (50 Coins)'),
                             ),
-                            const SizedBox(height: 12),
-                          ],
-                          if (widget.onViewLeaderboard != null) ...[
-                            TextButton(
-                              onPressed: widget.onViewLeaderboard,
-                              child: const Text(
-                                'VIEW LEADERBOARD',
-                                style: TextStyle(
-                                  color: Colors.cyanAccent,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 10),
                           ],
                           ScaleTransition(
                             scale: _shieldScale,
@@ -836,6 +824,19 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                               child: Text(shieldLabel),
                             ),
                           ),
+                          if (widget.onViewLeaderboard != null) ...[
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: widget.onViewLeaderboard,
+                              child: const Text(
+                                'VIEW LEADERBOARD',
+                                style: TextStyle(
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
