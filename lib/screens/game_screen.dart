@@ -622,6 +622,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 speedMultiplier:
                     widget.engine.difficulty.snapshot.speedMultiplier,
                 recentAccuracy: _controller.accuracy01,
+                runAccuracy: widget.engine.runLifecycle.getSnapshot().accuracy01,
                 recentMisses: _controller.missCount,
                 streak: widget.engine.runLifecycle.getSnapshot().streak,
               ),

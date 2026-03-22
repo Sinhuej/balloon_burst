@@ -6,6 +6,7 @@ class DebugHud extends StatelessWidget {
   final int world;
   final int balloonCount;
   final double recentAccuracy; // 0..1
+  final double runAccuracy; // 0..1
   final int recentMisses;
 
   const DebugHud({
@@ -15,6 +16,7 @@ class DebugHud extends StatelessWidget {
     required this.world,
     required this.balloonCount,
     required this.recentAccuracy,
+    required this.runAccuracy,
     required this.recentMisses,
   });
 
@@ -26,6 +28,7 @@ class DebugHud extends StatelessWidget {
       'World: $world',
       'Balloons: $balloonCount',
       'Tap Accuracy: ${(recentAccuracy * 100).toStringAsFixed(0)}%',
+      'Run Accuracy: ${(runAccuracy * 100).toStringAsFixed(0)}%',
       'Miss streak: $recentMisses',
     ];
 

@@ -36,6 +36,7 @@ class GameCanvas extends StatefulWidget {
   final double fps;
   final double speedMultiplier;
   final double recentAccuracy;
+  final double runAccuracy;
   final int recentMisses;
   final int streak;
 
@@ -59,6 +60,7 @@ class GameCanvas extends StatefulWidget {
     required this.fps,
     required this.speedMultiplier,
     required this.recentAccuracy,
+    required this.runAccuracy,
     required this.recentMisses,
     required this.streak,
   });
@@ -537,6 +539,7 @@ class _GameCanvasState extends State<GameCanvas>
                     world: widget.currentWorld,
                     balloonCount: widget.balloons.length,
                     recentAccuracy: widget.recentAccuracy,
+                    runAccuracy: widget.runAccuracy,
                     recentMisses: widget.recentMisses,
                   ),
               ],
