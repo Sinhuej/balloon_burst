@@ -26,8 +26,8 @@ class WorldSurgePulse {
   // Haptics (toggle-ready)
   bool _hapticsEnabled = true;
 
-  static const double pulseMaxOpacity = 0.16;
-  static const double shakeAmpPx = 6.0;
+  static const double pulseMaxOpacity = 0.24;
+  static const double shakeAmpPx = 8.0;
 
   WorldSurgePulse({
     required TickerProvider vsync,
@@ -161,7 +161,7 @@ class WorldSurgePulse {
   double get lightningDarkenOpacity {
     final t = lightningT;
     final peak = (1.0 - (t / 0.35)).clamp(0.0, 1.0);
-    return 0.22 * peak * peak;
+    return 0.30 * peak * peak;
   }
 
   /// Flash bloom during strike (no strobe). Short and controlled.
@@ -170,7 +170,7 @@ class WorldSurgePulse {
     // Bell curve around ~0.35
     final x = (t - 0.35) / 0.18;
     final bell = exp(-x * x);
-    return (0.16 * bell).clamp(0.0, 0.16);
+    return (0.24 * bell).clamp(0.0, 0.24);
   }
 
   /// Lightning shake amplifier (adds to existing surge shake, very slight)
@@ -178,7 +178,7 @@ class WorldSurgePulse {
     final t = lightningT;
     final x = (t - 0.35) / 0.22;
     final bell = exp(-x * x);
-    return 2.0 * bell; // px
+    return 3.0 * bell; // px
   }
 
   // Single listenable for AnimatedBuilder
