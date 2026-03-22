@@ -66,21 +66,49 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       widget.engine.runLifecycle.isShieldActive ||
       widget.engine.runLifecycle.isShieldArmedForNextRun;
 
-  ButtonStyle _pillStyle({required bool enabled}) {
+  ButtonStyle _pillStyle({
+    required bool enabled,
+    bool primary = false,
+    bool tertiary = false,
+  }) {
+    const primaryBg = Color(0xFF00D8FF);
+    const primaryFg = Color(0xFF04121C);
+
     const baseBg = Color(0xFFF3F1FF);
     const baseFg = Color(0xFF5A4FCF);
+
+    const tertiaryBg = Color(0xFF162736);
+    const tertiaryFg = Color(0xFFB7CCE0);
+
     const disabledBg = Color(0xFFDCD7F5);
     const disabledFg = Color(0xFF7A74B8);
 
     return ElevatedButton.styleFrom(
       shape: const StadiumBorder(),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      backgroundColor: enabled ? baseBg : disabledBg,
-      foregroundColor: enabled ? baseFg : disabledFg,
+      padding: EdgeInsets.symmetric(
+        horizontal: tertiary ? 16 : 20,
+        vertical: tertiary ? 11 : 12,
+      ),
+      backgroundColor: !enabled
+          ? disabledBg
+          : primary
+              ? primaryBg
+              : tertiary
+                  ? tertiaryBg
+                  : baseBg,
+      foregroundColor: !enabled
+          ? disabledFg
+          : primary
+              ? primaryFg
+              : tertiary
+                  ? tertiaryFg
+                  : baseFg,
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
-      elevation: enabled ? 6 : 0,
-      shadowColor: const Color(0xAA5A4FCF),
+      elevation: enabled ? (primary ? 8 : 4) : 0,
+      shadowColor: primary
+          ? const Color(0xAA00D8FF)
+          : const Color(0xAA5A4FCF),
     );
   }
 
@@ -203,6 +231,32 @@ class _RunEndOverlayState extends State<RunEndOverlay>
           child: Container(
             height: 1,
             color: Colors.white.withOpacity(0.10),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBrandLockup() {
+    return Column(
+      children: const [
+        Text(
+          'TAPJUNKIE GAMES',
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.8,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'BALLOON BURST',
+          style: TextStyle(
+            color: Color(0xFF00D8FF),
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.6,
           ),
         ),
       ],
@@ -666,6 +720,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    _buildBrandLockup(),
+                    const SizedBox(height: 14),
                     FadeTransition(
                       opacity: _titleFade,
                       child: ScaleTransition(
@@ -739,6 +795,23 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                       opacity: _buttonsFade,
                       child: Column(
                         children: [
+                          ElevatedButton(
+                            style: _pillStyle(enabled: true, primary: true),
+                            onPressed: widget.onReplay,
+                            child: const Text(
+                              'REPLAY',
+                              style: TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (widget.onRevive != null) ...[
+                            ElevatedButton(
+                              style: _pillStyle(enabled: _canAffordRevive),
+                              onPressed: _canAffordRevive ? widget.onRevive : null,
+                              child: const Text('REVIVE (50 Coins)'),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           if (widget.onViewLeaderboard != null) ...[
                             TextButton(
                               onPressed: widget.onViewLeaderboard,
@@ -752,27 +825,16 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                             ),
                             const SizedBox(height: 12),
                           ],
-                          if (widget.onRevive != null) ...[
-                            ElevatedButton(
-                              style: _pillStyle(enabled: _canAffordRevive),
-                              onPressed: _canAffordRevive ? widget.onRevive : null,
-                              child: const Text('REVIVE (50 Coins)'),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
                           ScaleTransition(
                             scale: _shieldScale,
                             child: ElevatedButton(
-                              style: _pillStyle(enabled: shieldEnabled),
+                              style: _pillStyle(
+                                enabled: shieldEnabled,
+                                tertiary: true,
+                              ),
                               onPressed: shieldEnabled ? _purchaseShield : null,
                               child: Text(shieldLabel),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            style: _pillStyle(enabled: true),
-                            onPressed: widget.onReplay,
-                            child: const Text('REPLAY'),
                           ),
                         ],
                       ),
