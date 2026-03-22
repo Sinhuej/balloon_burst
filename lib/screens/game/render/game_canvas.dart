@@ -151,8 +151,9 @@ class _GameCanvasState extends State<GameCanvas>
 
   List<Shadow> _missPopupShadows() {
     return const [
-      Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(0, 2)),
-      Shadow(color: Color(0xFFB71C1C), blurRadius: 10),
+      Shadow(color: Colors.black87, blurRadius: 10, offset: Offset(0, 2)),
+      Shadow(color: Color(0xFF8E0000), blurRadius: 12),
+      Shadow(color: Color(0xFFFF5252), blurRadius: 18),
     ];
   }
 
@@ -397,10 +398,10 @@ class _GameCanvasState extends State<GameCanvas>
                 child: Text(
                   m.label,
                   style: TextStyle(
-                    color: m.color,
-                    fontSize: 18,
+                    color: const Color(0xFFFF5A5A),
+                    fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
+                    letterSpacing: 1.1,
                     shadows: _missPopupShadows(),
                   ),
                 ),
