@@ -49,6 +49,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
   late final AnimationController _titleController;
   late final Animation<double> _titleFade;
+  late final Animation<double> _titleScale;
 
   late final AnimationController _buttonsController;
   late final Animation<double> _buttonsFade;
@@ -56,8 +57,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   bool _rewardSparkle = false;
   bool _purchasingShield = false;
 
-  bool get _canAffordRevive =>
-      widget.engine.wallet.balance >= _reviveCost;
+  bool get _canAffordRevive => widget.engine.wallet.balance >= _reviveCost;
 
   bool get _canAffordShield =>
       widget.engine.wallet.balance >= TJEngine.shieldCost;
@@ -92,17 +92,17 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   }
 
   String _rankLabel(String rank) {
-  switch (rank) {
-    case 'S':
-      return '🏆 TAPJUNKIE';
-    case 'A':
-      return '🥇 TAP PRO';
-    case 'B':
-      return '🥈 TAP SKILLED';
-    default:
-      return '🥉 TAP ROOKIE';
+    switch (rank) {
+      case 'S':
+        return '🏆 TAPJUNKIE';
+      case 'A':
+        return '🥇 TAP PRO';
+      case 'B':
+        return '🥈 TAP SKILLED';
+      default:
+        return '🥉 TAP ROOKIE';
+    }
   }
-}
 
   Color _rankColor(String rank) {
     switch (rank) {
@@ -114,6 +114,31 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         return const Color(0xFFB0C4DE);
       default:
         return Colors.white70;
+    }
+  }
+
+  List<Shadow> _rankShadows(String rank) {
+    switch (rank) {
+      case 'S':
+        return const [
+          Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
+          Shadow(color: Colors.amber, blurRadius: 16),
+          Shadow(color: Color(0xFFFFF176), blurRadius: 26),
+        ];
+      case 'A':
+        return const [
+          Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
+          Shadow(color: Colors.cyanAccent, blurRadius: 14),
+        ];
+      case 'B':
+        return const [
+          Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(0, 2)),
+          Shadow(color: Color(0xFFB0C4DE), blurRadius: 12),
+        ];
+      default:
+        return const [
+          Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(0, 2)),
+        ];
     }
   }
 
@@ -146,7 +171,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       ),
     );
 
-    Future.delayed(const Duration(milliseconds: 450), () {
+    Future.delayed(const Duration(milliseconds: 380), () {
       if (!mounted) return;
       if (_currentRewardTotal != total) return;
       _coinController.forward(from: 0);
@@ -160,43 +185,55 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     return Column(
       children: [
-        const Text(
-          'RUN STATS',
-          style: TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: const Text(
+            'RUN STATS',
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.4,
+            ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Text(
           'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         ScaleTransition(
           scale: _rankScale,
           child: Text(
             _rankLabel(rank),
             style: TextStyle(
               color: _rankColor(rank),
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              letterSpacing: 0.8,
+              shadows: _rankShadows(rank),
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           'Best Streak ×${snapshot.bestStreak}',
           style: const TextStyle(
             color: Colors.cyanAccent,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         const Text(
           'Rank tiers: 🏆 TapJunkie • 🥇 Tap Pro • 🥈 Tap Skilled • 🥉 Tap Rookie',
           textAlign: TextAlign.center,
@@ -212,16 +249,22 @@ class _RunEndOverlayState extends State<RunEndOverlay>
   Widget _buildRewardBreakdown(RunReward reward) {
     Widget row(String label, int value) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: Colors.white70)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             Text(
               '+$value',
               style: const TextStyle(
                 color: Colors.amber,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -231,100 +274,137 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     return Column(
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 22),
         const Text(
           'RUN REWARD',
           style: TextStyle(
             color: Colors.amber,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.4,
+            shadows: [
+              Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
+              Shadow(color: Color(0xFFFFC107), blurRadius: 16),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 60),
-          child: Column(
-            children: [
-              if (_visibleRewardRows >= 1) row('Base', reward.baseCoins),
-              if (_visibleRewardRows >= 2) row('Pops', reward.popCoins),
-              if (_visibleRewardRows >= 3) row('World', reward.worldCoins),
-              if (_visibleRewardRows >= 4) row('Accuracy', reward.accuracyCoins),
-              if (_visibleRewardRows >= 5) row('Streak', reward.streakCoins),
-              const SizedBox(height: 8),
-              const Divider(color: Colors.white24),
-              const SizedBox(height: 6),
-              Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.amber.withOpacity(0.18),
-                      blurRadius: 18,
-                      spreadRadius: 2,
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.22),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 26),
+            child: Column(
+              children: [
+                if (_visibleRewardRows >= 1) row('Base', reward.baseCoins),
+                if (_visibleRewardRows >= 2) row('Pops', reward.popCoins),
+                if (_visibleRewardRows >= 3) row('World', reward.worldCoins),
+                if (_visibleRewardRows >= 4)
+                  row('Accuracy', reward.accuracyCoins),
+                if (_visibleRewardRows >= 5) row('Streak', reward.streakCoins),
+                const SizedBox(height: 10),
+                const Divider(color: Colors.white24),
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.amber.withOpacity(0.06),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.22),
+                        blurRadius: 22,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: AnimatedBuilder(
+                    animation: _coinCounter,
+                    builder: (context, _) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'TOTAL EARNED',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          Stack(
+                            alignment: Alignment.centerRight,
+                            children: [
+                              if (_rewardSparkle)
+                                const Positioned(
+                                  right: 44,
+                                  child: Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Colors.amber,
+                                    size: 18,
+                                  ),
+                                ),
+                              Text(
+                                '+${_coinCounter.value}',
+                                style: const TextStyle(
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 22,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black,
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                    Shadow(
+                                      color: Color(0xFFFFC107),
+                                      blurRadius: 16,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'BANK',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${widget.engine.wallet.balance}',
+                      style: const TextStyle(
+                        color: Colors.amber,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 19,
+                      ),
                     ),
                   ],
                 ),
-                child: AnimatedBuilder(
-                  animation: _coinCounter,
-                  builder: (context, _) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'TOTAL EARNED',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Stack(
-                          alignment: Alignment.centerRight,
-                          children: [
-                            if (_rewardSparkle)
-                              const Positioned(
-                                right: 40,
-                                child: Icon(
-                                  Icons.auto_awesome_rounded,
-                                  color: Colors.amber,
-                                  size: 18,
-                                ),
-                              ),
-                            Text(
-                              '+${_coinCounter.value}',
-                              style: const TextStyle(
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'BANK',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    '${widget.engine.wallet.balance}',
-                    style: const TextStyle(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -366,7 +446,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     _shieldScale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(begin: 1.0, end: 1.10)
-            .chain(CurveTween(curve: Curves.easeOut)),
+            .chain(CurveTween(curve: Curves.easeOutBack)),
         weight: 40,
       ),
       TweenSequenceItem(
@@ -378,19 +458,19 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _rankController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: const Duration(milliseconds: 520),
     );
 
     _rankScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.7, end: 1.25)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
+        tween: Tween(begin: 0.68, end: 1.32)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 46,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.25, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 60,
+        tween: Tween(begin: 1.32, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 54,
       ),
     ]).animate(_rankController);
 
@@ -413,7 +493,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       if (status == AnimationStatus.completed) {
         setState(() => _rewardSparkle = true);
 
-        Future.delayed(const Duration(milliseconds: 900), () {
+        Future.delayed(const Duration(milliseconds: 1000), () {
           if (!mounted) return;
           setState(() => _rewardSparkle = false);
         });
@@ -422,19 +502,31 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     _titleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 560),
     );
+
     _titleFade = CurvedAnimation(
       parent: _titleController,
       curve: Curves.easeOut,
+    );
+
+    _titleScale = Tween<double>(
+      begin: 0.92,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _titleController,
+        curve: Curves.easeOutBack,
+      ),
     );
 
     _statsController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+
     _statsSlide = Tween<double>(
-      begin: 20,
+      begin: 24,
       end: 0,
     ).animate(
       CurvedAnimation(
@@ -447,13 +539,14 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+
     _buttonsFade = CurvedAnimation(
       parent: _buttonsController,
       curve: Curves.easeOut,
     );
 
     for (int i = 1; i <= 5; i++) {
-      Future.delayed(Duration(milliseconds: 250 * i), () {
+      Future.delayed(Duration(milliseconds: 220 * i), () {
         if (!mounted) return;
         setState(() => _visibleRewardRows = i);
       });
@@ -463,15 +556,15 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       if (mounted) _titleController.forward();
     });
 
-    Future.delayed(const Duration(milliseconds: 150), () {
+    Future.delayed(const Duration(milliseconds: 140), () {
       if (mounted) _statsController.forward();
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 280), () {
       if (mounted) _rankController.forward();
     });
 
-    Future.delayed(const Duration(milliseconds: 600), () {
+    Future.delayed(const Duration(milliseconds: 560), () {
       if (mounted) _buttonsController.forward();
     });
 
@@ -521,113 +614,158 @@ class _RunEndOverlayState extends State<RunEndOverlay>
       decoration: const BoxDecoration(
         gradient: RadialGradient(
           colors: [
-            Color(0xFF0D1B2A),
-            Color(0xFF000000),
+            Color(0xFF12243A),
+            Color(0xFF05070D),
           ],
           radius: 1.2,
         ),
       ),
       alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FadeTransition(
-            opacity: _titleFade,
-            child: Text(
-              RunEndMessages.title(widget.state),
-              style: const TextStyle(
-                fontSize: 26,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            RunEndMessages.body(widget.state),
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (reward != null) ...[
-            const SizedBox(height: 12),
-            AnimatedBuilder(
-              animation: _statsController,
-              builder: (_, child) {
-                return Transform.translate(
-                  offset: Offset(0, _statsSlide.value),
-                  child: Opacity(
-                    opacity: _statsController.value,
-                    child: child,
-                  ),
-                );
-              },
-              child: Column(
-                children: [
-                  _buildStatsHeader(),
-                  _buildRewardBreakdown(reward),
-                ],
-              ),
-            ),
-          ],
-          FadeTransition(
-            opacity: _buttonsFade,
-            child: Column(
-              children: [
-                if (widget.onRevive != null) ...[
-                  ElevatedButton(
-                    style: _pillStyle(enabled: _canAffordRevive),
-                    onPressed: _canAffordRevive ? widget.onRevive : null,
-                    child: const Text('REVIVE (50 Coins)'),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                ScaleTransition(
-                  scale: _shieldScale,
-                  child: ElevatedButton(
-                    style: _pillStyle(enabled: shieldEnabled),
-                    onPressed: shieldEnabled ? _purchaseShield : null,
-                    child: Text(shieldLabel),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  style: _pillStyle(enabled: true),
-                  onPressed: widget.onReplay,
-                  child: const Text('REPLAY'),
-                ),
-                if (widget.onViewLeaderboard != null) ...[
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: widget.onViewLeaderboard,
-                    child: const Text(
-                      'VIEW LEADERBOARD',
-                      style: TextStyle(color: Colors.cyanAccent),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 28,
+                      offset: const Offset(0, 16),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                IconButton(
-                  icon: Icon(
-                    widget.engine.isMuted
-                        ? Icons.volume_off
-                        : Icons.volume_up,
-                    color: Colors.white70,
-                  ),
-                  onPressed: () async {
-                    final muted = await widget.engine.toggleMute();
-                    AudioPlayerService.setMuted(muted);
-                    if (!mounted) return;
-                    setState(() {});
-                  },
+                    BoxShadow(
+                      color: Colors.cyanAccent.withOpacity(0.06),
+                      blurRadius: 18,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
-              ],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FadeTransition(
+                      opacity: _titleFade,
+                      child: ScaleTransition(
+                        scale: _titleScale,
+                        child: Text(
+                          RunEndMessages.title(widget.state),
+                          style: const TextStyle(
+                            fontSize: 30,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.4,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black,
+                                blurRadius: 10,
+                                offset: Offset(0, 2),
+                              ),
+                              Shadow(
+                                color: Color(0xFF00D8FF),
+                                blurRadius: 18,
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      RunEndMessages.body(widget.state),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (widget.placement != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Leaderboard #${widget.placement}',
+                        style: const TextStyle(
+                          color: Colors.cyanAccent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                    if (reward != null) ...[
+                      const SizedBox(height: 14),
+                      AnimatedBuilder(
+                        animation: _statsController,
+                        builder: (_, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _statsSlide.value),
+                            child: Opacity(
+                              opacity: _statsController.value,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Column(
+                          children: [
+                            _buildStatsHeader(),
+                            _buildRewardBreakdown(reward),
+                          ],
+                        ),
+                      ),
+                    ],
+                    FadeTransition(
+                      opacity: _buttonsFade,
+                      child: Column(
+                        children: [
+                          if (widget.onRevive != null) ...[
+                            ElevatedButton(
+                              style: _pillStyle(enabled: _canAffordRevive),
+                              onPressed: _canAffordRevive ? widget.onRevive : null,
+                              child: const Text('REVIVE (50 Coins)'),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          ScaleTransition(
+                            scale: _shieldScale,
+                            child: ElevatedButton(
+                              style: _pillStyle(enabled: shieldEnabled),
+                              onPressed: shieldEnabled ? _purchaseShield : null,
+                              child: Text(shieldLabel),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            style: _pillStyle(enabled: true),
+                            onPressed: widget.onReplay,
+                            child: const Text('REPLAY'),
+                          ),
+                          if (widget.onViewLeaderboard != null) ...[
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: widget.onViewLeaderboard,
+                              child: const Text(
+                                'VIEW LEADERBOARD',
+                                style: TextStyle(
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
