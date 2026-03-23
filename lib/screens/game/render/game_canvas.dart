@@ -426,6 +426,67 @@ class _GameCanvasState extends State<GameCanvas>
     );
   }
 
+
+  Widget _buildComboGlowOverlay() {
+    if (widget.streak < 10) return const SizedBox.shrink();
+
+    double opacity;
+    double radius;
+    List<Color> colors;
+
+    if (widget.streak >= 100) {
+      opacity = 0.26;
+      radius = 0.34;
+      colors = const [
+        Color(0x55FFF59D),
+        Color(0x22FFE082),
+        Colors.transparent,
+      ];
+    } else if (widget.streak >= 30) {
+      opacity = 0.20;
+      radius = 0.38;
+      colors = const [
+        Color(0x4400E5FF),
+        Color(0x2200B8D4),
+        Colors.transparent,
+      ];
+    } else if (widget.streak >= 20) {
+      opacity = 0.16;
+      radius = 0.42;
+      colors = const [
+        Color(0x33FFD54F),
+        Color(0x18FFB300),
+        Colors.transparent,
+      ];
+    } else {
+      opacity = 0.12;
+      radius = 0.46;
+      colors = const [
+        Color(0x22FFF59D),
+        Color(0x1200E5FF),
+        Colors.transparent,
+      ];
+    }
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: opacity,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0.0, 0.15),
+                radius: radius,
+                colors: colors,
+                stops: const [0.0, 0.55, 1.0],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
@@ -527,6 +588,7 @@ class _GameCanvasState extends State<GameCanvas>
                       ),
                     ),
                   ),
+                _buildComboGlowOverlay(),
                 _buildShockwaveOverlay(),
                 _buildParticlesOverlay(),
                 _buildScoreBurstsOverlay(),
