@@ -67,17 +67,20 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     const baseBg = Color(0xFFF3F1FF);
     const baseFg = Color(0xFF5A4FCF);
 
-    const tertiaryBg = Color(0xFF1A3146);
-    const tertiaryFg = Color(0xFFE6F4FF);
+    const tertiaryBg = Color(0xFF22405A);
+    const tertiaryFg = Color(0xFFF2FAFF);
 
     const disabledBg = Color(0xFFDCD7F5);
     const disabledFg = Color(0xFF7A74B8);
 
     return ElevatedButton.styleFrom(
       shape: const StadiumBorder(),
+      side: tertiary
+          ? const BorderSide(color: Color(0x667FC8FF), width: 1.2)
+          : null,
       padding: EdgeInsets.symmetric(
-        horizontal: tertiary ? 18 : 20,
-        vertical: tertiary ? 12 : 12,
+        horizontal: tertiary ? 22 : 20,
+        vertical: tertiary ? 13 : 12,
       ),
       backgroundColor: !enabled
           ? disabledBg
@@ -95,11 +98,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                   : baseFg,
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
-      elevation: enabled ? (primary ? 8 : tertiary ? 6 : 4) : 0,
+      elevation: enabled ? (primary ? 8 : tertiary ? 8 : 4) : 0,
       shadowColor: primary
           ? const Color(0xAA00D8FF)
           : tertiary
-              ? const Color(0x884E7FA8)
+              ? const Color(0xAA4E7FA8)
               : const Color(0xAA5A4FCF),
     );
   }
@@ -298,9 +301,10 @@ class _RunEndOverlayState extends State<RunEndOverlay>
           Text(
             'Leaderboard #${widget.placement}',
             style: const TextStyle(
-              color: Color(0xFFE6EAF2),
+              color: Color(0xFFD5DEE8),
               fontWeight: FontWeight.w700,
               fontSize: 14,
+              letterSpacing: 0.2,
             ),
           ),
         ],
