@@ -67,8 +67,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     const baseBg = Color(0xFFF3F1FF);
     const baseFg = Color(0xFF5A4FCF);
 
-    const tertiaryBg = Color(0xFF162736);
-    const tertiaryFg = Color(0xFFB7CCE0);
+    const tertiaryBg = Color(0xFF1A3146);
+    const tertiaryFg = Color(0xFFE6F4FF);
 
     const disabledBg = Color(0xFFDCD7F5);
     const disabledFg = Color(0xFF7A74B8);
@@ -76,8 +76,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     return ElevatedButton.styleFrom(
       shape: const StadiumBorder(),
       padding: EdgeInsets.symmetric(
-        horizontal: tertiary ? 16 : 20,
-        vertical: tertiary ? 11 : 12,
+        horizontal: tertiary ? 18 : 20,
+        vertical: tertiary ? 12 : 12,
       ),
       backgroundColor: !enabled
           ? disabledBg
@@ -95,9 +95,12 @@ class _RunEndOverlayState extends State<RunEndOverlay>
                   : baseFg,
       disabledBackgroundColor: disabledBg,
       disabledForegroundColor: disabledFg,
-      elevation: enabled ? (primary ? 8 : 4) : 0,
-      shadowColor:
-          primary ? const Color(0xAA00D8FF) : const Color(0xAA5A4FCF),
+      elevation: enabled ? (primary ? 8 : tertiary ? 6 : 4) : 0,
+      shadowColor: primary
+          ? const Color(0xAA00D8FF)
+          : tertiary
+              ? const Color(0x884E7FA8)
+              : const Color(0xAA5A4FCF),
     );
   }
 
@@ -259,8 +262,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     return Column(
       children: [
-        _buildSectionLabel('RUN STATUS'),
-        const SizedBox(height: 14),
         ScaleTransition(
           scale: _rankScale,
           child: Text(
@@ -274,7 +275,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Text(
           'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
           style: const TextStyle(
@@ -297,8 +298,8 @@ class _RunEndOverlayState extends State<RunEndOverlay>
           Text(
             'Leaderboard #${widget.placement}',
             style: const TextStyle(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.w800,
+              color: Color(0xFFE6EAF2),
+              fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
           ),
