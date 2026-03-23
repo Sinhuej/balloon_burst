@@ -260,16 +260,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     return Column(
       children: [
         _buildSectionLabel('RUN STATUS'),
-        const SizedBox(height: 12),
-        Text(
-          'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
         ScaleTransition(
           scale: _rankScale,
           child: Text(
@@ -277,10 +268,19 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             style: TextStyle(
               color: _rankColor(rank),
               fontWeight: FontWeight.w900,
-              fontSize: 24,
+              fontSize: 26,
               letterSpacing: 0.8,
               shadows: _rankShadows(rank),
             ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Accuracy ${(accuracy * 100).toStringAsFixed(1)}%',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 8),
@@ -292,6 +292,17 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             fontSize: 15,
           ),
         ),
+        if (widget.placement != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Leaderboard #${widget.placement}',
+            style: const TextStyle(
+              color: Colors.cyanAccent,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -357,11 +368,11 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             padding: const EdgeInsets.symmetric(horizontal: 22),
             child: Column(
               children: [
-                if (_visibleRewardRows >= 1) row('Base', reward.baseCoins),
+                if (_visibleRewardRows >= 1) row('Bursts', reward.popCoins),
                 if (_visibleRewardRows >= 2)
                   row(
                     'Performance',
-                    reward.popCoins + reward.accuracyCoins + reward.streakCoins,
+                    reward.baseCoins + reward.accuracyCoins + reward.streakCoins,
                   ),
                 if (_visibleRewardRows >= 3) row('World', reward.worldCoins),
                 const SizedBox(height: 10),
@@ -556,17 +567,6 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildBrandLockup(),
-          if (widget.placement != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Leaderboard #${widget.placement}',
-              style: const TextStyle(
-                color: Colors.cyanAccent,
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-              ),
-            ),
-          ],
           const SizedBox(height: 14),
           _buildStatsHeader(),
           if (reward != null) ...[
