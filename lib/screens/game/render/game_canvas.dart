@@ -435,8 +435,8 @@ class _GameCanvasState extends State<GameCanvas>
     List<Color> colors;
 
     if (widget.streak >= 100) {
-      opacity = 0.44;
-      radius = 0.62;
+      opacity = 0.34;
+      radius = 0.48;
       colors = const [
         Color(0xAAFFF59D),
         Color(0x55FFE082),
@@ -444,8 +444,8 @@ class _GameCanvasState extends State<GameCanvas>
         Colors.transparent,
       ];
     } else if (widget.streak >= 30) {
-      opacity = 0.34;
-      radius = 0.68;
+      opacity = 0.28;
+      radius = 0.52;
       colors = const [
         Color(0x8800E5FF),
         Color(0x4400B8D4),
@@ -453,8 +453,8 @@ class _GameCanvasState extends State<GameCanvas>
         Colors.transparent,
       ];
     } else if (widget.streak >= 20) {
-      opacity = 0.26;
-      radius = 0.72;
+      opacity = 0.22;
+      radius = 0.56;
       colors = const [
         Color(0x66FFD54F),
         Color(0x30FFB300),
@@ -462,8 +462,8 @@ class _GameCanvasState extends State<GameCanvas>
         Colors.transparent,
       ];
     } else {
-      opacity = 0.18;
-      radius = 0.76;
+      opacity = 0.16;
+      radius = 0.60;
       colors = const [
         Color(0x44FFF59D),
         Color(0x1800E5FF),
@@ -479,7 +479,7 @@ class _GameCanvasState extends State<GameCanvas>
           child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
-                center: const Alignment(0.0, 0.12),
+                center: const Alignment(0.0, -0.92),
                 radius: radius,
                 colors: colors,
                 stops: const [0.0, 0.28, 0.62, 1.0],
