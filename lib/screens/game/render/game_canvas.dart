@@ -435,35 +435,39 @@ class _GameCanvasState extends State<GameCanvas>
     List<Color> colors;
 
     if (widget.streak >= 100) {
-      opacity = 0.26;
-      radius = 0.34;
+      opacity = 0.44;
+      radius = 0.62;
       colors = const [
-        Color(0x55FFF59D),
-        Color(0x22FFE082),
+        Color(0xAAFFF59D),
+        Color(0x55FFE082),
+        Color(0x18FFFFFF),
         Colors.transparent,
       ];
     } else if (widget.streak >= 30) {
-      opacity = 0.20;
-      radius = 0.38;
+      opacity = 0.34;
+      radius = 0.68;
       colors = const [
-        Color(0x4400E5FF),
-        Color(0x2200B8D4),
+        Color(0x8800E5FF),
+        Color(0x4400B8D4),
+        Color(0x1400E5FF),
         Colors.transparent,
       ];
     } else if (widget.streak >= 20) {
-      opacity = 0.16;
-      radius = 0.42;
+      opacity = 0.26;
+      radius = 0.72;
       colors = const [
-        Color(0x33FFD54F),
-        Color(0x18FFB300),
+        Color(0x66FFD54F),
+        Color(0x30FFB300),
+        Color(0x1200E5FF),
         Colors.transparent,
       ];
     } else {
-      opacity = 0.12;
-      radius = 0.46;
+      opacity = 0.18;
+      radius = 0.76;
       colors = const [
-        Color(0x22FFF59D),
-        Color(0x1200E5FF),
+        Color(0x44FFF59D),
+        Color(0x1800E5FF),
+        Colors.transparent,
         Colors.transparent,
       ];
     }
@@ -475,10 +479,10 @@ class _GameCanvasState extends State<GameCanvas>
           child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
-                center: const Alignment(0.0, 0.15),
+                center: const Alignment(0.0, 0.12),
                 radius: radius,
                 colors: colors,
-                stops: const [0.0, 0.55, 1.0],
+                stops: const [0.0, 0.28, 0.62, 1.0],
               ),
             ),
           ),
