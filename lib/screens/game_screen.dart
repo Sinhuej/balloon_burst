@@ -308,7 +308,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _dangerMode = _controller.missCount >= 9 || escapesNow >= 2;
 
     if (_dangerMode) {
-      _dangerPulseT += dt * 1.8;
+      _dangerPulseT += dt * 1.45;
     } else {
       _dangerPulseT = 0.0;
     }
@@ -581,26 +581,40 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 Positioned.fill(
                   child: IgnorePointer(
                     child: Container(
-                      color: Colors.black.withOpacity(0.25),
+                      color: Colors.black.withOpacity(0.32),
                     ),
                   ),
                 ),
               if (_dangerMode)
                 Positioned.fill(
                   child: IgnorePointer(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          radius: 1.0,
-                          colors: [
-                            Colors.transparent,
-                            Colors.red.withOpacity(
-                              0.55 + ((sin(_dangerPulseT) * 0.5 + 0.5) * 0.25),
+                    child: Builder(
+                      builder: (_) {
+                        final primaryBeat =
+                            pow((sin(_dangerPulseT).clamp(0.0, 1.0)), 2).toDouble();
+                        final secondaryBeat =
+                            pow((sin(_dangerPulseT * 2.0 + 0.55).clamp(0.0, 1.0)), 4)
+                                .toDouble();
+                        final beat = (primaryBeat * 0.72) + (secondaryBeat * 0.28);
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              radius: 1.02,
+                              colors: [
+                                Colors.transparent,
+                                const Color(0x55B71C1C).withOpacity(
+                                  0.18 + (beat * 0.18),
+                                ),
+                                const Color(0xFFFF3D3D).withOpacity(
+                                  0.42 + (beat * 0.30),
+                                ),
+                              ],
+                              stops: const [0.52, 0.82, 1.0],
                             ),
-                          ],
-                          stops: const [0.55, 1.0],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
