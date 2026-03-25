@@ -491,6 +491,41 @@ class _GameCanvasState extends State<GameCanvas>
     );
   }
 
+
+  Widget _buildWorld4StarsOverlay() {
+    if (widget.currentWorld != 4) return const SizedBox.shrink();
+
+    const stars = <Offset>[
+      Offset(0.10, 0.12),
+      Offset(0.22, 0.18),
+      Offset(0.34, 0.09),
+      Offset(0.48, 0.16),
+      Offset(0.62, 0.11),
+      Offset(0.76, 0.20),
+      Offset(0.88, 0.10),
+      Offset(0.15, 0.30),
+      Offset(0.29, 0.26),
+      Offset(0.41, 0.34),
+      Offset(0.57, 0.28),
+      Offset(0.71, 0.32),
+      Offset(0.85, 0.26),
+      Offset(0.18, 0.44),
+      Offset(0.36, 0.48),
+      Offset(0.52, 0.42),
+      Offset(0.68, 0.46),
+      Offset(0.82, 0.40),
+    ];
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: CustomPaint(
+          painter: _World4StarsPainter(stars),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
@@ -559,6 +594,7 @@ class _GameCanvasState extends State<GameCanvas>
                               ),
                             ),
                           ),
+                        _buildWorld4StarsOverlay(),
                       ],
                     ),
                   ),
@@ -638,6 +674,43 @@ class _ShockwavePainter extends CustomPainter {
         paint,
       );
     }
+
+
+class _World4StarsPainter extends CustomPainter {
+  final List<Offset> stars;
+
+  _World4StarsPainter(this.stars);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final softPaint = Paint()
+      ..color = Colors.white.withOpacity(0.22)
+      ..isAntiAlias = true;
+
+    final brightPaint = Paint()
+      ..color = const Color(0xFFDDF4FF).withOpacity(0.34)
+      ..isAntiAlias = true;
+
+    for (int i = 0; i < stars.length; i++) {
+      final p = stars[i];
+      final x = size.width * p.dx;
+      final y = size.height * p.dy;
+
+      final isBright = i % 4 == 0;
+      final radius = isBright ? 1.6 : 1.0;
+
+      canvas.drawCircle(
+        Offset(x, y),
+        radius,
+        isBright ? brightPaint : softPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _World4StarsPainter oldDelegate) => false;
+}
+
   }
 
   @override
