@@ -18,7 +18,8 @@ class BalloonPainter extends CustomPainter {
     required this.streak,
   });
 
-  static const double baseBalloonRadius = 16.0;
+  // Slight visual bump only. Gameplay hit radius remains unchanged elsewhere.
+  static const double baseBalloonRadius = 17.5;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -71,11 +72,10 @@ class BalloonPainter extends CustomPainter {
 
     final centerX = size.width / 2;
 
-      for (final balloon in balloons) {
+    for (final balloon in balloons) {
       if (balloon.isPopped) continue;
 
       final cfg = balloonTypeConfig[balloon.type]!;
-
       final seed = balloon.id.hashCode;
 
       final sizeVariance = 0.85 + ((seed % 20) / 100);
@@ -170,9 +170,12 @@ class BalloonPainter extends CustomPainter {
           ..color = Colors.black.withOpacity(0.35)
           ..strokeWidth = 1.2;
 
+        final swayX = sin(balloon.phase + balloon.age * 1.15) * 4.0;
+        final swayY = sin(balloon.phase + balloon.age * 0.65) * 1.2;
+
         canvas.drawLine(
           Offset(x, y + radius),
-          Offset(x + sin(y) * 6, y + radius + 18),
+          Offset(x + swayX, y + radius + 18 + swayY),
           stringPaint,
         );
       }
