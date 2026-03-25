@@ -77,6 +77,7 @@ class BalloonPainter extends CustomPainter {
       final cfg = balloonTypeConfig[balloon.type]!;
       final seed = balloon.id.hashCode;
       final styleVariant = seed.abs() % 4;
+      final paletteIndex = (seed.abs() ~/ 7) % _paletteForWorld(currentWorld).length;
 
       final sizeVariance = 0.85 + ((seed % 20).abs() / 100);
       final shadeVariance = 0.92 + ((seed % 10).abs() / 100);
@@ -91,11 +92,11 @@ class BalloonPainter extends CustomPainter {
 
       _paintStreakGlow(canvas, center, radius);
 
-      final worldColor = _colorForWorld(currentWorld);
+      final paletteColor = _paletteForWorld(currentWorld)[paletteIndex];
       final baseColor = Color.lerp(
-        worldColor,
+        paletteColor,
         Colors.white,
-        (shadeVariance - 0.92) * 0.35,
+        (shadeVariance - 0.92) * 0.30,
       )!;
 
       final bodyPaint = Paint()
@@ -314,7 +315,7 @@ class BalloonPainter extends CustomPainter {
 
   void _paintCarnivalStripe(Canvas canvas, Offset center, double radius) {
     final stripePaint = Paint()
-      ..color = Colors.white.withOpacity(0.14)
+      ..color = Colors.white.withOpacity(0.16)
       ..isAntiAlias = true;
 
     final stripeRect = Rect.fromCenter(
@@ -324,7 +325,9 @@ class BalloonPainter extends CustomPainter {
     );
 
     canvas.save();
-    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: center, radius: radius)));
+    canvas.clipPath(
+      Path()..addOval(Rect.fromCircle(center: center, radius: radius)),
+    );
     canvas.drawRect(stripeRect, stripePaint);
     canvas.restore();
   }
@@ -385,12 +388,11 @@ class BalloonPainter extends CustomPainter {
       ..strokeWidth = styleVariant == 2 ? 1.35 : 1.2
       ..isAntiAlias = true;
 
-    final stringLength = 18.0 +
-        ((seed % 4).abs() * 1.8) +
-        (styleVariant == 3 ? 2.0 : 0.0);
+    final stringLength =
+        18.0 + ((seed % 4).abs() * 1.8) + (styleVariant == 3 ? 2.0 : 0.0);
 
-    final swayX = sin(balloon.phase + balloon.age * 1.10) *
-        (styleVariant == 2 ? 4.8 : 4.0);
+    final swayX =
+        sin(balloon.phase + balloon.age * 1.10) * (styleVariant == 2 ? 4.8 : 4.0);
     final swayY = sin(balloon.phase + balloon.age * 0.62) * 1.2;
 
     canvas.drawLine(
@@ -400,16 +402,40 @@ class BalloonPainter extends CustomPainter {
     );
   }
 
-  Color _colorForWorld(int world) {
+  List<Color> _paletteForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF4DA3FF);
+        return const [
+          Color(0xFF4DA3FF),
+          Color(0xFFFF6FAE),
+          Color(0xFFFFD54F),
+          Color(0xFF7EE787),
+          Color(0xFFB388FF),
+        ];
       case 3:
-        return const Color(0xFFB04DFF);
+        return const [
+          Color(0xFFB04DFF),
+          Color(0xFFFF7AD9),
+          Color(0xFF7CF3FF),
+          Color(0xFFFFD166),
+          Color(0xFF8DFFA8),
+        ];
       case 4:
-        return const Color(0xFF9FA8DA);
+        return const [
+          Color(0xFF9FA8DA),
+          Color(0xFFFFC857),
+          Color(0xFFFF8A80),
+          Color(0xFF80DEEA),
+          Color(0xFFE1BEE7),
+        ];
       default:
-        return const Color(0xFFE53935);
+        return const [
+          Color(0xFFE53935),
+          Color(0xFFFFA726),
+          Color(0xFFFFEE58),
+          Color(0xFF66BB6A),
+          Color(0xFF42A5F5),
+        ];
     }
   }
 
