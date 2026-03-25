@@ -18,7 +18,7 @@ class BalloonPainter extends CustomPainter {
     required this.streak,
   });
 
-  // Slight visual bump only. Gameplay hit radius remains unchanged elsewhere.
+  // Visual-only size. Gameplay hit logic stays elsewhere.
   static const double baseBalloonRadius = 17.5;
 
   @override
@@ -77,9 +77,10 @@ class BalloonPainter extends CustomPainter {
 
       final cfg = balloonTypeConfig[balloon.type]!;
       final seed = balloon.id.hashCode;
+      final styleVariant = seed.abs() % 4;
 
-      final sizeVariance = 0.85 + ((seed % 20) / 100);
-      final shadeVariance = 0.92 + ((seed % 10) / 100);
+      final sizeVariance = 0.85 + ((seed % 20).abs() / 100);
+      final shadeVariance = 0.92 + ((seed % 10).abs() / 100);
 
       final radius =
           (baseBalloonRadius * cfg.visualScale * sizeVariance).roundToDouble();
@@ -89,38 +90,7 @@ class BalloonPainter extends CustomPainter {
       final y = balloon.y.roundToDouble();
       final center = Offset(x, y);
 
-      if (streak >= 10) {
-        final glowOpacity = streak >= 30
-            ? 0.42
-            : streak >= 20
-                ? 0.30
-                : 0.18;
-
-        final glowBlur = streak >= 30
-            ? 18.0
-            : streak >= 20
-                ? 14.0
-                : 10.0;
-
-        final glowRadius = streak >= 30
-            ? radius + 10
-            : streak >= 20
-                ? radius + 8
-                : radius + 6;
-
-        final glowColor = streak >= 30
-            ? const Color(0xFF00E5FF)
-            : streak >= 20
-                ? const Color(0xFFFFD54F)
-                : Colors.white;
-
-        final glowPaint = Paint()
-          ..color = glowColor.withOpacity(glowOpacity)
-          ..style = PaintingStyle.fill
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowBlur);
-
-        canvas.drawCircle(center, glowRadius, glowPaint);
-      }
+      _paintStreakGlow(canvas, center, radius);
 
       final worldColor = _colorForWorld(currentWorld);
 
@@ -130,15 +100,15 @@ class BalloonPainter extends CustomPainter {
         (shadeVariance - 0.92) * 0.35,
       )!;
 
-      final paint = Paint()
+      final bodyPaint = Paint()
         ..color = baseColor
         ..style = PaintingStyle.fill
         ..isAntiAlias = true
         ..filterQuality = FilterQuality.medium;
 
-      canvas.drawCircle(center, radius, paint);
+      canvas.drawCircle(center, radius, bodyPaint);
 
-      final shadowPaint = Paint()
+      final bodyShadowPaint = Paint()
         ..shader = RadialGradient(
           center: const Alignment(0.4, 0.4),
           radius: 1.0,
@@ -150,36 +120,200 @@ class BalloonPainter extends CustomPainter {
           Rect.fromCircle(center: center, radius: radius),
         );
 
-      canvas.drawCircle(center, radius, shadowPaint);
+      canvas.drawCircle(center, radius, bodyShadowPaint);
 
-      final highlightPaint = Paint()
-        ..color = Colors.white.withOpacity(0.28)
-        ..isAntiAlias = true;
+      switch (styleVariant) {
+        case 0:
+          _paintClassicHighlights(canvas, x, y, radius);
+          break;
+        case 1:
+          _paintGlossyHighlights(canvas, x, y, radius);
+          break;
+        case 2:
+          _paintArcadeRim(canvas, center, radius);
+          _paintClassicHighlights(canvas, x, y, radius);
+          break;
+        case 3:
+          _paintCarnivalDoubleHighlight(canvas, x, y, radius);
+          _paintBottomSheen(canvas, center, radius);
+          break;
+      }
 
-      final highlightX = (x - radius * 0.35).roundToDouble();
-      final highlightY = (y - radius * 0.35).roundToDouble();
+      _paintString(canvas, balloon, x, y, radius, seed);
+    }
+  }
 
-      canvas.drawCircle(
-        Offset(highlightX, highlightY),
-        radius * 0.25,
-        highlightPaint,
+  void _paintStreakGlow(Canvas canvas, Offset center, double radius) {
+    if (streak < 10) return;
+
+    final glowOpacity = streak >= 30
+        ? 0.42
+        : streak >= 20
+            ? 0.30
+            : 0.18;
+
+    final glowBlur = streak >= 30
+        ? 18.0
+        : streak >= 20
+            ? 14.0
+            : 10.0;
+
+    final glowRadius = streak >= 30
+        ? radius + 10
+        : streak >= 20
+            ? radius + 8
+            : radius + 6;
+
+    final glowColor = streak >= 30
+        ? const Color(0xFF00E5FF)
+        : streak >= 20
+            ? const Color(0xFFFFD54F)
+            : Colors.white;
+
+    final glowPaint = Paint()
+      ..color = glowColor.withOpacity(glowOpacity)
+      ..style = PaintingStyle.fill
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowBlur);
+
+    canvas.drawCircle(center, glowRadius, glowPaint);
+  }
+
+  void _paintClassicHighlights(
+    Canvas canvas,
+    double x,
+    double y,
+    double radius,
+  ) {
+    final highlightPaint = Paint()
+      ..color = Colors.white.withOpacity(0.28)
+      ..isAntiAlias = true;
+
+    final highlightX = (x - radius * 0.35).roundToDouble();
+    final highlightY = (y - radius * 0.35).roundToDouble();
+
+    canvas.drawCircle(
+      Offset(highlightX, highlightY),
+      radius * 0.25,
+      highlightPaint,
+    );
+  }
+
+  void _paintGlossyHighlights(
+    Canvas canvas,
+    double x,
+    double y,
+    double radius,
+  ) {
+    final mainHighlight = Paint()
+      ..color = Colors.white.withOpacity(0.34)
+      ..isAntiAlias = true;
+
+    final smallHighlight = Paint()
+      ..color = Colors.white.withOpacity(0.18)
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(
+      Offset(
+        (x - radius * 0.34).roundToDouble(),
+        (y - radius * 0.36).roundToDouble(),
+      ),
+      radius * 0.28,
+      mainHighlight,
+    );
+
+    canvas.drawCircle(
+      Offset(
+        (x - radius * 0.10).roundToDouble(),
+        (y - radius * 0.52).roundToDouble(),
+      ),
+      radius * 0.11,
+      smallHighlight,
+    );
+  }
+
+  void _paintArcadeRim(Canvas canvas, Offset center, double radius) {
+    final rimPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.35
+      ..color = Colors.white.withOpacity(0.16)
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(center, radius - 0.8, rimPaint);
+  }
+
+  void _paintCarnivalDoubleHighlight(
+    Canvas canvas,
+    double x,
+    double y,
+    double radius,
+  ) {
+    final strongHighlight = Paint()
+      ..color = Colors.white.withOpacity(0.30)
+      ..isAntiAlias = true;
+
+    final softHighlight = Paint()
+      ..color = Colors.white.withOpacity(0.16)
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(
+      Offset(
+        (x - radius * 0.33).roundToDouble(),
+        (y - radius * 0.34).roundToDouble(),
+      ),
+      radius * 0.23,
+      strongHighlight,
+    );
+
+    canvas.drawCircle(
+      Offset(
+        (x - radius * 0.02).roundToDouble(),
+        (y - radius * 0.18).roundToDouble(),
+      ),
+      radius * 0.10,
+      softHighlight,
+    );
+  }
+
+  void _paintBottomSheen(Canvas canvas, Offset center, double radius) {
+    final sheenPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          Colors.white.withOpacity(0.08),
+        ],
+      ).createShader(
+        Rect.fromCircle(center: center, radius: radius),
       );
 
-      if (seed % 3 == 0) {
-        final stringPaint = Paint()
-          ..color = Colors.black.withOpacity(0.35)
-          ..strokeWidth = 1.2;
+    canvas.drawCircle(center, radius, sheenPaint);
+  }
 
-        final swayX = sin(balloon.phase + balloon.age * 1.15) * 4.0;
-        final swayY = sin(balloon.phase + balloon.age * 0.65) * 1.2;
+  void _paintString(
+    Canvas canvas,
+    Balloon balloon,
+    double x,
+    double y,
+    double radius,
+    int seed,
+  ) {
+    if (seed % 3 != 0) return;
 
-        canvas.drawLine(
-          Offset(x, y + radius),
-          Offset(x + swayX, y + radius + 18 + swayY),
-          stringPaint,
-        );
-      }
-    }
+    final stringPaint = Paint()
+      ..color = Colors.black.withOpacity(0.35)
+      ..strokeWidth = 1.2
+      ..isAntiAlias = true;
+
+    final stringLength = 17.0 + ((seed % 4).abs() * 1.5);
+    final swayX = sin(balloon.phase + balloon.age * 1.15) * 4.0;
+    final swayY = sin(balloon.phase + balloon.age * 0.65) * 1.2;
+
+    canvas.drawLine(
+      Offset(x, y + radius),
+      Offset(x + swayX, y + radius + stringLength + swayY),
+      stringPaint,
+    );
   }
 
   Color _colorForWorld(int world) {
