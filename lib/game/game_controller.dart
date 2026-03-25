@@ -32,7 +32,11 @@ class GameController {
   int _perfectChain = 0;
   bool _lastTapPerfect = false;  
 
+  int _timingChain = 0;
+  bool _timingLockActive = false;
+
   DateTime? lastTapTime;
+  DateTime? _lastSuccessfulTapTime;
 
   GameController({
     required this.momentum,
@@ -47,6 +51,9 @@ class GameController {
   int get perfectHits => _perfectHits;
   int get perfectChain => _perfectChain;
   bool get lastTapPerfect => _lastTapPerfect;
+
+  int get timingChain => _timingChain;
+  bool get timingLockActive => _timingLockActive;
 
   double get accuracy01 => momentum.accuracy01;
 
@@ -66,12 +73,37 @@ class GameController {
   }
 
   void registerTap({required bool hit, bool perfect = false}) {
-    lastTapTime = DateTime.now();
+    final now = DateTime.now();
+    lastTapTime = now;
     _lastTapPerfect = hit && perfect;
 
     momentum.registerTap(hit: hit);
 
     if (hit) {
+      if (_lastSuccessfulTapTime != null) {
+        final gapMs = now.difference(_lastSuccessfulTapTime!).inMilliseconds;
+        final inRhythmWindow = gapMs >= 115 && gapMs <= 255;
+
+        if (inRhythmWindow) {
+          _timingChain++;
+        } else {
+          _timingChain = 1;
+        }
+      } else {
+        _timingChain = 1;
+      }
+
+      _lastSuccessfulTapTime = now;
+      final timingWasActive = _timingLockActive;
+      _timingLockActive = _timingChain >= 3;
+
+      if (_timingLockActive && !timingWasActive) {
+        gameState.log(
+          'TIMING LOCK x$_timingChain',
+          type: DebugEventType.system,
+        );
+      }
+
       if (perfect) {
         _perfectHits++;
         _perfectChain++;
@@ -95,6 +127,9 @@ class GameController {
       }
     } else {
       _perfectChain = 0;
+      _timingChain = 0;
+      _timingLockActive = false;
+      _lastSuccessfulTapTime = null;
       _missCount++;
 
       gameState.log(
@@ -110,6 +145,10 @@ class GameController {
     _perfectHits = 0;
     _perfectChain = 0;
     _lastTapPerfect = false;
+
+    _timingChain = 0;
+    _timingLockActive = false;
+    _lastSuccessfulTapTime = null;
 
     momentum.reset();
     tier.reset();

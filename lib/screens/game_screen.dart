@@ -460,16 +460,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       PopParticle.burst(p.dx, p.dy),
     );
 
+    if (_controller.timingLockActive) {
+      final timingBurst = PopParticle.burst(p.dx, p.dy);
+
+      _particles.addAll(
+        timingBurst.take(8).map((p) => PopParticle(
+              x: p.x,
+              y: p.y,
+              vx: p.vx * 0.32,
+              vy: p.vy * 0.32,
+              age: p.age,
+              life: 0.18,
+              color: const Color(0xFF7EEBFF),
+            )),
+      );
+    }
+
     _shockwaves.add(
       PopShockwave(
         x: p.dx,
         y: p.dy,
         age: 0,
-        life: 0.35,
+        life: _controller.timingLockActive ? 0.42 : 0.35,
       ),
     );
 
-    _popShake = _controller.lastTapPerfect ? 10.0 : 6.0;
+    _popShake = _controller.lastTapPerfect
+        ? (_controller.timingLockActive ? 12.0 : 10.0)
+        : (_controller.timingLockActive ? 8.0 : 6.0);
 
     final nextStreak = widget.engine.runLifecycle.getSnapshot().streak;
     final prevMilestone = _milestoneForStreak(prevStreak);
