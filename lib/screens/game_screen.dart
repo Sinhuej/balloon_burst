@@ -824,9 +824,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case 2:
         return const Color(0xFF245C90);
       case 3:
-        return const Color(0xFF4B2D7F);
+        return const Color(0xFF51308A);
       case 4:
-        return const Color(0xFF1F2633);
+        return const Color(0xFF161C27);
       default:
         return const Color(0xFF6EC6FF);
     }

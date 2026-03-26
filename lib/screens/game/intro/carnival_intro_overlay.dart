@@ -45,9 +45,15 @@ class _CarnivalIntroOverlayState extends State<CarnivalIntroOverlay>
       child: AnimatedBuilder(
         animation: _ctrl,
         builder: (context, _) {
-          return const SizedBox.expand(
-            child: CustomPaint(
-              painter: _IntroPainter(),
+          final t = _ctrl.value;
+          final fade = t < 0.72 ? 1.0 : (1.0 - ((t - 0.72) / 0.28)).clamp(0.0, 1.0);
+
+          return Opacity(
+            opacity: fade,
+            child: const SizedBox.expand(
+              child: CustomPaint(
+                painter: _IntroPainter(),
+              ),
             ),
           );
         },

@@ -496,24 +496,28 @@ class _GameCanvasState extends State<GameCanvas>
     if (widget.currentWorld != 4) return const SizedBox.shrink();
 
     const stars = <Offset>[
-      Offset(0.10, 0.12),
-      Offset(0.22, 0.18),
-      Offset(0.34, 0.09),
-      Offset(0.48, 0.16),
-      Offset(0.62, 0.11),
-      Offset(0.76, 0.20),
-      Offset(0.88, 0.10),
-      Offset(0.15, 0.30),
-      Offset(0.29, 0.26),
-      Offset(0.41, 0.34),
-      Offset(0.57, 0.28),
-      Offset(0.71, 0.32),
-      Offset(0.85, 0.26),
-      Offset(0.18, 0.44),
-      Offset(0.36, 0.48),
-      Offset(0.52, 0.42),
-      Offset(0.68, 0.46),
-      Offset(0.82, 0.40),
+      Offset(0.08, 0.10),
+      Offset(0.16, 0.18),
+      Offset(0.25, 0.08),
+      Offset(0.34, 0.15),
+      Offset(0.45, 0.11),
+      Offset(0.56, 0.07),
+      Offset(0.66, 0.16),
+      Offset(0.78, 0.09),
+      Offset(0.89, 0.14),
+      Offset(0.12, 0.28),
+      Offset(0.23, 0.24),
+      Offset(0.37, 0.31),
+      Offset(0.49, 0.27),
+      Offset(0.61, 0.34),
+      Offset(0.74, 0.26),
+      Offset(0.86, 0.30),
+      Offset(0.18, 0.42),
+      Offset(0.31, 0.47),
+      Offset(0.47, 0.41),
+      Offset(0.59, 0.46),
+      Offset(0.73, 0.40),
+      Offset(0.84, 0.44),
     ];
 
     return Positioned.fill(
@@ -688,11 +692,11 @@ class _World4StarsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final softPaint = Paint()
-      ..color = Colors.white.withOpacity(0.22)
+      ..color = Colors.white.withOpacity(0.26)
       ..isAntiAlias = true;
 
     final brightPaint = Paint()
-      ..color = const Color(0xFFDDF4FF).withOpacity(0.34)
+      ..color = const Color(0xFFDDF4FF).withOpacity(0.42)
       ..isAntiAlias = true;
 
     for (int i = 0; i < stars.length; i++) {
@@ -701,7 +705,7 @@ class _World4StarsPainter extends CustomPainter {
       final y = size.height * p.dy;
 
       final isBright = i % 4 == 0;
-      final radius = isBright ? 1.6 : 1.0;
+      final radius = isBright ? 1.8 : 1.1;
 
       canvas.drawCircle(
         Offset(x, y),
