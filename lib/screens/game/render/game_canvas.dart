@@ -674,7 +674,11 @@ class _ShockwavePainter extends CustomPainter {
         paint,
       );
     }
+  }
 
+  @override
+  bool shouldRepaint(covariant _ShockwavePainter oldDelegate) => true;
+}
 
 class _World4StarsPainter extends CustomPainter {
   final List<Offset> stars;
@@ -709,10 +713,4 @@ class _World4StarsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _World4StarsPainter oldDelegate) => false;
-}
-
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShockwavePainter oldDelegate) => true;
 }
