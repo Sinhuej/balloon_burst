@@ -559,6 +559,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _leaderboardSubmitted = false;
     _leaderboardPlacement = null;
 
+    _dangerMode = false;
+    _dangerPulseT = 0.0;
+
     widget.engine.runLifecycle.revive();
 
     _reviveProtectionActive = true;
