@@ -19,9 +19,6 @@ class BalloonSpawner {
 
   final Duration mercyWindow = const Duration(milliseconds: 120);
 
-  // 🔒 Wave control (current design: one wave at a time)
-  bool _waveActive = false;
-
   static const int world2Pops = 50;
   static const int world3Pops = 150;
   static const int world4Pops = 350;
@@ -56,6 +53,15 @@ class BalloonSpawner {
 
   static const double xClamp = 0.60;
 
+  // Anti-rhythm overlap guard:
+  // allow overlap, but don't let the screen become spammy.
+  static const Map<int, int> overlapSpawnThreshold = {
+    1: 1,
+    2: 2,
+    3: 2,
+    4: 3,
+  };
+
   void update({
     required double dt,
     required int tier,
@@ -70,15 +76,6 @@ class BalloonSpawner {
     /// Limits how many (not popped) balloons can exist simultaneously.
     required int engineMaxSimultaneousSpawns,
   }) {
-    // 🔒 Lock wave until no ACTIVE balloons remain
-    if (_waveActive) {
-      final hasActiveBalloon = balloons.any((b) => !b.isPopped);
-      if (hasActiveBalloon) return;
-
-      _waveActive = false;
-      _timer = 0.0;
-    }
-
     // ---------------------------------------------------------
     // CONCURRENCY GOVERNOR (Engine-owned)
     // ---------------------------------------------------------
@@ -87,6 +84,13 @@ class BalloonSpawner {
         (engineMaxSimultaneousSpawns - activeCount).clamp(0, 9999);
 
     if (remainingCapacity <= 0) return;
+
+    // ---------------------------------------------------------
+    // OVERLAP GUARD
+    // Allow next wave before full clear, but only once pressure drops enough.
+    // ---------------------------------------------------------
+    final int overlapGuard = overlapSpawnThreshold[currentWorld] ?? 2;
+    if (activeCount > overlapGuard) return;
 
     // ---------------------------------------------------------
     // WORLD INTERVAL (thematic pacing)
@@ -101,7 +105,6 @@ class BalloonSpawner {
     // <1.2 → faster
     // ---------------------------------------------------------
     final double engineMultiplier = engineSpawnInterval / 1.2;
-
     final double targetInterval = worldInterval * engineMultiplier;
 
     // Smooth to avoid jank
@@ -121,13 +124,12 @@ class BalloonSpawner {
 
     final List<BalloonType> types = _chooseTypesForGroup(count);
 
-    final double originRange =
-        (currentWorld <= 1) ? clusterOriginRangeWorld1 : clusterOriginRangeWorld2Plus;
+    final double originRange = (currentWorld <= 1)
+        ? clusterOriginRangeWorld1
+        : clusterOriginRangeWorld2Plus;
 
     final double clusterCenterX = _pickClusterOrigin(originRange);
     final List<double> xOffsets = _xOffsetsForCount(count);
-
-    _waveActive = true;
 
     for (int i = 0; i < count; i++) {
       final int index = _spawnCount++;
@@ -166,26 +168,22 @@ class BalloonSpawner {
     return (spawnInterval * factor).clamp(0.45, 1.6);
   }
 
-  // 🎈 Weighted cluster sizes per world
   int _pickGroupSizeForWorld(int world) {
     final roll = _rng.nextDouble();
 
     switch (world) {
       case 1:
-        // 1:20% | 2:42% | 3:38%
         if (roll < 0.20) return 1;
         if (roll < 0.62) return 2;
         return 3;
 
       case 2:
-        // 1:12% | 2:28% | 3:34% | 4:26%
         if (roll < 0.12) return 1;
         if (roll < 0.40) return 2;
         if (roll < 0.74) return 3;
         return 4;
 
       case 3:
-        // 1:06% | 2:18% | 3:32% | 4:28% | 5:16%
         if (roll < 0.06) return 1;
         if (roll < 0.24) return 2;
         if (roll < 0.56) return 3;
@@ -193,7 +191,6 @@ class BalloonSpawner {
         return 5;
 
       case 4:
-        // 1:03% | 2:12% | 3:25% | 4:28% | 5:20% | 6:12%
         if (roll < 0.03) return 1;
         if (roll < 0.15) return 2;
         if (roll < 0.40) return 3;
@@ -206,7 +203,6 @@ class BalloonSpawner {
     }
   }
 
-  // Wider perceived bottom spread
   double _pickClusterOrigin(double range) {
     final t = _rng.nextDouble();
     final biased = pow(t, currentWorld >= 3 ? 0.58 : 0.65).toDouble();
@@ -363,7 +359,5 @@ class BalloonSpawner {
     _lastLoggedWorld = 1;
     recentHits = 0;
     recentMisses = 0;
-
-    _waveActive = false;
   }
 }
