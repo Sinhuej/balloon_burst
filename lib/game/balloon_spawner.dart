@@ -47,14 +47,14 @@ class BalloonSpawner {
   static const double burstSpacingY = 26.0;
 
   // Cluster feel
-  static const double clusterSpread = 0.12;
-  static const double clusterJitter = 0.02;
+  static const double clusterSpread = 0.13;
+  static const double clusterJitter = 0.045;
 
   // Horizontal spawn range
   static const double clusterOriginRangeWorld1 = 0.56;
-  static const double clusterOriginRangeWorld2Plus = 0.66;
+  static const double clusterOriginRangeWorld2Plus = 0.68;
 
-  static const double xClamp = 0.58;
+  static const double xClamp = 0.60;
 
   void update({
     required double dt,
@@ -86,7 +86,6 @@ class BalloonSpawner {
     final int remainingCapacity =
         (engineMaxSimultaneousSpawns - activeCount).clamp(0, 9999);
 
-    // If we're at/over cap, do not spawn.
     if (remainingCapacity <= 0) return;
 
     // ---------------------------------------------------------
@@ -109,7 +108,7 @@ class BalloonSpawner {
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
 
     _timer += dt;
-    if (_timer < spawnInterval) return;
+    if (_timer < _nextSpawnThreshold()) return;
     _timer = 0.0;
 
     // ---------------------------------------------------------
@@ -118,7 +117,6 @@ class BalloonSpawner {
     final int desiredCount = _pickGroupSizeForWorld(currentWorld);
     final int count = min(desiredCount, remainingCapacity);
 
-    // If count becomes 0 (edge case), skip safely.
     if (count <= 0) return;
 
     final List<BalloonType> types = _chooseTypesForGroup(count);
@@ -155,39 +153,52 @@ class BalloonSpawner {
     }
   }
 
+  double _nextSpawnThreshold() {
+    final variance = switch (currentWorld) {
+      1 => 0.06,
+      2 => 0.10,
+      3 => 0.14,
+      4 => 0.18,
+      _ => 0.10,
+    };
+
+    final factor = 1.0 + ((_rng.nextDouble() * 2 - 1) * variance);
+    return (spawnInterval * factor).clamp(0.45, 1.6);
+  }
+
   // 🎈 Weighted cluster sizes per world
   int _pickGroupSizeForWorld(int world) {
     final roll = _rng.nextDouble();
 
     switch (world) {
       case 1:
-        // 1:25% | 2:40% | 3:35%
-        if (roll < 0.25) return 1;
-        if (roll < 0.65) return 2;
+        // 1:20% | 2:42% | 3:38%
+        if (roll < 0.20) return 1;
+        if (roll < 0.62) return 2;
         return 3;
 
       case 2:
-        // 1:20% | 2:30% | 3:30% | 4:20%
-        if (roll < 0.20) return 1;
-        if (roll < 0.50) return 2;
-        if (roll < 0.80) return 3;
+        // 1:12% | 2:28% | 3:34% | 4:26%
+        if (roll < 0.12) return 1;
+        if (roll < 0.40) return 2;
+        if (roll < 0.74) return 3;
         return 4;
 
       case 3:
-        // 1:15% | 2:25% | 3:30% | 4:20% | 5:10%
-        if (roll < 0.15) return 1;
-        if (roll < 0.40) return 2;
-        if (roll < 0.70) return 3;
-        if (roll < 0.90) return 4;
+        // 1:06% | 2:18% | 3:32% | 4:28% | 5:16%
+        if (roll < 0.06) return 1;
+        if (roll < 0.24) return 2;
+        if (roll < 0.56) return 3;
+        if (roll < 0.84) return 4;
         return 5;
 
       case 4:
-        // 1:10% | 2:20% | 3:25% | 4:20% | 5:15% | 6:10%
-        if (roll < 0.10) return 1;
-        if (roll < 0.30) return 2;
-        if (roll < 0.55) return 3;
-        if (roll < 0.75) return 4;
-        if (roll < 0.90) return 5;
+        // 1:03% | 2:12% | 3:25% | 4:28% | 5:20% | 6:12%
+        if (roll < 0.03) return 1;
+        if (roll < 0.15) return 2;
+        if (roll < 0.40) return 3;
+        if (roll < 0.68) return 4;
+        if (roll < 0.88) return 5;
         return 6;
 
       default:
@@ -198,7 +209,7 @@ class BalloonSpawner {
   // Wider perceived bottom spread
   double _pickClusterOrigin(double range) {
     final t = _rng.nextDouble();
-    final biased = pow(t, 0.65);
+    final biased = pow(t, currentWorld >= 3 ? 0.58 : 0.65).toDouble();
     final sign = _rng.nextBool() ? 1.0 : -1.0;
     return biased * range * sign;
   }
@@ -210,7 +221,10 @@ class BalloonSpawner {
     final List<double> out = [];
 
     for (int i = 0; i < count; i++) {
-      out.add((i - mid) * clusterSpread);
+      final base = (i - mid) * clusterSpread;
+      final asymmetry = (_rng.nextDouble() * 2 - 1) *
+          (currentWorld >= 3 ? 0.035 : 0.022);
+      out.add(base + asymmetry);
     }
 
     out.shuffle(_rng);
