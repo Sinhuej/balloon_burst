@@ -44,14 +44,16 @@ class BalloonSpawner {
   static const double burstSpacingY = 26.0;
 
   // Cluster feel
-  static const double clusterSpread = 0.13;
-  static const double clusterJitter = 0.045;
+  static const double clusterSpread = 0.16;
+  static const double clusterJitter = 0.05;
 
-  // Horizontal spawn range
-  static const double clusterOriginRangeWorld1 = 0.56;
-  static const double clusterOriginRangeWorld2Plus = 0.68;
+  // Horizontal spawn range by world
+  static const double clusterOriginRangeWorld1 = 0.58;
+  static const double clusterOriginRangeWorld2 = 0.72;
+  static const double clusterOriginRangeWorld3 = 0.78;
+  static const double clusterOriginRangeWorld4 = 0.84;
 
-  static const double xClamp = 0.60;
+  static const double xClamp = 0.72;
 
   // Anti-rhythm overlap guard:
   // allow overlap, but don't let the screen become spammy.
@@ -124,11 +126,9 @@ class BalloonSpawner {
 
     final List<BalloonType> types = _chooseTypesForGroup(count);
 
-    final double originRange = (currentWorld <= 1)
-        ? clusterOriginRangeWorld1
-        : clusterOriginRangeWorld2Plus;
-
-    final double clusterCenterX = _pickClusterOrigin(originRange);
+    final double clusterCenterX = _pickClusterOrigin(
+      _clusterOriginRangeForWorld(currentWorld),
+    );
     final List<double> xOffsets = _xOffsetsForCount(count);
 
     for (int i = 0; i < count; i++) {
@@ -203,9 +203,29 @@ class BalloonSpawner {
     }
   }
 
+  double _clusterOriginRangeForWorld(int world) {
+    switch (world) {
+      case 2:
+        return clusterOriginRangeWorld2;
+      case 3:
+        return clusterOriginRangeWorld3;
+      case 4:
+        return clusterOriginRangeWorld4;
+      default:
+        return clusterOriginRangeWorld1;
+    }
+  }
+
   double _pickClusterOrigin(double range) {
     final t = _rng.nextDouble();
-    final biased = pow(t, currentWorld >= 3 ? 0.58 : 0.65).toDouble();
+    final biased = pow(
+      t,
+      currentWorld >= 4
+          ? 0.52
+          : currentWorld >= 3
+              ? 0.56
+              : 0.65,
+    ).toDouble();
     final sign = _rng.nextBool() ? 1.0 : -1.0;
     return biased * range * sign;
   }
@@ -219,7 +239,13 @@ class BalloonSpawner {
     for (int i = 0; i < count; i++) {
       final base = (i - mid) * clusterSpread;
       final asymmetry = (_rng.nextDouble() * 2 - 1) *
-          (currentWorld >= 3 ? 0.035 : 0.022);
+          (currentWorld >= 4
+              ? 0.055
+              : currentWorld >= 3
+                  ? 0.045
+                  : currentWorld >= 2
+                      ? 0.030
+                      : 0.020);
       out.add(base + asymmetry);
     }
 
