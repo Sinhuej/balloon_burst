@@ -43,17 +43,17 @@ class BalloonSpawner {
   // Vertical stacking on entry
   static const double burstSpacingY = 26.0;
 
-  // Cluster feel
-  static const double clusterSpread = 0.16;
-  static const double clusterJitter = 0.05;
+  // Cluster feel — intentionally aggressive for stronger left/right scan pressure.
+  static const double clusterSpread = 0.21;
+  static const double clusterJitter = 0.07;
 
   // Horizontal spawn range by world
-  static const double clusterOriginRangeWorld1 = 0.58;
-  static const double clusterOriginRangeWorld2 = 0.72;
-  static const double clusterOriginRangeWorld3 = 0.78;
-  static const double clusterOriginRangeWorld4 = 0.84;
+  static const double clusterOriginRangeWorld1 = 0.66;
+  static const double clusterOriginRangeWorld2 = 0.82;
+  static const double clusterOriginRangeWorld3 = 0.96;
+  static const double clusterOriginRangeWorld4 = 1.06;
 
-  static const double xClamp = 0.72;
+  static const double xClamp = 0.92;
 
   // Anti-rhythm overlap guard:
   // allow overlap, but don't let the screen become spammy.
@@ -69,56 +69,30 @@ class BalloonSpawner {
     required int tier,
     required List<Balloon> balloons,
     required double viewportHeight,
-
-    /// ENGINE: difficulty-derived base spawn interval
-    /// e.g. 1.2 = neutral, <1.2 = faster
     required double engineSpawnInterval,
-
-    /// ENGINE: difficulty-derived concurrency cap
-    /// Limits how many (not popped) balloons can exist simultaneously.
     required int engineMaxSimultaneousSpawns,
   }) {
-    // ---------------------------------------------------------
-    // CONCURRENCY GOVERNOR (Engine-owned)
-    // ---------------------------------------------------------
     final int activeCount = balloons.where((b) => !b.isPopped).length;
     final int remainingCapacity =
         (engineMaxSimultaneousSpawns - activeCount).clamp(0, 9999);
 
     if (remainingCapacity <= 0) return;
 
-    // ---------------------------------------------------------
-    // OVERLAP GUARD
-    // Allow next wave before full clear, but only once pressure drops enough.
-    // ---------------------------------------------------------
     final int overlapGuard = overlapSpawnThreshold[currentWorld] ?? 2;
     if (activeCount > overlapGuard) return;
 
-    // ---------------------------------------------------------
-    // WORLD INTERVAL (thematic pacing)
-    // ---------------------------------------------------------
     final double worldInterval =
         worldSpawnInterval[currentWorld] ?? spawnInterval;
 
-    // ---------------------------------------------------------
-    // ENGINE DIFFICULTY MULTIPLIER (time pressure)
-    // Engine base interval = 1.2
-    // 1.2 → neutral
-    // <1.2 → faster
-    // ---------------------------------------------------------
     final double engineMultiplier = engineSpawnInterval / 1.2;
     final double targetInterval = worldInterval * engineMultiplier;
 
-    // Smooth to avoid jank
     spawnInterval += (targetInterval - spawnInterval) * 0.05;
 
     _timer += dt;
     if (_timer < _nextSpawnThreshold()) return;
     _timer = 0.0;
 
-    // ---------------------------------------------------------
-    // GROUP SIZE (world flavor), then clamp to remaining capacity
-    // ---------------------------------------------------------
     final int desiredCount = _pickGroupSizeForWorld(currentWorld);
     final int count = min(desiredCount, remainingCapacity);
 
@@ -221,10 +195,12 @@ class BalloonSpawner {
     final biased = pow(
       t,
       currentWorld >= 4
-          ? 0.52
+          ? 0.46
           : currentWorld >= 3
-              ? 0.56
-              : 0.65,
+              ? 0.50
+              : currentWorld >= 2
+                  ? 0.58
+                  : 0.68,
     ).toDouble();
     final sign = _rng.nextBool() ? 1.0 : -1.0;
     return biased * range * sign;
@@ -240,12 +216,12 @@ class BalloonSpawner {
       final base = (i - mid) * clusterSpread;
       final asymmetry = (_rng.nextDouble() * 2 - 1) *
           (currentWorld >= 4
-              ? 0.055
+              ? 0.090
               : currentWorld >= 3
-                  ? 0.045
+                  ? 0.075
                   : currentWorld >= 2
-                      ? 0.030
-                      : 0.020);
+                      ? 0.050
+                      : 0.028);
       out.add(base + asymmetry);
     }
 
