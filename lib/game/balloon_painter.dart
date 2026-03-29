@@ -96,7 +96,7 @@ class BalloonPainter extends CustomPainter {
       final baseColor = Color.lerp(
         paletteColor,
         Colors.white,
-        (shadeVariance - 0.92) * 0.08,
+        (shadeVariance - 0.92) * 0.03,
       )!;
 
       final bodyPaint = Paint()
@@ -150,28 +150,30 @@ class BalloonPainter extends CustomPainter {
     if (streak < 10) return;
 
     final glowOpacity = streak >= 30
-        ? 0.42
+        ? 0.44
         : streak >= 20
-            ? 0.30
-            : 0.18;
+            ? 0.32
+            : 0.20;
 
     final glowBlur = streak >= 30
-        ? 18.0
+        ? 20.0
         : streak >= 20
-            ? 14.0
-            : 10.0;
+            ? 15.0
+            : 10.5;
 
     final glowRadius = streak >= 30
-        ? radius + 10
+        ? radius + 11
         : streak >= 20
-            ? radius + 8
-            : radius + 6;
+            ? radius + 8.5
+            : radius + 6.5;
 
     final glowColor = streak >= 30
-        ? const Color(0xFF00E5FF)
-        : streak >= 20
+        ? (currentWorld == 1
             ? const Color(0xFFFFD54F)
-            : Colors.white;
+            : const Color(0xFF00E5FF))
+        : streak >= 20
+            ? const Color(0xFFFFC107)
+            : const Color(0xFFFFF59D);
 
     final glowPaint = Paint()
       ..color = glowColor.withOpacity(glowOpacity)
@@ -188,7 +190,7 @@ class BalloonPainter extends CustomPainter {
     double radius,
   ) {
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.38)
+      ..color = Colors.white.withOpacity(0.36)
       ..isAntiAlias = true;
 
     canvas.drawCircle(
@@ -208,7 +210,7 @@ class BalloonPainter extends CustomPainter {
     double radius,
   ) {
     final mainHighlight = Paint()
-      ..color = Colors.white.withOpacity(0.52)
+      ..color = Colors.white.withOpacity(0.48)
       ..isAntiAlias = true;
 
     final elongatedHighlight = Paint()
@@ -239,7 +241,7 @@ class BalloonPainter extends CustomPainter {
 
   void _paintSpecDot(Canvas canvas, double x, double y, double radius) {
     final dotPaint = Paint()
-      ..color = Colors.white.withOpacity(0.34)
+      ..color = Colors.white.withOpacity(0.32)
       ..isAntiAlias = true;
 
     canvas.drawCircle(
@@ -256,7 +258,7 @@ class BalloonPainter extends CustomPainter {
     final rimPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
-      ..color = Colors.white.withOpacity(0.24)
+      ..color = Colors.white.withOpacity(0.22)
       ..isAntiAlias = true;
 
     canvas.drawCircle(center, radius - 1.0, rimPaint);
@@ -264,7 +266,7 @@ class BalloonPainter extends CustomPainter {
 
   void _paintSideSheen(Canvas canvas, double x, double y, double radius) {
     final sheenPaint = Paint()
-      ..color = Colors.white.withOpacity(0.24)
+      ..color = Colors.white.withOpacity(0.22)
       ..isAntiAlias = true;
 
     canvas.drawOval(
@@ -287,7 +289,7 @@ class BalloonPainter extends CustomPainter {
     double radius,
   ) {
     final strongHighlight = Paint()
-      ..color = Colors.white.withOpacity(0.38)
+      ..color = Colors.white.withOpacity(0.36)
       ..isAntiAlias = true;
 
     final softHighlight = Paint()
@@ -315,7 +317,7 @@ class BalloonPainter extends CustomPainter {
 
   void _paintCarnivalStripe(Canvas canvas, Offset center, double radius) {
     final stripePaint = Paint()
-      ..color = Colors.white.withOpacity(0.24)
+      ..color = Colors.white.withOpacity(0.22)
       ..isAntiAlias = true;
 
     final stripeRect = Rect.fromCenter(
@@ -339,7 +341,7 @@ class BalloonPainter extends CustomPainter {
         end: Alignment.bottomCenter,
         colors: [
           Colors.transparent,
-          Colors.white.withOpacity(0.18),
+          Colors.white.withOpacity(0.14),
         ],
       ).createShader(
         Rect.fromCircle(center: center, radius: radius),
@@ -406,41 +408,41 @@ class BalloonPainter extends CustomPainter {
     switch (world) {
       case 2:
         return const [
-          Color(0xFF1EA7FF),
-          Color(0xFFFF3D9A),
-          Color(0xFFFFC400),
-          Color(0xFF00D66B),
-          Color(0xFF8B5CFF),
-          Color(0xFFFF7A00),
-          Color(0xFF00D9E8),
+          Color(0xFF1E90FF), // blue
+          Color(0xFFFF2D55), // bright pink
+          Color(0xFFFFC400), // yellow
+          Color(0xFF00C853), // green
+          Color(0xFF7C4DFF), // purple
+          Color(0xFFFF6D00), // orange
+          Color(0xFF00B8D4), // teal
         ];
       case 3:
         return const [
-          Color(0xFFC23BFF),
-          Color(0xFFFF4DAD),
-          Color(0xFFFFC400),
-          Color(0xFF00E07A),
-          Color(0xFF2EC5FF),
-          Color(0xFFFF7043),
-          Color(0xFFFF6BFF),
+          Color(0xFFB026FF), // electric violet
+          Color(0xFFFF2E88), // hot pink
+          Color(0xFFFFD600), // neon yellow
+          Color(0xFF00E676), // neon green
+          Color(0xFF00B0FF), // cyan-blue
+          Color(0xFFFF6E40), // orange coral
+          Color(0xFFE040FB), // magenta
         ];
       case 4:
         return const [
-          Color(0xFF6FB7FF),
-          Color(0xFFFFC400),
-          Color(0xFFFF5C5C),
-          Color(0xFF2FE6FF),
-          Color(0xFFF07BFF),
-          Color(0xFF67FFB3),
+          Color(0xFF64B5F6), // icy blue
+          Color(0xFFFFC400), // gold
+          Color(0xFFFF5252), // coral red
+          Color(0xFF18FFFF), // electric cyan
+          Color(0xFFEA80FC), // orchid
+          Color(0xFF69F0AE), // mint
         ];
       default:
         return const [
-          Color(0xFFFF2D2D),
-          Color(0xFFFF8A00),
-          Color(0xFFFFE600),
-          Color(0xFF00D95F),
-          Color(0xFF1E90FF),
-          Color(0xFFFF3DA5),
+          Color(0xFFFF2A2A), // true red
+          Color(0xFFFF7A00), // orange
+          Color(0xFFFFE000), // yellow
+          Color(0xFF00C853), // green
+          Color(0xFF2979FF), // blue
+          Color(0xFFFF2E88), // carnival pink
         ];
     }
   }
