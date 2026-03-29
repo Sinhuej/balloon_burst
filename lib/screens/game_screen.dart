@@ -561,6 +561,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _dangerMode = false;
     _dangerPulseT = 0.0;
+    _controller.clearDangerTelemetryForRevive();
 
     widget.engine.runLifecycle.revive();
 

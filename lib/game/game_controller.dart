@@ -139,6 +139,22 @@ class GameController {
     }
   }
 
+  void clearDangerTelemetryForRevive() {
+    _escapeCount = 0;
+    _missCount = 0;
+    _perfectChain = 0;
+    _lastTapPerfect = false;
+
+    _timingChain = 0;
+    _timingLockActive = false;
+    _lastSuccessfulTapTime = null;
+
+    gameState.log(
+      'SYSTEM: revive cleared local danger telemetry',
+      type: DebugEventType.system,
+    );
+  }
+
   void reset() {
     _escapeCount = 0;
     _missCount = 0;
