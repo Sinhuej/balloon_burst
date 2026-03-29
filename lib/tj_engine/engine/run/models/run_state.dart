@@ -42,6 +42,7 @@ enum EndReason {
   gameOver,
   escapeLimit,
   missLimit,
+  victory,
   timeout,
   systemInterrupt,
   unknown,

@@ -4,6 +4,7 @@ import 'package:balloon_burst/tj_engine/engine/run/models/run_state.dart';
 enum RunEndReason {
   miss,
   escape,
+  victory,
 }
 
 class RunEndState {
@@ -28,6 +29,10 @@ class RunEndState {
 
       case EndReason.missLimit:
         mappedReason = RunEndReason.miss;
+        break;
+
+      case EndReason.victory:
+        mappedReason = RunEndReason.victory;
         break;
 
       // All other engine reasons map to "miss"

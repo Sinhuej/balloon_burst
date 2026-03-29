@@ -91,6 +91,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const Duration _mercyWindow = Duration(milliseconds: 120);
 
   static const int _reviveCost = 50;
+  static const int _tapJunkieVictoryPops = 525;
 
   bool get _isRunEnded => widget.engine.runLifecycle.state == RunState.ended;
 
@@ -221,6 +222,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       widget.engine.runLifecycle.report(
         WorldTransitionEvent(newWorldLevel: currentWorld),
       );
+    }
+
+    if (widget.spawner.totalPops >= _tapJunkieVictoryPops &&
+        widget.engine.runLifecycle.state == RunState.running) {
+      widget.engine.runLifecycle.endRun(EndReason.victory);
+      _maybeSubmitLeaderboard();
+      if (mounted) setState(() {});
+      return;
     }
 
     if (!_canCountMisses && _balloons.isNotEmpty) {

@@ -36,12 +36,19 @@ class RunEndMessages {
     },
   ];
 
+  static final Map<String, String> _victoryVariant = {
+    'title': 'TapJunkie Victory',
+    'body': 'You conquered the climb.\nThe sky belongs to TapJunkies now.',
+  };
+
   static Map<String, String> _variant(RunEndState state) {
     switch (state.reason) {
       case RunEndReason.miss:
         return _missVariants[_variantIndex(state, _missVariants.length)];
       case RunEndReason.escape:
         return _escapeVariants[_variantIndex(state, _escapeVariants.length)];
+      case RunEndReason.victory:
+        return _victoryVariant;
     }
   }
 
