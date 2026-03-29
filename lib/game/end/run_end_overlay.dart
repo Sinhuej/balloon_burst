@@ -165,6 +165,54 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     }
   }
 
+  bool get _isVictory => widget.state.reason == RunEndReason.victory;
+
+  List<Shadow> _titleShadows() {
+    if (_isVictory) {
+      return const [
+        Shadow(color: Colors.black, blurRadius: 12, offset: Offset(0, 2)),
+        Shadow(color: Color(0xFFFFD54F), blurRadius: 18),
+        Shadow(color: Color(0xFF00D8FF), blurRadius: 26),
+      ];
+    }
+
+    return const [
+      Shadow(color: Colors.black, blurRadius: 12, offset: Offset(0, 2)),
+      Shadow(color: Color(0xFF00D8FF), blurRadius: 22),
+    ];
+  }
+
+  Widget _buildVictoryAccent() {
+    if (!_isVictory) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: const Color(0x22FFD54F),
+        border: Border.all(color: const Color(0x66FFE082), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x44FFD54F).withOpacity(0.55),
+            blurRadius: 20,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: const Text(
+        '🏆 WORLD 4 CLEARED • TAPJUNKIE VICTORY',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Color(0xFFFFF4C2),
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.0,
+        ),
+      ),
+    );
+  }
+
   int _totalForReward(RunReward reward) {
     return reward.baseCoins +
         reward.popCoins +
@@ -265,6 +313,23 @@ class _RunEndOverlayState extends State<RunEndOverlay>
 
     return Column(
       children: [
+        if (_isVictory) ...[
+          const Text(
+            '🏆 TAPJUNKIE VICTORY',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFFFFE082),
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing: 1.0,
+              shadows: [
+                Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
+                Shadow(color: Color(0xFFFFC107), blurRadius: 16),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         ScaleTransition(
           scale: _rankScale,
           child: Text(
@@ -272,7 +337,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
             style: TextStyle(
               color: _rankColor(rank),
               fontWeight: FontWeight.w900,
-              fontSize: 28,
+              fontSize: _isVictory ? 30 : 28,
               letterSpacing: 0.9,
               shadows: _rankShadows(rank),
             ),
@@ -341,14 +406,14 @@ class _RunEndOverlayState extends State<RunEndOverlay>
     return Column(
       children: [
         const SizedBox(height: 18),
-        const Text(
-          'RUN REWARD',
+        Text(
+          _isVictory ? 'VICTORY REWARD' : 'RUN REWARD',
           style: TextStyle(
-            color: Colors.amber,
+            color: _isVictory ? const Color(0xFFFFE082) : Colors.amber,
             fontWeight: FontWeight.w900,
             fontSize: 16,
             letterSpacing: 1.4,
-            shadows: [
+            shadows: const [
               Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
               Shadow(color: Color(0xFFFFC107), blurRadius: 16),
             ],
@@ -358,7 +423,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF10212F),
+            color: _isVictory ? const Color(0xFF132230) : const Color(0xFF10212F),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.white.withOpacity(0.08)),
             boxShadow: [
@@ -489,25 +554,16 @@ class _RunEndOverlayState extends State<RunEndOverlay>
           const SizedBox(height: 24),
           Text(
             RunEndMessages.title(widget.state),
-            style: const TextStyle(
-              fontSize: 34,
+            style: TextStyle(
+              fontSize: _isVictory ? 36 : 34,
               color: Colors.white,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.4,
-              shadows: [
-                Shadow(
-                  color: Colors.black,
-                  blurRadius: 12,
-                  offset: Offset(0, 2),
-                ),
-                Shadow(
-                  color: Color(0xFF00D8FF),
-                  blurRadius: 22,
-                ),
-              ],
+              shadows: _titleShadows(),
             ),
             textAlign: TextAlign.center,
           ),
+          _buildVictoryAccent(),
           const SizedBox(height: 16),
           Text(
             RunEndMessages.body(widget.state),
@@ -573,6 +629,7 @@ class _RunEndOverlayState extends State<RunEndOverlay>
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildBrandLockup(),
+          _buildVictoryAccent(),
           const SizedBox(height: 12),
           _buildStatsHeader(),
           if (reward != null) ...[
