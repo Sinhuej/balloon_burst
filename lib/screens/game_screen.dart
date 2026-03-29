@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:balloon_burst/audio/audio_player.dart';
+import 'package:balloon_burst/debug/auto_tap/auto_tap_controller.dart';
 import 'package:balloon_burst/debug/debug_log.dart';
 import 'package:balloon_burst/engine/momentum/momentum_controller.dart';
 import 'package:balloon_burst/engine/speed/speed_curve.dart';
@@ -85,6 +87,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int? _leaderboardPlacement;
   int _lastReportedWorld = 1;
 
+  bool _autoTapEnabled = false;
+  AutoTapMode _autoTapMode = AutoTapMode.clean;
+  late final AutoTapController _autoTapController;
+
   static const double baseRiseSpeed = 120.0;
   static const double balloonRadius = 16.0;
   static const double hitForgiveness = 18.0;
@@ -119,6 +125,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
 
     _surge = WorldSurgePulse(vsync: this);
+    _autoTapController = AutoTapController();
 
     _lastWalletBalance = widget.engine.wallet.balance;
     _walletPulse = AnimationController(
@@ -312,6 +319,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _controller.update(_balloons, dt);
 
+    _autoTapController
+      ..enabled = _autoTapEnabled
+      ..mode = _autoTapMode;
+
+    _autoTapController.update(
+      canTap: !_showIntro && !_isRunEnded && _canCountMisses,
+      lastSize: _lastSize,
+      balloons: _balloons,
+      onTapAt: _handleAutoTapAt,
+    );
+
     final escapesNow = widget.engine.runLifecycle.getSnapshot().escapes;
 
     _dangerMode = _controller.missCount >= 9 || escapesNow >= 2;
@@ -356,6 +374,68 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (streak >= 20) return 2;
     if (streak >= 10) return 1;
     return 0;
+  }
+
+  void _handleAutoTapAt(Offset localPosition) {
+    _handleTap(
+      TapDownDetails(
+        localPosition: localPosition,
+        globalPosition: localPosition,
+      ),
+    );
+  }
+
+  void _toggleAutoTap() {
+    setState(() {
+      _autoTapEnabled = !_autoTapEnabled;
+    });
+
+    if (!_autoTapEnabled) {
+      _autoTapController.reset();
+    }
+  }
+
+  void _cycleAutoTapMode() {
+    setState(() {
+      _autoTapMode = _autoTapMode.next;
+    });
+  }
+
+  Widget _buildDebugHudChip({
+    required String label,
+    required VoidCallback onTap,
+    bool active = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: active
+                ? Colors.amberAccent.withOpacity(0.16)
+                : Colors.black.withOpacity(0.35),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: active
+                  ? Colors.amberAccent.withOpacity(0.55)
+                  : Colors.white.withOpacity(0.10),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.amberAccent : Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _handleTap(TapDownDetails details) {
@@ -754,6 +834,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
+              if (_showHud && kDebugMode)
+                Positioned(
+                  top: 104,
+                  left: 16,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildDebugHudChip(
+                        label: 'AUTO: ${_autoTapEnabled ? 'ON' : 'OFF'}',
+                        onTap: _toggleAutoTap,
+                        active: _autoTapEnabled,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildDebugHudChip(
+                        label: 'MODE: ${_autoTapMode.label}',
+                        onTap: _cycleAutoTapMode,
+                        active: _autoTapEnabled,
+                      ),
+                    ],
+                  ),
+                ),
               Positioned(
                 top: 44,
                 right: 16,

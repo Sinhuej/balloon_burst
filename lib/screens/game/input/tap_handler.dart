@@ -21,9 +21,32 @@ class TapHandler {
     required double balloonRadius,
     required double hitForgiveness,
   }) {
+    handleTapAt(
+      tapPos: details.localPosition,
+      lastSize: lastSize,
+      balloons: balloons,
+      gameState: gameState,
+      spawner: spawner,
+      controller: controller,
+      surge: surge,
+      balloonRadius: balloonRadius,
+      hitForgiveness: hitForgiveness,
+    );
+  }
+
+  static void handleTapAt({
+    required Offset tapPos,
+    required Size lastSize,
+    required List<Balloon> balloons,
+    required GameState gameState,
+    required BalloonSpawner spawner,
+    required GameController controller,
+    required WorldSurgePulse surge,
+    required double balloonRadius,
+    required double hitForgiveness,
+  }) {
     if (lastSize == Size.zero) return;
 
-    final tapPos = details.localPosition;
     final centerX = lastSize.width * 0.5;
     final widthHalf = lastSize.width * 0.5;
 
@@ -52,7 +75,6 @@ class TapHandler {
       final dy = tapPos.dy - by;
 
       final dist = sqrt(dx * dx + dy * dy);
-
       final centerBias = dx.abs();
       final tapScore = dist + centerBias * 0.35;
 
@@ -143,7 +165,7 @@ class TapHandler {
     controller.registerTap(hit: hit, perfect: perfectHit);
   }
 
-    static void clearTouch() {
-     // intentionally empty for now
-   }
- }
+  static void clearTouch() {
+    // intentionally empty for now
+  }
+}
