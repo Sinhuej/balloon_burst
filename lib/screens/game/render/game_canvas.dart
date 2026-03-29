@@ -213,6 +213,31 @@ class _GameCanvasState extends State<GameCanvas>
     return 0;
   }
 
+  bool get _isBrightWorld => widget.currentWorld == 1;
+
+  Color _streakTierAccent(int milestone) {
+    switch (milestone) {
+      case 4:
+        return Colors.amber;
+      case 3:
+        return _isBrightWorld
+            ? const Color(0xFFFFC107)
+            : const Color(0xFF00E5FF);
+      case 2:
+        return const Color(0xFFFFC107);
+      case 1:
+        return const Color(0xFFFFD54F);
+      default:
+        return Colors.white;
+    }
+  }
+
+  Color _streakBannerBg(int milestone) {
+    if (milestone >= 3) return Colors.black.withOpacity(0.72);
+    if (milestone >= 1) return Colors.black.withOpacity(0.42);
+    return Colors.black.withOpacity(0.30);
+  }
+
   TextStyle _streakStyleFor(int milestone) {
     if (milestone == 4) {
       return const TextStyle(
@@ -221,7 +246,7 @@ class _GameCanvasState extends State<GameCanvas>
         color: Colors.white,
         letterSpacing: 1.0,
         shadows: [
-          Shadow(color: Colors.black, blurRadius: 6),
+          Shadow(color: Colors.black, blurRadius: 8),
           Shadow(color: Colors.orange, blurRadius: 18),
           Shadow(color: Colors.yellow, blurRadius: 32),
         ],
@@ -230,36 +255,36 @@ class _GameCanvasState extends State<GameCanvas>
 
     switch (milestone) {
       case 3:
-        return const TextStyle(
+        return TextStyle(
           fontSize: 21,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.5,
           color: Colors.white,
           shadows: [
-            Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 2)),
-            Shadow(color: Color(0xFF00E5FF), blurRadius: 6),
+            const Shadow(color: Colors.black, blurRadius: 5, offset: Offset(0, 2)),
+            Shadow(color: _streakTierAccent(3), blurRadius: 8),
           ],
         );
       case 2:
-        return const TextStyle(
+        return TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
-          color: Color(0xFFFFE28A),
+          color: const Color(0xFFFFEEA8),
           shadows: [
-            Shadow(color: Colors.black54, blurRadius: 10),
-            Shadow(color: Color(0xFFFFC107), blurRadius: 12),
+            const Shadow(color: Colors.black54, blurRadius: 10),
+            Shadow(color: _streakTierAccent(2), blurRadius: 12),
           ],
         );
       case 1:
-        return const TextStyle(
+        return TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
-          color: Color(0xFFFFE9A6),
+          color: const Color(0xFFFFF1BF),
           shadows: [
-            Shadow(color: Colors.black45, blurRadius: 8),
-            Shadow(color: Color(0xFFFFD54F), blurRadius: 8),
+            const Shadow(color: Colors.black54, blurRadius: 9),
+            Shadow(color: _streakTierAccent(1), blurRadius: 9),
           ],
         );
       default:
@@ -295,18 +320,32 @@ class _GameCanvasState extends State<GameCanvas>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(
-                  _currentMilestone >= 3 ? 0.60 : 0.25,
-                ),
+                color: _streakBannerBg(_currentMilestone),
                 borderRadius: BorderRadius.circular(16),
                 border: _currentMilestone >= 4
                     ? Border.all(color: Colors.amber, width: 2)
                     : _currentMilestone >= 3
                         ? Border.all(
-                            color: const Color(0xFF00E5FF),
+                            color: _streakTierAccent(3),
                             width: 1.8,
                           )
-                        : null,
+                        : _currentMilestone >= 2
+                            ? Border.all(
+                                color: _streakTierAccent(2).withOpacity(0.70),
+                                width: 1.2,
+                              )
+                            : null,
+                boxShadow: _currentMilestone >= 3
+                    ? [
+                        BoxShadow(
+                          color: _streakTierAccent(3).withOpacity(
+                            _isBrightWorld ? 0.22 : 0.16,
+                          ),
+                          blurRadius: 14,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : [],
               ),
               child: Text(label, style: style),
             ),
