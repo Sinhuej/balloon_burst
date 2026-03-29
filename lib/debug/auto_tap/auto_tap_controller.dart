@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 
 import 'package:balloon_burst/gameplay/balloon.dart';
 
+const bool kEnableQaAutoTap =
+    bool.fromEnvironment('ENABLE_QA_AUTOTAP', defaultValue: false);
+
 enum AutoTapMode {
   clean,
   human,
@@ -57,7 +60,7 @@ class AutoTapController {
     required List<Balloon> balloons,
     required ValueChanged<Offset> onTapAt,
   }) {
-    if (!kDebugMode) return;
+    if (!kDebugMode && !kEnableQaAutoTap) return;
     if (!enabled) return;
     if (!canTap) return;
     if (lastSize == Size.zero) return;
@@ -122,11 +125,11 @@ class AutoTapController {
   int _reactionMs() {
     switch (mode) {
       case AutoTapMode.clean:
-        return 55 + _random.nextInt(16); // 55-70
+        return 55 + _random.nextInt(16);
       case AutoTapMode.human:
-        return 80 + _random.nextInt(51); // 80-130
+        return 80 + _random.nextInt(51);
       case AutoTapMode.fail:
-        return 120 + _random.nextInt(81); // 120-200
+        return 120 + _random.nextInt(81);
     }
   }
 

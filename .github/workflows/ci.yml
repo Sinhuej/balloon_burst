@@ -54,7 +54,7 @@ jobs:
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=ENABLE_QA_AUTOTAP=true
 
       - name: Upload release APK (always)
         if: always()
