@@ -832,13 +832,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Color _backgroundForWorld(int world) {
     switch (world) {
       case 2:
-        return const Color(0xFF245C90);
+        return const Color(0xFF1E4F82);
       case 3:
-        return const Color(0xFF51308A);
+        return const Color(0xFF4C248C);
       case 4:
-        return const Color(0xFF161C27);
+        return const Color(0xFF101722);
       default:
-        return const Color(0xFF6EC6FF);
+        return const Color(0xFF7DD3FF);
     }
   }
 }
