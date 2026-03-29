@@ -16,6 +16,7 @@ class BalloonSpawner {
   int recentHits = 0;
 
   int _lastLoggedWorld = 1;
+  double _lastClusterCenterX = 0.0;
 
   final Duration mercyWindow = const Duration(milliseconds: 120);
 
@@ -103,6 +104,8 @@ class BalloonSpawner {
     final double clusterCenterX = _pickClusterOrigin(
       _clusterOriginRangeForWorld(currentWorld),
     );
+    _lastClusterCenterX = clusterCenterX;
+
     final List<double> xOffsets = _xOffsetsForCount(count);
 
     for (int i = 0; i < count; i++) {
@@ -191,19 +194,39 @@ class BalloonSpawner {
   }
 
   double _pickClusterOrigin(double range) {
+    // World 1 stays more natural/readable.
+    if (currentWorld <= 1) {
+      final t = _rng.nextDouble();
+      final biased = pow(t, 0.68).toDouble();
+      final sign = _rng.nextBool() ? 1.0 : -1.0;
+      return biased * range * sign;
+    }
+
+    // World 2 begins waking the player up, but is still not too aggressive.
+    if (currentWorld == 2) {
+      final t = _rng.nextDouble();
+      final biased = pow(t, 0.58).toDouble();
+      final sign = _rng.nextBool() ? 1.0 : -1.0;
+      return biased * range * sign;
+    }
+
+    // Worlds 3+ bias toward the opposite side of the last cluster.
+    final double preferredSign = _lastClusterCenterX >= 0 ? -1.0 : 1.0;
+    final bool forceOpposite = _rng.nextDouble() < (currentWorld >= 4 ? 0.82 : 0.72);
+    final double sign = forceOpposite
+        ? preferredSign
+        : (_rng.nextBool() ? 1.0 : -1.0);
+
+    // Bias farther outward so the switch is felt, not just technically different.
     final t = _rng.nextDouble();
-    final biased = pow(
-      t,
-      currentWorld >= 4
-          ? 0.46
-          : currentWorld >= 3
-              ? 0.50
-              : currentWorld >= 2
-                  ? 0.58
-                  : 0.68,
-    ).toDouble();
-    final sign = _rng.nextBool() ? 1.0 : -1.0;
-    return biased * range * sign;
+    final exponent = currentWorld >= 4 ? 0.38 : 0.44;
+    final biased = pow(t, exponent).toDouble();
+
+    // Keep a minimum outward push in later worlds.
+    final outwardFloor = currentWorld >= 4 ? 0.42 : 0.32;
+    final strength = outwardFloor + ((1.0 - outwardFloor) * biased);
+
+    return strength * range * sign;
   }
 
   List<double> _xOffsetsForCount(int count) {
@@ -359,6 +382,7 @@ class BalloonSpawner {
 
     totalPops = 0;
     _lastLoggedWorld = 1;
+    _lastClusterCenterX = 0.0;
     recentHits = 0;
     recentMisses = 0;
   }
