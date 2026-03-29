@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:balloon_burst/game/game_state.dart';
-import 'package:balloon_burst/game/balloon_spawner.dart';
-
-import 'package:balloon_burst/screens/game_screen.dart';
-import 'package:balloon_burst/screens/debug_screen.dart';
-
 import 'package:balloon_burst/debug/debug_controller.dart';
+import 'package:balloon_burst/game/balloon_spawner.dart';
+import 'package:balloon_burst/game/game_state.dart';
+import 'package:balloon_burst/screens/debug_screen.dart';
+import 'package:balloon_burst/screens/game_screen.dart';
 import 'package:balloon_burst/tj_engine/engine/tj_engine.dart';
 
 class AppRoot extends StatefulWidget {
@@ -40,23 +38,29 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
-    switch (_gameState.screenMode) {
-      case ScreenMode.debug:
-        return DebugScreen(
-          gameState: _gameState,
-          spawner: _spawner,
-          debug: _debug,
-          onClose: _closeDebug,
-        );
+    final showDebug = _gameState.screenMode == ScreenMode.debug;
 
-      case ScreenMode.game:
-      default:
-        return GameScreen(
+    return Stack(
+      children: [
+        GameScreen(
           gameState: _gameState,
           spawner: _spawner,
           engine: widget.engine,
           onRequestDebug: _openDebug,
-        );
-    }
+        ),
+        if (showDebug)
+          Positioned.fill(
+            child: Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: DebugScreen(
+                gameState: _gameState,
+                spawner: _spawner,
+                debug: _debug,
+                onClose: _closeDebug,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
