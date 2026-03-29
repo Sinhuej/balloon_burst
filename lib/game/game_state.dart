@@ -25,13 +25,38 @@ class GameState {
   ScreenMode screenMode = ScreenMode.game;
 
   // -------------------------------
-  // 🔑 DEBUG LOG FORWARDING
+  // QA auto tap shared state
   // -------------------------------
+  bool autoTapEnabled = false;
+  int autoTapModeIndex = 0;
 
+  String get autoTapModeLabel {
+    switch (autoTapModeIndex) {
+      case 1:
+        return 'HUMAN';
+      case 2:
+        return 'FAIL';
+      default:
+        return 'CLEAN';
+    }
+  }
+
+  void toggleAutoTap() {
+    autoTapEnabled = !autoTapEnabled;
+  }
+
+  void cycleAutoTapMode() {
+    autoTapModeIndex = (autoTapModeIndex + 1) % 3;
+  }
+
+  // -------------------------------
+  // DEBUG LOG FORWARDING
+  // -------------------------------
   List<String> get debugLogs => DebugLog.instance.logs.toList();
+
   bool get debugFrozen => DebugLog.instance.debugFrozen;
-  Set<DebugEventType> get enabledFilters =>
-      DebugLog.instance.enabledFilters;
+
+  Set<DebugEventType> get enabledFilters => DebugLog.instance.enabledFilters;
 
   void log(
     String message, {

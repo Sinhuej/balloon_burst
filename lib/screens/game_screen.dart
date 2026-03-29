@@ -87,8 +87,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int? _leaderboardPlacement;
   int _lastReportedWorld = 1;
 
-  bool _autoTapEnabled = false;
-  AutoTapMode _autoTapMode = AutoTapMode.clean;
   late final AutoTapController _autoTapController;
 
   static const double baseRiseSpeed = 120.0;
@@ -320,8 +318,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _controller.update(_balloons, dt);
 
     _autoTapController
-      ..enabled = _autoTapEnabled
-      ..mode = _autoTapMode;
+      ..enabled = widget.gameState.autoTapEnabled
+      ..mode = _autoTapModeFromIndex(widget.gameState.autoTapModeIndex);
 
     _autoTapController.update(
       canTap: !_showIntro && !_isRunEnded && _canCountMisses,
@@ -385,19 +383,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  AutoTapMode _autoTapModeFromIndex(int index) {
+    switch (index) {
+      case 1:
+        return AutoTapMode.human;
+      case 2:
+        return AutoTapMode.fail;
+      default:
+        return AutoTapMode.clean;
+    }
+  }
+
   void _toggleAutoTap() {
     setState(() {
-      _autoTapEnabled = !_autoTapEnabled;
+      widget.gameState.toggleAutoTap();
     });
 
-    if (!_autoTapEnabled) {
+    if (!widget.gameState.autoTapEnabled) {
       _autoTapController.reset();
     }
   }
 
   void _cycleAutoTapMode() {
     setState(() {
-      _autoTapMode = _autoTapMode.next;
+      widget.gameState.cycleAutoTapMode();
     });
   }
 
@@ -842,15 +851,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildDebugHudChip(
-                        label: 'AUTO: ${_autoTapEnabled ? 'ON' : 'OFF'}',
+                        label: 'AUTO: ${widget.gameState.autoTapEnabled ? 'ON' : 'OFF'}',
                         onTap: _toggleAutoTap,
-                        active: _autoTapEnabled,
+                        active: widget.gameState.autoTapEnabled,
                       ),
                       const SizedBox(width: 8),
                       _buildDebugHudChip(
-                        label: 'MODE: ${_autoTapMode.label}',
+                        label: 'MODE: ${widget.gameState.autoTapModeLabel}',
                         onTap: _cycleAutoTapMode,
-                        active: _autoTapEnabled,
+                        active: widget.gameState.autoTapEnabled,
                       ),
                     ],
                   ),

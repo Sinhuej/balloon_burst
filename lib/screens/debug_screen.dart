@@ -31,7 +31,7 @@ class DebugScreen extends StatefulWidget {
 class _DebugScreenState extends State<DebugScreen> {
   @override
   Widget build(BuildContext context) {
-    // ✅ Authoritative logs now come from GameState -> DebugLog
+    // Authoritative logs now come from GameState -> DebugLog
     final logs = widget.gameState.debugLogs.reversed.toList();
 
     return Scaffold(
@@ -46,9 +46,8 @@ class _DebugScreenState extends State<DebugScreen> {
             icon: Icon(
               widget.gameState.debugFrozen ? Icons.play_arrow : Icons.pause,
             ),
-            tooltip: widget.gameState.debugFrozen
-                ? 'Resume logging'
-                : 'Freeze logging',
+            tooltip:
+                widget.gameState.debugFrozen ? 'Resume logging' : 'Freeze logging',
             onPressed: () {
               setState(() {
                 widget.gameState.toggleFreeze();
@@ -81,6 +80,38 @@ class _DebugScreenState extends State<DebugScreen> {
               style: const TextStyle(fontFamily: 'monospace'),
             ),
           ),
+
+          // --- QA AUTO TAP ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilterChip(
+                  label: Text(
+                    'AUTO: ${widget.gameState.autoTapEnabled ? 'ON' : 'OFF'}',
+                  ),
+                  selected: widget.gameState.autoTapEnabled,
+                  onSelected: (_) {
+                    setState(() {
+                      widget.gameState.toggleAutoTap();
+                    });
+                  },
+                ),
+                ActionChip(
+                  label: Text('MODE: ${widget.gameState.autoTapModeLabel}'),
+                  onPressed: () {
+                    setState(() {
+                      widget.gameState.cycleAutoTapMode();
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
 
           // --- FILTERS ---
           Padding(
