@@ -91,7 +91,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const Duration _mercyWindow = Duration(milliseconds: 120);
 
   static const int _reviveCost = 50;
-  static const int _tapJunkieVictoryPops = 365;
+  static const int _tapJunkieVictoryPops = 500;
 
   bool get _isRunEnded => widget.engine.runLifecycle.state == RunState.ended;
 
