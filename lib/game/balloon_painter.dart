@@ -96,7 +96,7 @@ class BalloonPainter extends CustomPainter {
       final baseColor = Color.lerp(
         paletteColor,
         Colors.white,
-        (shadeVariance - 0.92) * 0.30,
+        (shadeVariance - 0.92) * 0.16,
       )!;
 
       final bodyPaint = Paint()
@@ -188,7 +188,7 @@ class BalloonPainter extends CustomPainter {
     double radius,
   ) {
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.30)
+      ..color = Colors.white.withOpacity(0.34)
       ..isAntiAlias = true;
 
     canvas.drawCircle(
@@ -208,7 +208,7 @@ class BalloonPainter extends CustomPainter {
     double radius,
   ) {
     final mainHighlight = Paint()
-      ..color = Colors.white.withOpacity(0.40)
+      ..color = Colors.white.withOpacity(0.46)
       ..isAntiAlias = true;
 
     final elongatedHighlight = Paint()
@@ -239,7 +239,7 @@ class BalloonPainter extends CustomPainter {
 
   void _paintSpecDot(Canvas canvas, double x, double y, double radius) {
     final dotPaint = Paint()
-      ..color = Colors.white.withOpacity(0.26)
+      ..color = Colors.white.withOpacity(0.30)
       ..isAntiAlias = true;
 
     canvas.drawCircle(
@@ -264,7 +264,7 @@ class BalloonPainter extends CustomPainter {
 
   void _paintSideSheen(Canvas canvas, double x, double y, double radius) {
     final sheenPaint = Paint()
-      ..color = Colors.white.withOpacity(0.12)
+      ..color = Colors.white.withOpacity(0.22)
       ..isAntiAlias = true;
 
     canvas.drawOval(
@@ -287,7 +287,7 @@ class BalloonPainter extends CustomPainter {
     double radius,
   ) {
     final strongHighlight = Paint()
-      ..color = Colors.white.withOpacity(0.30)
+      ..color = Colors.white.withOpacity(0.34)
       ..isAntiAlias = true;
 
     final softHighlight = Paint()
@@ -315,7 +315,7 @@ class BalloonPainter extends CustomPainter {
 
   void _paintCarnivalStripe(Canvas canvas, Offset center, double radius) {
     final stripePaint = Paint()
-      ..color = Colors.white.withOpacity(0.16)
+      ..color = Colors.white.withOpacity(0.22)
       ..isAntiAlias = true;
 
     final stripeRect = Rect.fromCenter(
@@ -339,7 +339,7 @@ class BalloonPainter extends CustomPainter {
         end: Alignment.bottomCenter,
         colors: [
           Colors.transparent,
-          Colors.white.withOpacity(0.10),
+          Colors.white.withOpacity(0.14),
         ],
       ).createShader(
         Rect.fromCircle(center: center, radius: radius),
@@ -406,35 +406,41 @@ class BalloonPainter extends CustomPainter {
     switch (world) {
       case 2:
         return const [
-          Color(0xFF4DA3FF),
-          Color(0xFFFF6FAE),
-          Color(0xFFFFD54F),
-          Color(0xFF7EE787),
-          Color(0xFFB388FF),
+          Color(0xFF2EA8FF),
+          Color(0xFFFF4FA3),
+          Color(0xFFFFC928),
+          Color(0xFF3DDB7A),
+          Color(0xFF9B6BFF),
+          Color(0xFFFF8A2B),
+          Color(0xFF00D9C0),
         ];
       case 3:
         return const [
           Color(0xFFB04DFF),
-          Color(0xFFFF7AD9),
-          Color(0xFF7CF3FF),
-          Color(0xFFFFD166),
-          Color(0xFF8DFFA8),
+          Color(0xFFFF5AA5),
+          Color(0xFFFFC400),
+          Color(0xFF39D98A),
+          Color(0xFF45C2FF),
+          Color(0xFFFF7A59),
+          Color(0xFFE86BFF),
         ];
       case 4:
         return const [
-          Color(0xFF9FA8DA),
-          Color(0xFFFFC857),
-          Color(0xFFFF8A80),
-          Color(0xFF80DEEA),
-          Color(0xFFE1BEE7),
+          Color(0xFF82B1FF),
+          Color(0xFFFFC400),
+          Color(0xFFFF6E6E),
+          Color(0xFF4DE1FF),
+          Color(0xFFF08CFF),
+          Color(0xFF7CFFB2),
         ];
       default:
         return const [
-          Color(0xFFE53935),
-          Color(0xFFFFA726),
-          Color(0xFFFFEE58),
-          Color(0xFF66BB6A),
-          Color(0xFF42A5F5),
+          Color(0xFFFF3B30),
+          Color(0xFFFF8C1A),
+          Color(0xFFFFE600),
+          Color(0xFF2ED573),
+          Color(0xFF1E90FF),
+          Color(0xFFFF4FA3),
         ];
     }
   }
