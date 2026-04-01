@@ -161,19 +161,19 @@ class BalloonSpawner {
         return 4;
 
       case 3:
-        if (roll < 0.06) return 1;
+        // 1:4% | 2:20% | 3:38% | 4:28% | 5:10%
+        if (roll < 0.04) return 1;
         if (roll < 0.24) return 2;
-        if (roll < 0.56) return 3;
-        if (roll < 0.84) return 4;
+        if (roll < 0.62) return 3;
+        if (roll < 0.90) return 4;
         return 5;
 
       case 4:
-        if (roll < 0.03) return 1;
-        if (roll < 0.15) return 2;
-        if (roll < 0.40) return 3;
-        if (roll < 0.68) return 4;
-        if (roll < 0.88) return 5;
-        return 6;
+        // 1:12% | 2:38% | 3:38% | 4:12%
+        if (roll < 0.12) return 1;
+        if (roll < 0.50) return 2;
+        if (roll < 0.88) return 3;
+        return 4;
 
       default:
         return 2;
